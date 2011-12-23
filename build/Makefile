@@ -193,7 +193,7 @@ input.$(OBJ_EXT): ../src/input.cpp
 	$(info )
 
 ################################################################################
-geometry.$(OBJ_EXT): ../src/geometry.cpp
+geometry.$(OBJ_EXT): ../src/geometry.cpp ../src/geometry.h
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
     $(LIB_LOCATIONS) $(LIBS) ../src/geometry.cpp $(OUT_FLAG) geometry.$(OBJ_EXT)

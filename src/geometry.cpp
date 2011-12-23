@@ -58,6 +58,7 @@ Octant::Octant()
     children = NULL ;
     geom = NULL ;
 }
+
 void new_octant( Octant& oct )
 {
     oct.children = new Octant[8] ;
@@ -522,7 +523,7 @@ struct vectormap
         }
         if ( !hashvectors[hash].set && hash < 1024 )
         {
-        DEBUGTRACE(("key hash = %d", hash)) ;
+            DEBUGTRACE(("key hash = %d", hash)) ;
             return hash ;
         }
         else
@@ -610,6 +611,7 @@ struct idx_triangle
 ivec vbo_array[1024] = {ivec(0)} ;
 uchar vbo_elements[1024] = {0} ;
 
+static Geom* NEED_UPDATE = NULL ; // dummy used to signal that a node needs its geom rebuilt. 
 /*
     Function: extrude. 
 
@@ -655,20 +657,22 @@ uchar vbo_elements[1024] = {0} ;
 //            printf("\n New cube: %d  %d  %d", newcube.x, newcube.y, newcube.z ) ;
 //                    sprintf(geom_msgs[geom_msgs_num], "world.gridscale=%d.", world.gridscale) ; geom_msgs_num++ ;
 //                    sprintf(geom_msgs[geom_msgs_num], "world.gridsize=%d.", world.gridsize) ; geom_msgs_num++ ;
+
+
 void extrude( void * _in )
 {
     if (!havesel) return ;
 
     bool in = *(bool *)_in ;
 
-    int O = (sel_o) ; // orientation
+    int O = (sel_o) ;               // orientation
     int WS = world.scale ;
-    int WGSZ = world.gridsize ;
-    int WGSC = world.gridscale ;
-    int CGS = WS ; // current grid scale
+    int WGSi = world.gridsize ;
+    int WGSc = world.gridscale ;
+    int CGS = WS ;                  // current grid scale
     int i = 0 ;
-    ivec pos(0) ;   // used to compute vertices that go into our vbo_array
-    vectormap vmap ; // used to record new nodes and then to construct and update vector arrays
+    ivec pos(0) ;                   // used to compute vertices that go into our vbo_array
+    vectormap vmap ;                // used to record new nodes and then to construct and update vector arrays
 
     // define a range of cubes that will be created, bounded by 
     // sel_min and sel_max. These will bound the same rectangle 
@@ -679,13 +683,30 @@ void extrude( void * _in )
         sel_max[i] = max( sel_end[i], sel_start[i] ) ;
     }
 
+
+    // --------------------------------------------
+    // PHASE 1: Create tree nodes 
+    // --------------------------------------------
+
     // Where the extrusion originates is affected by what the 
     // selection cursor is currently pointed at. 
     // Are we pointed at something within the tree? 
+
+    /* 
+       step: 
+        populate the geometry tree with the newly created cubes ( deleting
+        stuff completely enclosed, and subdividing anything that is of bigger
+        scale than our current extrusion size that was partially enclosed ). 
+
+       populating the tree: 
+            - For every cube of size==world.gridsize in our selection, create a 
+              child.
+    */
+    // CASE: our cursor is on something within the octree. 
     if ( sel_path[0] >= 0 )
     {
     }
-    // Else we pointing at a world boundary. 
+    // CASE: the cursor is pointing at a world boundary 
     else if ( sel_path[0] == -1 )
     {
         // extruding inwards (not extruding)
@@ -721,8 +742,8 @@ void extrude( void * _in )
             Octant* oct = &world.root ;
             int depth = 0 ; // first child of root
 
-            // make our way to the desired node 
-            while (CGS>=WGSC)
+            // PHASE 1: Create the new tree nodes. 
+            while (CGS>=WGSc)
             {
                 if ( !oct->children ) 
                 { 
@@ -741,6 +762,7 @@ void extrude( void * _in )
                 depth++ ;
                 CGS-- ;
             }
+
             //printf("\n Created new position vector: %d %d %d", pos.x, pos.y, pos.z) ; 
             //sprintf(geom_msgs[geom_msgs_num], "octastep=%d", sel_path[depth]) ; geom_msgs_num++ ;
             //printf("\noctastep=%d  depth=%d  sel_path[depth]=%d", sel_path[depth], depth, sel_path[depth]) ; 
@@ -754,9 +776,27 @@ void extrude( void * _in )
             if (oct)
             {
                 printf("\n  allocating a geom ") ; 
-                //oct->geom = new OctExt() ;
-                oct->edges[0] = 0 ;
 
+                //oct->geom = new OctExt() ;
+                //oct->edges[0] = 0 ;
+                oct->set_all_edges() ;
+
+//printf("\n allocation: edges of this octant located at %d", (int)(&(oct->edges[0]))) ;
+
+                loopi(12)
+                {
+//printf("\n alloc: value of edges[%d] = %d", (i), (int)(oct->edges[i])) ;
+                    if (oct->edges[i]==255)
+                    {
+                        printf(" * ") ; 
+                    }
+                    else
+                    {
+                        printf(" - ") ; 
+                    }
+                }
+
+            /*
                 vmap.AddHashVector(pos) ;
                 int k = vmap.HashFindVec(pos) ;
 
@@ -766,6 +806,7 @@ void extrude( void * _in )
 
 
                 loopi(3) pos[i] = 0 ;
+            */
             }
 
             /*
@@ -784,6 +825,8 @@ void extrude( void * _in )
             */
         }
     }
+    // CASE: the cursor is not set on anything; this can happpen if we are outside 
+    // world boundaries and pointing the cursor at any part of the world. 
     else if ( sel_path[0] == -2 )
     {
         printf("\nCannot extrude when no selection is in view. \n") ; 
@@ -791,21 +834,129 @@ void extrude( void * _in )
     ivec counts(1) ; 
     // min one cube 
 
-    /* step: populate the geometry tree with the newly created cubes, replacing 
-       (and therefore deleting) anything that inside the volume of new cubes. 
+    // --------------------------------------------
+    // PHASE 2: Produce leaf vertex counts (lvc) so 
+    // that in the final phase vertex array sets can be 
+    // assigned to the right nodes. 
+    // --------------------------------------------
 
-        Populating the tree: 
-            - For every cube of size==world.gridsize in our selection, create a 
-              child.
+    // Iteration is over all nodes which have their geom==NEED_UPDATE. 
+
+    // local variables. 
+    int32_t d = 0 ;             // depth
+    Octant* CN = &world.root ;  // current node 
+    Octant* CC = NULL ;         // current child 
+    int32_t ccidx = 0 ;         // current child index
+
+    // path
+    Octant* path[20] = {NULL} ;
+    int32_t idxs[20] = {-1} ;   // Used to track path indexes. -1 means unused. 
+    path[0] = CN ;
+    idxs[0] = 0 ;
+
+    /* This while loop traverses the octree in an iterative fashion. 
+     
+       Each iteration can serve one of several purposes: 
+            - go down the tree to a lower depth level
+            - go up the tree to a higher depth level
+            - count a leaf node's visible-triangle vertices
+            - add a node's child lvc's to give its own lvc. 
+    */
+   
+    printf("\n EXTRUDE - PHASE 2 (lvc processing)\n") ;
+    while (d>=0)
+    {
+                                                                        DEBUGTRACE(("\n\n\n lvc processing step. (d=%d,idxs[d]=%d)", d, idxs[d])) ;
+        if ( CN->children )
+        {
+            if (ccidx<8)
+            {
+                CN = &CN->children[idxs[d]] ;
+                path[d] = CN ; 
+                idxs[d]++ ; // next child access will be next one 
+                d++ ;
+
+                // If we go down in depth then we're starting a new set of children. 
+                // ccidx = 0 ; // FIXME: do we need this? 
+            }
+
+            // ccidx++ ;
+        }
+        // If we don't have children, then maybe we have geometry. 
+        else
+        {
+                                                                        DEBUGTRACE(("\n CHECKING LEAF NODE FOR GEOMETRY. (d=%d)",d)) ;
+            if ( CN->has_geometry() )
+            {
+                // Now it's time to count leaf vertices. 
+                                                                        DEBUGTRACE(("\n Computing lvc of a leaf node. (d=%d)",d)) ;
+            }
+            d-- ;
+            CN = path[d] ; // go up the hierarchy (there's never children to process if we get to here). 
+            DEBUGTRACE(("\n > ")) ;
+        }
+
+
+        // If we're done processing a node's children, then we add up 
+        // its child counts.
+        if (idxs[d] >= 8)
+        {
+            CC = &CN->children[0] ;
+            int count = 0 ;
+
+            loopi(8)
+            {
+                count += CC->lvc.c ;
+                CC++ ;
+            }
+            CN->lvc.c = count ;
+
+                                                                        DEBUGTRACE(("\nAt depth %d, having just assigned an lvc of %d to a node. ", d, count)) ;
+
+            // Finally, since we finished this node, we move up to its parent. 
+            path[d] = NULL ;
+            idxs[d] = -1 ;
+            d-- ;
+        }
+    }
+
+
+    /* 
+        Iteration heuristic: 
+
+            - start from the root node. 
+            - check every child for children
+            - if child node has children, drop one level
+              and iterate through these nodes. 
+    while (d >= 0)
+    {
+        if ( CN->children )
+        {
+            CN = CN->children[idxs[d]] ;
+            idxs[d]++ ; // Next time we go down children at this level, it'll be the next one.
+            d++ ;
+        }
+        else
+        {
+            if ( CN->has_geometry() )
+            {   
+                // compute used vertices count here
+            }
+        }
+
+    }
     */
 
-        // for every potential child we walk from the root to the path that 
-        // takes us to this child, to know his ancestry. 
-
-    // step: generate all triangle vertices from the current set of new cubes. 
+    // step: determine which faces of our new cubes are visible 
 
 
-    // next step: determine which faces of our new cubes are visible 
+    // --------------------------------------------
+    // PHASE 3: Produce vertex array sets
+    // --------------------------------------------
+
+
+
+
 
 }
 

@@ -292,7 +292,8 @@ int main( int argc, char **argv )
 
 
     bool frame_drawn = true ;
-    unsigned int framecount = 0; 
+    //unsigned int framecount = 0; 
+    uint framecount = 0; 
     unsigned int millis;
     unsigned int last_millis = 0;
     unsigned int sec_progress = 0 ; 
@@ -310,7 +311,7 @@ int main( int argc, char **argv )
     // pump the event queue empty before starting 
     SDL_Event event;
     while ( SDL_PollEvent( &event ) ) ;
-//    SDL_WM_GrabInput(SDL_GRAB_ON);
+    SDL_WM_GrabInput(SDL_GRAB_ON);
     SDL_ShowCursor(SDL_DISABLE);         
 
     //unsigned int last_frame = SDL_GetTicks() ;
