@@ -1005,14 +1005,25 @@ void draw_new_octs()
             {
                 path[d] = CN ;
                 CN = &CN->children[idxs[d]] ;
+
+                    // loop from 0 to d+1. Use idxs[i] to determine which children are on the path
                     loopi(3)
                     {
-                        int idx = (idxs[d]<<i)&1 ;
-                        pos.v[ idx] += 1<<(SI-d) ;
+                        int incr = (1<<(SI-d)) ;
+                        int yesorno = ((idxs[d]>>i)&1) ;
+                        pos.v[i] += yesorno * incr ;
                     }
+                    glVertex3iv(pos.v) ;
+                    loopi(3)
+                    {
+                        int incr = (1<<(SI-d)) ;
+                        int yesorno = (idxs[d]>>i) ;
+                        pos.v[i] -= yesorno * incr ;
+                    }
+
                 idxs[d]++ ;
                 d++ ;
-                GS = (GS<<1) ;
+                GS = (GS>>1) ;
                 idxs[d] = 0 ;
 
             }
@@ -1029,7 +1040,6 @@ void draw_new_octs()
                 GS = (GS>>1) ;
                 CN = path[d] ; 
             }
-            glVertex3iv(pos.v) ;
 
         }
         // If we don't have children, then maybe we have geometry. 
@@ -1042,10 +1052,10 @@ void draw_new_octs()
             path[d] = NULL ;
             idxs[d] = -1 ;
             d-- ;  
-                  loopi(3)
-                  {
-                      pos.v[ (idxs[d]<<i)&1 ] -= 1<<(SI-d) ;
-                  }
+             //     loopi(3)
+              //    {
+               //       pos.v[ (idxs[d]<<i)&1 ] -= 1<<(SI-d) ;
+                //  }
             CN = path[d] ; 
         }
     }
