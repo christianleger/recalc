@@ -233,7 +233,7 @@ void resize_window( int width, int height, int fov )
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity( );
 
-    gluPerspective( (GLfloat)angle, ratio, 0.01f, 100000.0f );
+    gluPerspective( (GLfloat)angle, ratio, 0.01f, 10000000.0f );
     //gluPerspective( 60.0f, ratio, 0.01f, 50000.0f );
 
     /* default matrix to manipulate is modelview */
@@ -311,7 +311,14 @@ int main( int argc, char **argv )
     // pump the event queue empty before starting 
     SDL_Event event;
     while ( SDL_PollEvent( &event ) ) ;
+
+// If we grab input while debugging, we can't access the debugger when a breakpoint hits! 
+#ifndef DEBUG
     SDL_WM_GrabInput(SDL_GRAB_ON);
+#else
+//#error WE HAVE DEBUG!
+#endif
+
     SDL_ShowCursor(SDL_DISABLE);         
 
     //unsigned int last_frame = SDL_GetTicks() ;

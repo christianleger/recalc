@@ -168,6 +168,7 @@ void render_editor()
     draw_sel_end() ;
     
     draw_newcubes() ;
+    draw_new_octs() ;
 
     glEnable( GL_DEPTH_TEST ) ;
 }

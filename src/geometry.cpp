@@ -37,8 +37,8 @@ char geom_msgs[100][256] ;
 
 // here 'world scale' really means the largest piece out of the world, which 
 // is one of the 8 cubes that divide the world
-             // default 15   size: 2^15       max gridsize: 15
-World world = { WORLD_SCALE, 2<<WORLD_SCALE , WORLD_SCALE-1 } ;
+             // default 15   size: 2^15       gridscale    max gridsize: 2^15
+World world = { WORLD_SCALE, 2<<WORLD_SCALE , WORLD_SCALE, 2<<(WORLD_SCALE-1) } ;
 #define w world
 
 bool aiming_at_world ;
@@ -57,7 +57,28 @@ Octant::Octant()
 {
     children = NULL ;
     geom = NULL ;
+    set_all_edges(0) ;
 }
+
+    bool Octant::has_geometry() 
+    {
+        return (
+                (edge_check[0]==MAX_INT) &&
+                (edge_check[1]==MAX_INT) &&
+                (edge_check[2]==MAX_INT)
+               ) ;
+    }
+
+//printf("\n set_all_edges: edges of this octant located at %d", (int)&edges[0]) ;
+//printf("\n set_all_edges: edges[%d] = %d", (i) , edges[i]) ;
+    void Octant::set_all_edges(int in_value=255)
+    {
+        printf("\n setting all edges with d=%d\n", in_value) ;
+        loopi(12)
+        {
+            edges[i] = in_value ;
+        }
+    }
 
 void new_octant( Octant& oct )
 {
@@ -747,7 +768,7 @@ void extrude( void * _in )
             {
                 if ( !oct->children ) 
                 { 
-                    printf("\n  allocating 8 children ") ; 
+                    printf("\n  allocating 8 children (depth %d)",depth) ; 
                     oct->children = new Octant[8] ; 
                 }
                 i = octastep(NC.x,NC.y,NC.z,CGS) ;
@@ -775,17 +796,22 @@ void extrude( void * _in )
             */
             if (oct)
             {
+                printf("\n setting edges for child at d=%d,idx=%d\n",depth,i) ; 
+                oct->set_all_edges() ;
+            }
+
+            if (0)
+            if (oct)
+            {
+                if (!oct->geom)
+                {
                 printf("\n  allocating a geom ") ; 
 
-                //oct->geom = new OctExt() ;
+                oct->geom = new Geom() ;
                 //oct->edges[0] = 0 ;
-                oct->set_all_edges() ;
-
-//printf("\n allocation: edges of this octant located at %d", (int)(&(oct->edges[0]))) ;
 
                 loopi(12)
                 {
-//printf("\n alloc: value of edges[%d] = %d", (i), (int)(oct->edges[i])) ;
                     if (oct->edges[i]==255)
                     {
                         printf(" * ") ; 
@@ -794,6 +820,7 @@ void extrude( void * _in )
                     {
                         printf(" - ") ; 
                     }
+                }
                 }
 
             /*
@@ -841,7 +868,7 @@ void extrude( void * _in )
     // --------------------------------------------
 
     // Iteration is over all nodes which have their geom==NEED_UPDATE. 
-
+    // zzz
     // local variables. 
     int32_t d = 0 ;             // depth
     Octant* CN = &world.root ;  // current node 
@@ -850,9 +877,14 @@ void extrude( void * _in )
 
     // path
     Octant* path[20] = {NULL} ;
-    int32_t idxs[20] = {-1} ;   // Used to track path indexes. -1 means unused. 
+    int32_t idxs[20] ;   // Used to track path indexes. -1 means unused. 
+    loopi(20)
+    {
+        idxs[i] = -1 ;
+    }
     path[0] = CN ;
     idxs[0] = 0 ;
+    d = 0 ;
 
     /* This while loop traverses the octree in an iterative fashion. 
      
@@ -863,89 +895,58 @@ void extrude( void * _in )
             - add a node's child lvc's to give its own lvc. 
     */
    
-    printf("\n EXTRUDE - PHASE 2 (lvc processing)\n") ;
+    printf("\n root node is at %d\n", (int)CN) ;
+
+    printf("\n ******************** EXTRUDE - PHASE 2 (lvc processing) ***************** \n") ;
+
     while (d>=0)
     {
-                                                                        DEBUGTRACE(("\n\n\n lvc processing step. (d=%d,idxs[d]=%d)", d, idxs[d])) ;
         if ( CN->children )
         {
-            if (ccidx<8)
+            if (idxs[d]<8)
             {
-                CN = &CN->children[idxs[d]] ;
-                path[d] = CN ; 
-                idxs[d]++ ; // next child access will be next one 
-                d++ ;
-
-                // If we go down in depth then we're starting a new set of children. 
-                // ccidx = 0 ; // FIXME: do we need this? 
+                path[d] = CN ;                // save the current node so we can go back up to it when done with this child
+                CN = &CN->children[idxs[d]] ; // now set current node to this child
+                idxs[d]++ ;                   // next child access at this level goes up by one
+                d++ ;                         // since we're down a child, depth is ++'d. 
+                idxs[d] = 0 ;                 // new level means cycling through new group of children 
             }
-
-            // ccidx++ ;
+            // If we're done processing a node's children, then we add up 
+            // its child counts.
+            //if (idxs[d] >= 8)
+            else
+            {
+                CC = &CN->children[0] ;
+                int count = 0 ;
+                loopi(8) { count += CC->lvc.c ; CC++ ; }
+                CN->lvc.c = count ;
+                DEBUGTRACE(("\n At depth %d, adding child lvc's. Total = %d \n", d, CN->lvc.c)) ;
+                // Finally, since we finished this node, we move up to its parent. 
+                path[d] = NULL ;
+                idxs[d] = -1 ;
+                d-- ;
+                CN = path[d] ;  
+            }
         }
         // If we don't have children, then maybe we have geometry. 
         else
         {
-                                                                        DEBUGTRACE(("\n CHECKING LEAF NODE FOR GEOMETRY. (d=%d)",d)) ;
             if ( CN->has_geometry() )
             {
+                DEBUGTRACE(("\n child with geometry: \n",d,idxs[d])) ; 
                 // Now it's time to count leaf vertices. 
-                                                                        DEBUGTRACE(("\n Computing lvc of a leaf node. (d=%d)",d)) ;
-            }
-            d-- ;
-            CN = path[d] ; // go up the hierarchy (there's never children to process if we get to here). 
-            DEBUGTRACE(("\n > ")) ;
-        }
-
-
-        // If we're done processing a node's children, then we add up 
-        // its child counts.
-        if (idxs[d] >= 8)
-        {
-            CC = &CN->children[0] ;
-            int count = 0 ;
-
-            loopi(8)
+                // Do stuff here
+                CN->lvc.c = 8 ;
+            } /*
+            else
             {
-                count += CC->lvc.c ;
-                CC++ ;
-            }
-            CN->lvc.c = count ;
-
-                                                                        DEBUGTRACE(("\nAt depth %d, having just assigned an lvc of %d to a node. ", d, count)) ;
-
-            // Finally, since we finished this node, we move up to its parent. 
-            path[d] = NULL ;
-            idxs[d] = -1 ;
-            d-- ;
+                DEBUGTRACE(("\n child with NO geometry: \n",d,idxs[d])) ; 
+            } */
+            d-- ;           // We're going up to our parent's depth.
+            CN = path[d] ;  // Current node is now the last node we went down from. 
         }
     }
 
-
-    /* 
-        Iteration heuristic: 
-
-            - start from the root node. 
-            - check every child for children
-            - if child node has children, drop one level
-              and iterate through these nodes. 
-    while (d >= 0)
-    {
-        if ( CN->children )
-        {
-            CN = CN->children[idxs[d]] ;
-            idxs[d]++ ; // Next time we go down children at this level, it'll be the next one.
-            d++ ;
-        }
-        else
-        {
-            if ( CN->has_geometry() )
-            {   
-                // compute used vertices count here
-            }
-        }
-
-    }
-    */
 
     // step: determine which faces of our new cubes are visible 
 
@@ -960,6 +961,97 @@ void extrude( void * _in )
 
 }
 
+
+/*
+
+zzz
+*/
+void draw_new_octs()
+{
+    int32_t d = 0 ;             // depth
+    int32_t GS = world.gridsize ; // grid size
+    Octant* CN = &world.root ;  // current node 
+    Octant* CC = NULL ;         // current child 
+    int32_t ccidx = 0 ;         // current child index
+
+    int32_t SI = world.scale ;  // Size increment scale. Used to compute offsets from node corners. 
+
+    // path
+    Octant* path[20] = {NULL} ;
+    int32_t idxs[20] ;   // Used to track path indexes. -1 means unused. 
+    loopi(20)
+    {
+        idxs[i] = -1 ;
+    }
+    path[0] = CN ;
+    idxs[0] = 0 ;
+    d = 0 ;
+
+
+    //ivec pos( world.size>>1, world.size>>1, world.size>>1 ) ;
+    ivec pos( 0,0,0 );
+
+    glPointSize(10.0f) ;
+    glColor3f(1.0f, 0.0f, 0.0f) ;
+
+    glBegin( GL_POINTS ) ;
+
+    while (d>=0)
+    {
+        if ( CN->children )
+        {
+
+            if (idxs[d]<8)
+            {
+                path[d] = CN ;
+                CN = &CN->children[idxs[d]] ;
+                    loopi(3)
+                    {
+                        int idx = (idxs[d]<<i)&1 ;
+                        pos.v[ idx] += 1<<(SI-d) ;
+                    }
+                idxs[d]++ ;
+                d++ ;
+                GS = (GS<<1) ;
+                idxs[d] = 0 ;
+
+            }
+            else
+            {
+                // Finally, since we finished this node, we move up to its parent. 
+                path[d] = NULL ;
+                idxs[d] = -1 ;
+                d-- ;
+                  loopi(3)
+                  {
+                      pos.v[ (idxs[d]<<i)&1 ] -= 1<<(SI-d) ;
+                  }
+                GS = (GS>>1) ;
+                CN = path[d] ; 
+            }
+            glVertex3iv(pos.v) ;
+
+        }
+        // If we don't have children, then maybe we have geometry. 
+        else
+        {
+            if ( CN->has_geometry() )
+            {
+                // draw a red center point 
+            } 
+            path[d] = NULL ;
+            idxs[d] = -1 ;
+            d-- ;  
+                  loopi(3)
+                  {
+                      pos.v[ (idxs[d]<<i)&1 ] -= 1<<(SI-d) ;
+                  }
+            CN = path[d] ; 
+        }
+    }
+
+    glEnd() ;
+}
 /*
 */
 bool use_dl ;
@@ -1107,6 +1199,8 @@ void World::initialize()
 {
     world.gridscale = 10 ;
     world.gridsize = 1<<10 ;
+
+    printf("\n\n****************************WORLD SIZE = %d************************************\n\n", world.size ) ;
 
     // world.root = 0 ;
 }

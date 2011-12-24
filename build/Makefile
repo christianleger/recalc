@@ -29,7 +29,7 @@ ifeq ($(PLATFORM),linux)
     CXX=g++
     CXX_FLAGS=
     ifeq ($(DEBUG),1)
-        DEBUG_FLAGS=-g
+        DEBUG_FLAGS=-g -DDEBUG
     else
         OPT_FLAGS=-O3
     endif

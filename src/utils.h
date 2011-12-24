@@ -20,14 +20,15 @@
 
 
 
+// FIXME: set this to be defined in a build config
+#define DEV
 
 
-
-
-
-
-#define DEBUGTRACE(msg) printf msg 
-
+#ifdef DEV
+    #define DEBUGTRACE(msg) printf msg 
+#else
+    #define DEBUGTRACE(msg) 
+#endif
 
 
 

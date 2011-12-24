@@ -314,6 +314,7 @@ void set_sel_start() ;
 void set_sel_end() ;
 void extrude( void * ) ; 
 void draw_newcubes() ;
+void draw_new_octs() ;
 void initialize() ;
 
 
