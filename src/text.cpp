@@ -1,9 +1,5 @@
 
 
-//#ifndef __FONT_H__
-//#define __FONT_H__
-
-
 #include "recalc.h"
 #include "text.h"
 
@@ -107,8 +103,9 @@ void createFontDisplayLists(FT_Face face,
         }
 
         if (
-            (ch>SDLK_a &&
-            ch<SDLK_z) || ch==' '
+            ( ch > SDLK_a && ch < SDLK_z ) 
+            || 
+            ch==' '
            )
         {
             printf("\nwidth of letter %c = %d", ch, _font->width[(int)ch]) ; 
@@ -319,6 +316,9 @@ void initializeFonts(
 
     if (library) FT_Done_FreeType( library );
 
+    // FIXME: we need to check whether any more wrapping up/cleaning should be 
+    // done besides these two last statements. 
+
     return;
 }
 
@@ -409,21 +409,14 @@ void textwidth(Font * in_font, char * text, int * width)
 */
 void printstr(Font * ft_font, float x, float y, const char * str)
 {
-    //int length = strlen(str) ;
 
-
-    //int screen_len = 0 ;
-    //for (int i=0;i<length;i++)
-    //{
-    //    screen_len  = ft_font->width[str[i]] ;
-    //}
     glPushMatrix();
         glListBase(ft_font->gl_list_base);
         glTranslatef(x, y+16/*+ft_font->_height*/, 0.0f);
         glCallLists(strlen(str), GL_UNSIGNED_BYTE, str);
     glPopMatrix();
 
-    return ; //screen_len ;
+    return ; 
 }
 
 /*  FUNCTION: printstr_cont
@@ -466,9 +459,7 @@ void prstr(int fidx, float x, float y, const char * str)
     /*glBlendFunc(GL_ONE, GL_ZERO);*/
     glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
 
-    //glColor3f(1,1,1);
-//    glScalef(1,-1,1) ;
-   // ret = 
+
     printstr(fonts[fidx],x, y, str);
     glDisable(GL_TEXTURE_2D);
 
@@ -518,6 +509,3 @@ void initialize_text()
         ) ; 
 }
 
-//#endif
-
-//

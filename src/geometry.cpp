@@ -878,201 +878,160 @@ void extrude( void * _in )
     // path
     Octant* path[20] = {NULL} ;
     int32_t idxs[20] ;   // Used to track path indexes. -1 means unused. 
-    loopi(20)
-    {
-        idxs[i] = -1 ;
-    }
+    loopi(20) { idxs[i] = -1 ; }
     path[0] = CN ;
     idxs[0] = 0 ;
     d = 0 ;
 
-    /* This while loop traverses the octree in an iterative fashion. 
-     
-       Each iteration can serve one of several purposes: 
-            - go down the tree to a lower depth level
-            - go up the tree to a higher depth level
-            - count a leaf node's visible-triangle vertices
-            - add a node's child lvc's to give its own lvc. 
-    */
-   
     printf("\n root node is at %d\n", (int)CN) ;
 
     printf("\n ******************** EXTRUDE - PHASE 2 (lvc processing) ***************** \n") ;
+
+    // FIXME:  instead of changing lvc.c when something HAS geometry (which alters its geometry!!!), 
+    // we need to instead check: 
 
     while (d>=0)
     {
         if ( CN->children )
         {
-            if (idxs[d]<8)
+            if (idxs[d]<8) // if we have nodes left to cover at this level ...
             {
                 path[d] = CN ;                // save the current node so we can go back up to it when done with this child
                 CN = &CN->children[idxs[d]] ; // now set current node to this child
-                idxs[d]++ ;                   // next child access at this level goes up by one
-                d++ ;                         // since we're down a child, depth is ++'d. 
-                idxs[d] = 0 ;                 // new level means cycling through new group of children 
+                idxs[d]++ ;                   // Next child access at this level goes up by one.
+                d++ ;                         // Since we're down a child, depth is ++'d. 
+                idxs[d] = 0 ;                 // New level means cycling through new group of children. Starts at 0. 
+                continue ;
             }
-            // If we're done processing a node's children, then we add up 
-            // its child counts.
-            //if (idxs[d] >= 8)
             else
             {
                 CC = &CN->children[0] ;
                 int count = 0 ;
-                loopi(8) { count += CC->lvc.c ; CC++ ; }
-                CN->lvc.c = count ;
+                loopi(8) 
+                { 
+                    if (CC->has_geometry()) // Should only happen if CC is a child ... with geometry! 
+                    {
+                        // ... compute this child's lvc 
+                        count += 8 ; // the 8 is a sorry fake until we have a real count. 
+                    }
+                    else
+                    {
+                        // ... or just collect its lvc which should be available if we got to here. 
+                        count += CC->lvc.c ;
+                    }
+                    CC++ ; // next child 
+                }
+                CN->lvc.c = count ; // record total 
                 DEBUGTRACE(("\n At depth %d, adding child lvc's. Total = %d \n", d, CN->lvc.c)) ;
-                // Finally, since we finished this node, we move up to its parent. 
-                path[d] = NULL ;
-                idxs[d] = -1 ;
-                d-- ;
-                CN = path[d] ;  
             }
-        }
-        // If we don't have children, then maybe we have geometry. 
-        else
-        {
-            if ( CN->has_geometry() )
-            {
-                DEBUGTRACE(("\n child with geometry: \n",d,idxs[d])) ; 
-                // Now it's time to count leaf vertices. 
-                // Do stuff here
-                CN->lvc.c = 8 ;
-            } /*
-            else
-            {
-                DEBUGTRACE(("\n child with NO geometry: \n",d,idxs[d])) ; 
-            } */
-            d-- ;           // We're going up to our parent's depth.
-            CN = path[d] ;  // Current node is now the last node we went down from. 
-        }
+        } // end if ( CN->children )
+        // 'GO UP'
+        path[d] = NULL ;
+        idxs[d] = -1 ;
+        d-- ;           // We're going up to our parent's depth.
+        CN = path[d] ;  // Current node is now the last node we went down from. 
     }
 
-
     // step: determine which faces of our new cubes are visible 
-
 
     // --------------------------------------------
     // PHASE 3: Produce vertex array sets
     // --------------------------------------------
 
-
-
-
-
-}
+} // end extrude 
 
 
 /*
 
 zzz
+
 */
 void draw_new_octs()
 {
     int32_t d = 0 ;             // depth
-    int32_t GS = world.gridsize ; // grid size
     Octant* CN = &world.root ;  // current node 
     Octant* CC = NULL ;         // current child 
-    int32_t ccidx = 0 ;         // current child index
 
     int32_t SI = world.scale ;  // Size increment scale. Used to compute offsets from node corners. 
+    int32_t incr = 0 ;
+    int32_t yesorno = 0 ;
 
-    // path
     Octant* path[20] = {NULL} ;
-    int32_t idxs[20] ;   // Used to track path indexes. -1 means unused. 
-    loopi(20)
-    {
-        idxs[i] = -1 ;
-    }
-    path[0] = CN ;
-    idxs[0] = 0 ;
-    d = 0 ;
+    int32_t idxs[20] ;   // idxs[d] tracks which child of node path[d] is being used, if any. 
 
+    loopi(20) { idxs[i] = 0 ; }
+    path[0] = CN ; // This is and always will be the root. 
+    //idxs[0] = -1 ;
+    d = 0 ;     // We start at the root. 
 
-    //ivec pos( world.size>>1, world.size>>1, world.size>>1 ) ;
-    ivec pos( 0,0,0 );
+    ivec pos( 0, 0, 0 );
 
     glPointSize(10.0f) ;
     glColor3f(1.0f, 0.0f, 0.0f) ;
 
     glBegin( GL_POINTS ) ;
-
     while (d>=0)
     {
         if ( CN->children )
         {
-
             if (idxs[d]<8)
             {
-                path[d] = CN ;
-                CN = &CN->children[idxs[d]] ;
+                // We're going down to a child, marked relative to its parent by idxs[d]. 
+                loopi(3) {
+                    incr = (1<<(SI-d)) ; yesorno = ((idxs[d]>>i)&1) ;
+                    pos.v[i] += yesorno * incr ;
+                }
 
-                    // loop from 0 to d+1. Use idxs[i] to determine which children are on the path
-                    loopi(3)
-                    {
-                        int incr = (1<<(SI-d)) ;
-                        int yesorno = ((idxs[d]>>i)&1) ;
-                        pos.v[i] += yesorno * incr ;
-                    }
-                    glVertex3iv(pos.v) ;
-                    loopi(3)
-                    {
-                        int incr = (1<<(SI-d)) ;
-                        int yesorno = (idxs[d]>>i) ;
-                        pos.v[i] -= yesorno * incr ;
-                    }
-
-                idxs[d]++ ;
+                CN = &CN->children[idxs[d]] ; 
                 d++ ;
-                GS = (GS>>1) ;
-                idxs[d] = 0 ;
+                path[d] = CN ;
+                idxs[d] = 0 ; // Start the children at this level. 
 
+                continue ;
             }
-            else
-            {
-                // Finally, since we finished this node, we move up to its parent. 
-                path[d] = NULL ;
-                idxs[d] = -1 ;
-                d-- ;
-                  loopi(3)
-                  {
-                      pos.v[ (idxs[d]<<i)&1 ] -= 1<<(SI-d) ;
-                  }
-                GS = (GS>>1) ;
-                CN = path[d] ; 
-            }
-
         }
-        // If we don't have children, then maybe we have geometry. 
+        // If we don't have children, then maybe we have geometry.
         else
         {
             if ( CN->has_geometry() )
             {
-                // draw a red center point 
-            } 
-            path[d] = NULL ;
-            idxs[d] = -1 ;
-            d-- ;  
-             //     loopi(3)
-              //    {
-               //       pos.v[ (idxs[d]<<i)&1 ] -= 1<<(SI-d) ;
-                //  }
-            CN = path[d] ; 
-        }
-    }
+                loopi(3) {
+                    incr = (1<<(SI-d)) ;
+                    pos.v[i] += (incr);
+                }
 
+                glVertex3iv(pos.v) ;
+
+                loopi(3) {
+                    incr = (1<<(SI-d)) ;
+                    pos.v[i] -= (incr);
+                }
+            }
+        }
+
+        // These last lines of the while loop make up the 'going up the tree' action. 
+        path[d] = NULL ;
+        d-- ;
+        CN = path[d] ;
+
+        loopi(3) {
+            incr = (1<<(SI-d)) ; yesorno = ((idxs[d]>>i)&1) ;
+            pos.v[i] -= yesorno * incr ;
+        }
+        idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
+    }                   // end while d>=0
     glEnd() ;
 }
+
 /*
 */
 bool use_dl ;
 void draw_newcubes()
 {
-
     /* FIXME: TEMPORARY: TODO: nein nein nein */ 
     /*
         Render little bits to show where the current contents of the tree is 
-    */ 
-    /* 
+        
         Steps: 
                 Iterate through the tree. 
 
@@ -1092,10 +1051,9 @@ void draw_newcubes()
     glBegin( GL_POINTS ) ; 
     int i=0 ;
 
-
     while ( d>= 0 )
     {
-        // case: we're done with the children (array c)of this node, so we back up
+        // case: we're done with the children (array c) of this node, so we back up
         if (c[d]>=8)
         {
             // time to go up one
