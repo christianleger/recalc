@@ -73,7 +73,7 @@ Octant::Octant()
 //printf("\n set_all_edges: edges[%d] = %d", (i) , edges[i]) ;
     void Octant::set_all_edges(int in_value=255)
     {
-        printf("\n setting all edges with d=%d\n", in_value) ;
+        //DEBUGTRACE(("\n setting all edges with d=%d\n", in_value)) ;
         loopi(12)
         {
             edges[i] = in_value ;
@@ -159,7 +159,6 @@ int orientation_indexes[6][3] =
 } ; 
 
 float direction_multipliers[6][3] = 
-//float direction_multipliers[6][2] = 
 {
     {-1, 1, -1}, 
     { 1, 1,  1}, 
@@ -632,6 +631,71 @@ struct idx_triangle
 ivec vbo_array[1024] = {ivec(0)} ;
 uchar vbo_elements[1024] = {0} ;
 
+/*
+    Function: delete_subtree. 
+
+
+    Purpose: to remove all children a node may have, and their 
+    properties. 
+
+    Typical usage: when content needs to be removed from a portion 
+    of the tree, it can be removed by using the nodes whose combined 
+    volume exactly encompasses this content. 
+
+*/
+void delete_subtree(Octant* in_oct)
+{
+    int32_t d = 0 ;             // depth
+    Octant* CN = in_oct ;  // current node 
+    Octant* CC = NULL ;         // current child 
+    Octant* path[20] = {NULL} ;
+            path[0] = CN ; // This is and always will be the root. 
+        int32_t idxs[20] ;   // idxs[d] tracks which child of node path[d] is being used, if any. 
+    loopi(20) { idxs[i] = 0 ; }
+
+    d = 0 ;     // We start at the root. 
+
+    ivec pos( 0, 0, 0 );
+
+    while (d>=0)
+    {
+        if ( CN->children )
+        {
+            if (idxs[d]<8)
+            {
+                CN = &CN->children[idxs[d]] ; 
+                d++ ;
+                path[d] = CN ;
+                idxs[d] = 0 ; // Start the children at this level. 
+
+                continue ;
+            }
+        }
+        //else
+        //{
+         //   continue ;
+        //}
+
+        // are 
+        path[d] = NULL ;
+        d-- ;
+        // Every time we reach this part of the loop, it means we are 
+        // finished looking at CN's children. We can delete CN's children 
+        // now. 
+        CN = path[d] ;
+        // Delete children. 
+        if (CN)
+        if (CN->children)
+        {
+            delete CN->children ;
+            CN->children = NULL ;
+            printf("\ndeleting 8 children. \n") ; 
+        }
+        idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
+    }                   // end while d>=0
+}
+
+
 static Geom* NEED_UPDATE = NULL ; // dummy used to signal that a node needs its geom rebuilt. 
 /*
     Function: extrude. 
@@ -688,10 +752,10 @@ void extrude( void * _in )
 
     int O = (sel_o) ;               // orientation
     int WS = world.scale ;
-    int WGSi = world.gridsize ;
+    int GS = world.gridsize ;
     int WGSc = world.gridscale ;
     int CGS = WS ;                  // current grid scale
-    int i = 0 ;
+    int i = 0 ;                     // child index
     ivec pos(0) ;                   // used to compute vertices that go into our vbo_array
     vectormap vmap ;                // used to record new nodes and then to construct and update vector arrays
 
@@ -708,6 +772,7 @@ void extrude( void * _in )
     // --------------------------------------------
     // PHASE 1: Create tree nodes 
     // --------------------------------------------
+    DEBUGTRACE(("\n ********** EXTRUDE - PHASE 1 (node creation) ********** \n")) ;
 
     // Where the extrusion originates is affected by what the 
     // selection cursor is currently pointed at. 
@@ -750,8 +815,8 @@ void extrude( void * _in )
             newcube = sel_min ; 
             newcubes_new = true ;
 
-
-            // The check is true if our orientation is even. 
+            // check if our orientation is even. This allows 'popping out' 
+            // geometry from coordinates where to do so means to decrement our coords. 
             if ( !(O%2) )
             {
                 NC[Z(O)] += wp[O][Z(O)] * (sel_size) * sel_counts[Z(O)] ;
@@ -763,100 +828,67 @@ void extrude( void * _in )
             Octant* oct = &world.root ;
             int depth = 0 ; // first child of root
 
-            // PHASE 1: Create the new tree nodes. 
-            while (CGS>=WGSc)
+            int x_count = 0 ;
+            int y_count = 0 ;
+            ivec NCstart = NC ;
+            // Do this for as many 'rows' and 'columns' as the selection is wide. 
+            while ( y_count < sel_counts[Y(O)] )
             {
-                if ( !oct->children ) 
-                { 
-                    printf("\n  allocating 8 children (depth %d)",depth) ; 
-                    oct->children = new Octant[8] ; 
-                }
-                i = octastep(NC.x,NC.y,NC.z,CGS) ;
-                sel_path[depth] = i ;
-                oct = &oct->children[i] ;
-
-                loopj(3)
+                while ( x_count < sel_counts[X(O)] )
                 {
-                    pos[j] |= ((i>>j)&1)<<(CGS) ; // using the new child index, incr the coordinates to our position 
-                }
-
-                depth++ ;
-                CGS-- ;
-            }
-
-            //printf("\n Created new position vector: %d %d %d", pos.x, pos.y, pos.z) ; 
-            //sprintf(geom_msgs[geom_msgs_num], "octastep=%d", sel_path[depth]) ; geom_msgs_num++ ;
-            //printf("\noctastep=%d  depth=%d  sel_path[depth]=%d", sel_path[depth], depth, sel_path[depth]) ; 
-            //sprintf(geom_msgs[geom_msgs_num], "depth=%d. CGS=%d", depth, CGS) ; geom_msgs_num++ ;
-            //printf("depth=%d. CGS=%d", depth, CGS) ; 
-            /*
-                At this point, oct is pointing to the octant. 
-
-                First, we create a geom. 
-            */
-            if (oct)
-            {
-                printf("\n setting edges for child at d=%d,idx=%d\n",depth,i) ; 
-                oct->set_all_edges() ;
-            }
-
-            if (0)
-            if (oct)
-            {
-                if (!oct->geom)
-                {
-                printf("\n  allocating a geom ") ; 
-
-                oct->geom = new Geom() ;
-                //oct->edges[0] = 0 ;
-
-                loopi(12)
-                {
-                    if (oct->edges[i]==255)
+                    while (CGS>=WGSc)
                     {
-                        printf(" * ") ; 
+                        if ( !oct->children ) 
+                        { 
+                            printf("\n  allocating 8 children (depth %d)",depth) ; 
+                            oct->children = new Octant[8] ; 
+
+                            printf("\n creating child nodes on path \n") ;
+                            loopj(depth+1)
+                            {
+                                printf(" %d ", sel_path[j]) ;
+                            }
+                        }
+
+                        i = octastep(NC.x,NC.y,NC.z,CGS) ;
+                        sel_path[depth] = i ;
+                        oct = &oct->children[i] ;
+
+                        depth++ ;
+                        CGS-- ;
                     }
-                    else
+
+                    if (oct)
                     {
-                        printf(" - ") ; 
+                        if (oct->children)
+                        {
+                            delete_subtree( oct ) ;
+                        }
+                        oct->set_all_edges() ;
                     }
+                    // Reset variables for any subsequent new nodes. 
+                    CGS = WS ; 
+                    depth = 0 ;
+                    oct = &world.root ;
+
+                    // Move to next position for a new node 
+                    NC[X(O)] += GS ;
+                    x_count ++ ;
                 }
-                }
-
-            /*
-                vmap.AddHashVector(pos) ;
-                int k = vmap.HashFindVec(pos) ;
-
-                sprintf(geom_msgs[geom_msgs_num], "Created new position vector: %d %d %d", pos.x, pos.y, pos.z) ; geom_msgs_num++ ;
-                sprintf(geom_msgs[geom_msgs_num], "New vector in hashmap at: %d", k) ; geom_msgs_num++ ;
-                // Assign pos to new vbo_verts and then reset pos. 
-
-
-                loopi(3) pos[i] = 0 ;
-            */
+                x_count = 0 ;
+                y_count ++ ;
+                NC[X(O)] = NCstart[X(O)] ;
+                NC[Y(O)] += GS ;
             }
-
-            /*
-            if (world.root.children==NULL)
-            {
-                new_octant( world.root ) ;
-                if (world.root.children)
-                {
-                    printf("\nworld root's children allocated. ") ; 
-                }
-            }
-            else
-            {
-                printf("\n children not allowed, = %d. ", *(int*)world.root.children) ; 
-            }
-            */
+            // Reset NC to initial 'first node' of the group. 
+            NC = NCstart ;
         }
     }
     // CASE: the cursor is not set on anything; this can happpen if we are outside 
     // world boundaries and pointing the cursor at any part of the world. 
     else if ( sel_path[0] == -2 )
     {
-        printf("\nCannot extrude when no selection is in view. \n") ; 
+        DEBUGTRACE(("\nCannot extrude when no selection is in view. \n")) ; 
     }
     ivec counts(1) ; 
     // min one cube 
@@ -885,7 +917,7 @@ void extrude( void * _in )
 
     printf("\n root node is at %d\n", (int)CN) ;
 
-    printf("\n ******************** EXTRUDE - PHASE 2 (lvc processing) ***************** \n") ;
+    DEBUGTRACE(("\n ********** EXTRUDE - PHASE 2 (lvc processing) ********** \n")) ;
 
     // FIXME:  instead of changing lvc.c when something HAS geometry (which alters its geometry!!!), 
     // we need to instead check: 
@@ -922,7 +954,7 @@ void extrude( void * _in )
                     CC++ ; // next child 
                 }
                 CN->lvc.c = count ; // record total 
-                DEBUGTRACE(("\n At depth %d, adding child lvc's. Total = %d \n", d, CN->lvc.c)) ;
+                //DEBUGTRACE(("\n At depth %d, adding child lvc's. Total = %d \n", d, CN->lvc.c)) ;
             }
         } // end if ( CN->children )
         // 'GO UP'
@@ -937,6 +969,7 @@ void extrude( void * _in )
     // --------------------------------------------
     // PHASE 3: Produce vertex array sets
     // --------------------------------------------
+    DEBUGTRACE(("\n ********** EXTRUDE - PHASE 3 (vertex array set creation) ********* \n")) ;
 
 } // end extrude 
 
@@ -966,7 +999,7 @@ void draw_new_octs()
 
     ivec pos( 0, 0, 0 );
 
-    glPointSize(10.0f) ;
+    glPointSize(4.0f) ;
     glColor3f(1.0f, 0.0f, 0.0f) ;
 
     glBegin( GL_POINTS ) ;
@@ -1133,8 +1166,6 @@ if (use_dl)
         {
             loopj(sel_counts[X(orien)])
             {
-
-
                 draw_corner_cube(
                     new_corner,
                     sel_size

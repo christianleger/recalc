@@ -111,16 +111,17 @@ endif
 ################################################################################
 
 OBJS=\
-    recalc.$(OBJ_EXT) \
-    render.$(OBJ_EXT) \
-    menu.$(OBJ_EXT) \
+    console.$(OBJ_EXT) \
+    geometry.$(OBJ_EXT) \
     input.$(OBJ_EXT) \
     math.$(OBJ_EXT) \
-    geometry.$(OBJ_EXT) \
-    platform.$(OBJ_EXT) \
+    menu.$(OBJ_EXT) \
     physics.$(OBJ_EXT) \
-    text.$(OBJ_EXT) \
-    console.$(OBJ_EXT)
+    platform.$(OBJ_EXT) \
+    recalc.$(OBJ_EXT) \
+    render.$(OBJ_EXT) \
+    text.$(OBJ_EXT) 
+#    sound.$(OBJ_EXT) \
 
 #HEADERS=\
 #    recalc.h \
@@ -163,17 +164,12 @@ recalc: ../src/main.cpp $(OBJS)
 ################################################################################
 #####################          THE OBJECTS           ###########################
 ################################################################################
-recalc.$(OBJ_EXT): ../src/recalc.cpp
-	$(info )
-	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-	$(LIB_LOCATIONS) $(LIBS) ../src/recalc.cpp $(OUT_FLAG) recalc.$(OBJ_EXT)
-	$(info )
 
 ################################################################################
-render.$(OBJ_EXT): ../src/render.cpp
+input.$(OBJ_EXT): ../src/input.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/render.cpp $(OUT_FLAG) render.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) ../src/input.cpp $(OUT_FLAG) input.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
@@ -184,10 +180,17 @@ math.$(OBJ_EXT): ../src/math.cpp
 	$(info )
 
 ################################################################################
-input.$(OBJ_EXT): ../src/input.cpp
+render.$(OBJ_EXT): ../src/render.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/input.cpp $(OUT_FLAG) input.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) ../src/render.cpp $(OUT_FLAG) render.$(OBJ_EXT)
+	$(info )
+
+################################################################################
+sound.$(OBJ_EXT): ../src/sound.cpp
+	$(info )
+	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
+    $(LIB_LOCATIONS) $(LIBS) ../src/sound.cpp $(OUT_FLAG) sound.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
@@ -211,6 +214,12 @@ physics.$(OBJ_EXT): ../src/physics.cpp
     $(LIB_LOCATIONS) $(LIBS) ../src/physics.cpp $(OUT_FLAG) physics.$(OBJ_EXT)
 	$(info )
 
+################################################################################
+recalc.$(OBJ_EXT): ../src/recalc.cpp
+	$(info )
+	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
+	$(LIB_LOCATIONS) $(LIBS) ../src/recalc.cpp $(OUT_FLAG) recalc.$(OBJ_EXT)
+	$(info )
 
 ################################################################################
 text.$(OBJ_EXT): ../src/text.cpp

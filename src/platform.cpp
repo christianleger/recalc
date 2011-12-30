@@ -66,4 +66,4 @@ void toggle_vsync( bool use_vsync )
 }
 
 #endif
-#endif
+#endif // end if 0
