@@ -36,6 +36,7 @@
 #include "geometry.h"
 #include "input.h"
 #include "text.h"
+#include "test.h"
 #include "render.h"
 #include "console.h"
 
@@ -294,6 +295,7 @@ void physics_frame( unsigned int ) ;
 void initialize_text() ; 
 void prstr( int font_idx, float x, float y, const char * fmt ) ; 
 int scrstrlen( const char * ) ; 
+void clean_up_text() ;
 
 // input 
 void initialize_input() ; 

@@ -167,7 +167,7 @@ void render_editor()
     
     draw_sel_end() ;
     
-    draw_newcubes() ;
+    //draw_newcubes() ;
     draw_new_octs() ;
 
     glEnable( GL_DEPTH_TEST ) ;
@@ -329,11 +329,20 @@ void render_info()
 
     render_ortho_begin() ;
 
+    // Message used to debug this function! 
+    char info_msg[256] ;
+    sprintf(info_msg, "height=%d ", height) ;
+
+        prstr( 0, 600.f, 0 + next_line*height,
+                   info_msg) ; 
         // messages from inputs
         int j = 0 ;
+        extern void update_input_messages() ;
+        update_input_messages() ;
         while (j<input_msgs_num)
         {
-            prstr( 0, 600.f, engine.current_h - next_line*height,
+            //prstr( 0, 600.f, engine.current_h - next_line*height,
+            prstr( 0, 600.f, 0 + next_line*height,
                    input_msgs[j]) ; j++ ;
         }
 
@@ -341,18 +350,20 @@ void render_info()
         j = 0 ;
         while (j<geom_msgs_num)
         {
-            prstr( 0, 600.f, engine.current_h - next_line*height, 
+            //prstr( 0, 600.f, engine.current_h - next_line*height, 
+            prstr( 0, 600.f, 0 + next_line*height, 
                    geom_msgs[j]) ; j++ ;
         }
 
-extern int main_msgs_num ;
-extern char main_msgs[100][256] ;
+      extern int main_msgs_num ;
+      extern char main_msgs[100][256] ;
         // messages from main
         j = 0 ;
         while (j<main_msgs_num)
         {
             //prstr( 0, engine.current_w - scrstrlen(main_msgs[1]), engine.current_h - next_line*height, 
-            prstr( 0, 10, engine.current_h - next_line*height, 
+            //prstr( 0, 10, engine.current_h - next_line*height, 
+            prstr( 0, 10, 400 + next_line*height, 
                      main_msgs[j]) ; j++ ;
         }
     // These go to the right side of the screen 

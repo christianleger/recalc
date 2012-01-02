@@ -312,7 +312,17 @@ void initializeFonts(
 
     //_font->width[' '] = _font->; 
 
-    if (face) FT_Done_Face(face);
+    if (face) 
+    {
+        if (FT_Done_Face(face))
+        {
+            printf("\n\nFREETYPE DONE FACE REPORTED SOMETHING \n\n") ;
+        }
+        else
+        {
+            printf("\n\nFREETYPE DONE FACE ALL GOOD. \n\n") ;
+        }
+    }
 
     if (library) FT_Done_FreeType( library );
 
@@ -509,3 +519,6 @@ void initialize_text()
         ) ; 
 }
 
+void clean_up_text()
+{
+}

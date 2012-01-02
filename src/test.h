@@ -8,3 +8,8 @@
 
 
 */
+
+void render_test_001() ;
+
+
+void initialize_tests() ;

@@ -128,6 +128,8 @@ void initSDL( Engine * engine )
     engine->videoFlagsFS  = engine->videoFlags; 
     engine->videoFlagsFS |= SDL_FULLSCREEN; 
 
+
+    // FIXME: this is convoluted bullshit
     if ( engine->fullscreen )
     {
         engine->scr_w = engine->desktop_w; 
@@ -291,12 +293,12 @@ int main( int argc, char **argv )
     resize_window( engine.scr_w , engine.scr_h, engine.fov ) ;
 
 
+    // Bookkeeping and timing variables. 
     bool frame_drawn = true ;
-    //unsigned int framecount = 0; 
     uint framecount = 0; 
-    unsigned int millis;
-    unsigned int last_millis = 0;
-    unsigned int sec_progress = 0 ; 
+    uint millis;
+    uint last_millis = 0;
+    uint sec_progress = 0 ; 
     int delta = 0 ; 
     int delta_millis = 0 ; 
     int physics_millis = 0 ; 
@@ -473,6 +475,8 @@ int main( int argc, char **argv )
                 SDL_GetTicks()/1000,
                 framecount 
                 ) ; main_msgs_num ++ ;
+
+                //printf("\n%s\n", main_msgs[0]) ;
             delay_count = 0 ;
             framecount = 0 ; 
             sec_progress = 0 ; 

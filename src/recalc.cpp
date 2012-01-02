@@ -196,6 +196,8 @@ void initialize_subsystems()
     initialize_text() ;
     initialize_input() ;
 
+    initialize_tests() ;
+
     return ; 
 }
 

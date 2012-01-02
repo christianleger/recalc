@@ -55,30 +55,8 @@ struct Octant
         node (does not by itself preclude the possibility that child nodes 
         define geometry). 
     */
-    //inline 
     bool has_geometry() ;
-/*
-    {
-        return (
-                (edge_check[0]==MAX_INT) &&
-                (edge_check[1]==MAX_INT) &&
-                (edge_check[2]==MAX_INT)
-               ) ;
-    }*/
-
-//printf("\n set_all_edges: edges of this octant located at %d", (int)&edges[0]) ;
-//printf("\n set_all_edges: edges[%d] = %d", (i) , edges[i]) ;
-    //inline 
     void set_all_edges(int in_value) ;
-/*
-    {
-        printf("\n setting all edges with d=%d\n", in_value) ;
-        loopi(12)
-        {
-            edges[i] = in_value ;
-        }
-    }
-*/
 
     void test_func_def()
     {

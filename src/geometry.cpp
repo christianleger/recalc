@@ -31,6 +31,9 @@ char geom_msgs[100][256] ;
 //------------------------------------------------------------------------
 //                  GEOMETRY SUPPORT FUNCTIONS  (octree, memory, etc.)
 //------------------------------------------------------------------------
+Octant* findNodeAt(ivec at) ;
+void extrude( void * _in ) ;
+void update_editor() ;
 // This is equivalent to 2^15 units, or 32,768
 
 #define WORLD_SCALE 15
@@ -228,23 +231,26 @@ void draw_corner_square(
         glVertex3fv( c.v ) ; c[X(_o)] -= size ;  // top-left
         glVertex3fv( c.v ) ;
     glEnd() ;
+/*
+*/
 }
 
 void draw_corner_cube(
-    vec & _corner,
+    ivec & _corner,
     int size
     )
 {
-
-    vec corner = _corner ;
+/*
+    //ivec icorner = _corner ;
     // first two squares cornered at origin 
-    draw_corner_square( corner, size, 0) ; 
-    draw_corner_square( corner, size, 2) ; 
+    draw_corner_square( _corner, size, 0) ; 
+    draw_corner_square( _corner, size, 2) ; 
     // third square cornered at origin.x + size 
     //corner[0] += size ; 
     //draw_corner_square( corner, size, 1) ;
     //corner[0] -= size ; corner[1] += size ; 
     //draw_corner_square( corner, size, 3) ;
+*/
 }
 
 void draw_corner_square()
@@ -265,6 +271,7 @@ void draw_sel_start()
     glColor3f( 1, 0, 0 ) ;
     vec v( sel_start.v ) ;
     draw_corner_square( 
+        //sel_start, 
         v, 
         sel_size,
         sel_o
@@ -277,7 +284,8 @@ void draw_sel_end()
     glColor3f( 0, 0, 1 ) ;
     vec v( sel_end.v ) ;
     draw_corner_square( 
-        v, 
+        //sel_end, 
+        v,
         sel_size,
         sel_o
         ) ;
@@ -381,6 +389,7 @@ int sel_path[20] = {-2} ;
 
 
 */
+
 void update_editor()
 {
     //bool advancing = true ;
@@ -396,72 +405,185 @@ void update_editor()
 
     int gridscale = world.gridscale ; // maximum size of a selection square is half the world size. Else we wouldn't know! 
     //int gridscale = world.gridscale ; // maximum size of a selection square is half the world size. Else we wouldn't know! 
-    //geom_msgs_num = 0 ; 
+    geom_msgs_num = 0 ; 
 
+
+    #define hittingplane (hitplanes>>(3*i))&0x07
+
+    vec fcorner ;
+    ivec icorner ;
+
+    // TARGET FINDER PHASE 1: near world planes (if we're outside the world). 
+    loopi(3)
+    {
+        hitplanes |= ( camdir[i]<0 ? 2*i : 2*i+1 ) << (3*i) ;
+    }
+    min_t = FLT_MAX ;
+    /*
+    */
+
+
+//if (0)
+{
+    if (!hitworld)
+    {
+        loopi(3)
+        {
+            RayHitPlane( pos, camdir, wp[ hittingplane ], &t ) ;
+
+            if (t<min_t && t>0)
+            {
+                front = pos ;
+                front.add(camdir.mul(t)) ; // this works because camdir has length 1. 
+                // Here we check that the point // hitting the plane is inside // the world limits. 
+
+                int f1 = front[b[i][0]] ;
+                int f2 = front[b[i][1]] ;
+                int w = wp[2*i].offset ;
+                //if ( front[b[i][0]] < wp[2*i].offset && front[b[i][0]] > 0  &&    
+                 //    front[b[i][1]] < wp[2*i].offset && front[b[i][1]] > 0
+                if ( f1 < w && f1 > 0  &&    
+                     f2 < w && f2 > 0
+                   )
+                {
+                    orientation = (hittingplane) ;
+                    min_t = t ;
+                    fcorner = vec(front) ;
+                    sel_path[0] = -1 ;
+                }
+            }
+        } // end looping over all hitplane candidates 
+
+        loopj(3)
+        {
+
+//__m128 a ;
+//int b ;
+//float af[4] = { 101.25, 200.75,300.5, 400.5 };
+//a = _mm_loadu_ps(af);
+//b = _mm_cvtt_ss2si(a);
+
+            // Truncate coordinates: keep them grid-aligned. 
+            // We only truncate the variables which aren't the major 
+            // axis for the current orienatation plane. If we did, it might 
+            // give us a smaller value than we need. 
+            if (!( (orientation==2*j) || (orientation==2*j+1) ))
+            {
+                //printf("\nHOWDY\n") ;
+                icorner[j] = (((int)(fcorner[j])) >> gridscale ) << gridscale ;
+            }
+            else
+            {   
+                // This nastiness is so that we are always flat against grid boundaries
+                icorner[j] = floor( fcorner[j] + .5f ) ;
+            }
+        }
+    }
+
+}
+    sprintf(geom_msgs[geom_msgs_num], "update_editor: point at %d %d %d", icorner[0], icorner[1], icorner[2]) ; geom_msgs_num++ ;
+
+
+
+    /*
+    Octant* oct = findNodeAt(icorner) ;
+    sprintf(
+        geom_msgs[geom_msgs_num], 
+        "current selection: (has children = %c, has geom = %c, has extent = %c)", 
+        (oct->children) ? 'Y' :'N',
+        (oct->geom) ? 'Y':'N',
+        (oct->has_geometry()) ? 'Y':'N'
+    ) ; geom_msgs_num++ ;
+    */
+
+
+    //    sprintf(geom_msgs[geom_msgs_num], "update_editor: point at %d %d %d", ) ; geom_msgs_num++ ;
+
+
+    // TARGET FINDER PHASE 2: in-world content. 
+
+
+    // TARGET FINDER PHASE 3: far world planes. 
     // The variable hitplanes encodes which three axis-aligned planes are 
     // always possible hits for a ray going through an octree. 
     //
     // Later, hitplanes can be used to quickly express plane indexes into the 
     // world_normals array. 
-    loopi(3)
-    {
-        hitplanes |= ( camdir[i]<0 ? 2*i+1 : 2*i ) << (3*i) ;
-    }
     
-    // First see if we're hitting something in the tree 
-    {
-    }
-
     // This is the calculation to determine which plane, 
     // positive or negative (see world_planes array), is 
     // to be looked up. This approach is taken because 
     // we chose to record the set of potentially hit planes
     // using a single int, 'hitplanes'. 
-    #define hittingplane (hitplanes>>(3*i))&0x07
     // are we aiming at the world? 
-    min_t = FLT_MAX ;
-    int i = 0 ;
 
     // If we hit nothing in the world, we find out which part of the grid 
     // frontier we're hitting. 
 
     // Are we hitting a far plane?
+
+    /*
+    FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+    FIXME: use only integer vectors for corner. 
+    FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+    */
+    hitplanes = 0 ;
+    loopi(3)
+    {
+        hitplanes |= ( camdir[i]<0 ? 2*i+1 : 2*i ) << (3*i) ;
+    }
+    min_t = FLT_MAX ;
+    t = 0 ;
+    
     if (!hitworld)
     {
-    for (i=0;i<3;i++)
-    {
-        RayHitPlane( pos, camdir, wp[ hittingplane ], &t ) ;
-
-        if (t<min_t && t>0)
+        loopi(3)
         {
-            front = pos ;
-            front.add(camdir.mul(t)) ; // this works because camdir has length 1. 
-            // Here we check that the point // hitting the plane is inside // the world limits. 
-            if ( front[b[i][0]] < wp[2*i].offset && front[b[i][0]] > 0  &&    
-                 front[b[i][1]] < wp[2*i].offset && front[b[i][1]] > 0
-               )
+            RayHitPlane( pos, camdir, wp[ hittingplane ], &t ) ;
+
+            if (t<min_t && t>0)
             {
-                orientation = (hittingplane) ;
-                min_t = t ;
-                corner = vec(front) ;
-                sel_path[0] = -1 ;
+                front = pos ;
+                front.add(camdir.mul(t)) ; // this works because camdir has length 1. 
+                // Here we check that the point // hitting the plane is inside // the world limits. 
+                if ( front[b[i][0]] < wp[2*i].offset && front[b[i][0]] > 0  &&    
+                     front[b[i][1]] < wp[2*i].offset && front[b[i][1]] > 0
+                   )
+                {
+                    orientation = (hittingplane) ;
+                    min_t = t ;
+                    corner = vec(front) ;
+                    sel_path[0] = -1 ;
+                }
+            }
+        } // end looping over all hitplane candidates 
+        loopj(3)
+        {
+            // Truncate coordinates: keep them grid-aligned. 
+
+            // We only truncate the variables which aren't the major 
+            // axis for the current orienatation plane. If we did, it might 
+            // give us a smaller value than we need. 
+            if (!( (orientation==2*j) || (orientation==2*j+1) ))
+            {
+                corner[j] = (((int)(corner[j])) >> gridscale ) << gridscale ;
+            }
+            else
+            {   
+                // This nastiness is so that we are always flat against grid boundaries
+                corner[j] = floor( corner[j] + .5f ) ;
             }
         }
-    } // end looping over all hitplane candidates 
-    loopj(3)
-    {
-        // we only truncate the variables which aren't the major 
-        // axis for the current orienatation plane. If we did, it might 
-        // give us a smaller value than we need. 
-        if (!( (orientation==2*j) || (orientation==2*j+1) ))
-        {
-            corner[j] = (((int)(corner[j])) >> gridscale ) << gridscale ;
-        }
-    }
     }
 
-
-
+    Octant* oct = findNodeAt(corner) ;
+    sprintf(
+        geom_msgs[geom_msgs_num], 
+        "current selection: (has children = %c, has geom = %c, has extent = %c)", 
+        (oct->children) ? 'Y' :'N',
+        (oct->geom) ? 'Y':'N',
+        (oct->has_geometry()) ? 'Y':'N'
+    ) ; geom_msgs_num++ ;
 
 } // end update_editor 
 
@@ -557,6 +679,12 @@ struct vectormap
             check if element is already in there
             if so, do nothing
             if not, add it
+            FIXME 
+            FIXME 
+            FIXME 
+            FIXME 
+            FIXME 
+            LOL FIXME 
     */
     bool AddHashVector( ivec& v )
     {
@@ -649,8 +777,8 @@ void delete_subtree(Octant* in_oct)
     Octant* CN = in_oct ;  // current node 
     Octant* CC = NULL ;         // current child 
     Octant* path[20] = {NULL} ;
-            path[0] = CN ; // This is and always will be the root. 
-        int32_t idxs[20] ;   // idxs[d] tracks which child of node path[d] is being used, if any. 
+    path[0] = CN ; // This is and always will be the root. 
+    int32_t idxs[20] ;   // idxs[d] tracks which child of node path[d] is being used, if any. 
     loopi(20) { idxs[i] = 0 ; }
 
     d = 0 ;     // We start at the root. 
@@ -671,12 +799,7 @@ void delete_subtree(Octant* in_oct)
                 continue ;
             }
         }
-        //else
-        //{
-         //   continue ;
-        //}
-
-        // are 
+        
         path[d] = NULL ;
         d-- ;
         // Every time we reach this part of the loop, it means we are 
@@ -692,9 +815,36 @@ void delete_subtree(Octant* in_oct)
             printf("\ndeleting 8 children. \n") ; 
         }
         idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
-    }                   // end while d>=0
+    }   // end while d>=0
 }
 
+
+// Finds the smallest node enclosing the supplied integer vector. 
+Octant* findNodeAt(ivec at)
+{
+    int WGSc = world.gridscale ;
+    int CGS = world.scale ;
+    int depth = 0 ;
+    int i = 0 ;
+    Octant* oct = &world.root ;
+
+
+    while (CGS>=WGSc)
+    {
+        if ( oct->children ) 
+        {
+            i = octastep(at.x,at.y,at.z,CGS) ;
+            oct = &oct->children[i] ;
+        }
+        else
+        {
+            break ;
+        }
+        depth++ ;
+        CGS-- ;
+    }
+    return oct ;
+}
 
 static Geom* NEED_UPDATE = NULL ; // dummy used to signal that a node needs its geom rebuilt. 
 /*
@@ -813,6 +963,7 @@ void extrude( void * _in )
             // Every cube's position can be uniquely defined 
             // by its min corner.
             newcube = sel_min ; 
+            printf("\n\n\t\t\t\t\t    selection: %d   %d   %d  \n\n", NC.x, NC.y, NC.z ) ;
             newcubes_new = true ;
 
             // check if our orientation is even. This allows 'popping out' 
@@ -836,21 +987,23 @@ void extrude( void * _in )
             {
                 while ( x_count < sel_counts[X(O)] )
                 {
+                    //printf("\n \n") ;
                     while (CGS>=WGSc)
                     {
                         if ( !oct->children ) 
                         { 
-                            printf("\n  allocating 8 children (depth %d)",depth) ; 
+                            //printf("\n  allocating 8 children (depth %d)",depth) ; 
                             oct->children = new Octant[8] ; 
 
                             printf("\n creating child nodes on path \n") ;
                             loopj(depth+1)
                             {
-                                printf(" %d ", sel_path[j]) ;
+                               printf(" %d ", sel_path[j]) ;
                             }
                         }
 
                         i = octastep(NC.x,NC.y,NC.z,CGS) ;
+                        //printf("\n\t\t\t\t octastep giving %d \n", i) ; 
                         sel_path[depth] = i ;
                         oct = &oct->children[i] ;
 
@@ -864,6 +1017,7 @@ void extrude( void * _in )
                         {
                             delete_subtree( oct ) ;
                         }
+                        //printf("\n Solidifying a child node. \n") ;
                         oct->set_all_edges() ;
                     }
                     // Reset variables for any subsequent new nodes. 
@@ -999,6 +1153,9 @@ void draw_new_octs()
 
     ivec pos( 0, 0, 0 );
 
+    //geom_msgs_num = 0 ;
+    int pointcount = 0 ;
+
     glPointSize(4.0f) ;
     glColor3f(1.0f, 0.0f, 0.0f) ;
 
@@ -1034,6 +1191,7 @@ void draw_new_octs()
                 }
 
                 glVertex3iv(pos.v) ;
+                pointcount++ ;
 
                 loopi(3) {
                     incr = (1<<(SI-d)) ;
@@ -1054,144 +1212,13 @@ void draw_new_octs()
         idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
     }                   // end while d>=0
     glEnd() ;
+    sprintf(geom_msgs[geom_msgs_num], "pointcount=%d.", pointcount ) ; geom_msgs_num++ ;
 }
 
 /*
 */
-bool use_dl ;
 void draw_newcubes()
 {
-    /* FIXME: TEMPORARY: TODO: nein nein nein */ 
-    /*
-        Render little bits to show where the current contents of the tree is 
-        
-        Steps: 
-                Iterate through the tree. 
-
-                Whenever there are children, we go down. 
-                Whenever there is a node with geometry, we draw points 
-                for its eight corners. 
-    */
-    Octant* oct = &world.root ;
-    int     c[20] = {0} ;    // sequence of child indexes
-    Octant* octpath[20] = {NULL} ;  // sequence of octants 
-    octpath[0] = oct ;
-    int d = 0 ;
-    int scale = world.scale ;
-    int x = 0, y = 0, z = 0 ;
-
-    glColor3f(1,1,1) ; 
-    glBegin( GL_POINTS ) ; 
-    int i=0 ;
-
-    while ( d>= 0 )
-    {
-        // case: we're done with the children (array c) of this node, so we back up
-        if (c[d]>=8)
-        {
-            // time to go up one
-            d-- ;
-            scale++ ;
-            if (d>=0)
-            {
-                oct = octpath[d] ;
-                c[d]++ ;
-            }
-        }
-        // case: we go to the next child of this node
-        else
-        {
-            i = c[d] ; // which child are we? 
-
-            if (oct->geom)
-            {
-                for (int j=0;j<d;j++)
-                {
-                    x |= (((c[j]))   &1)<<(world.scale-j) ;
-                    y |= (((c[j])>>1)&1)<<(world.scale-j) ;
-                    z |= (((c[j])>>2)&1)<<(world.scale-j) ;
-                }
-                //printf("\n child #%d corner at %d, %d, %d ", c[d-1], x, y, z) ; // c[d-1], using index used from parent to get here 
-                glVertex3f(x, y, z) ;
-                x = y = z = 0 ; 
-                // This means next iteration we're moving back up (to go to siblings, we must go up. 
-                // And we can't go down, since having geom means being a leaf.) 
-                c[d] = 8 ; 
-            }
-
-            if (oct->children)
-            {
-                oct = &oct->children[i] ; 
-                d++ ;
-                scale-- ;
-                c[d] = -1 ; // reset: it will be 0 after this if-else block. 
-                octpath[d] = oct ;
-            }
-            // next child 
-            c[d]++ ;
-        }
-    }
-    glEnd() ; 
-    if ( !havenewcube ) return ;
-
-    vec new_corner( newcube.v ) ;
-
-    int orien = sel_o ;
-    bool end = false ;
-
-    static int gl_newcubes = 0 ;
-
-/*
-    If we're creating new new cubes (previous new cubes no 
-    longer newest), then we create a new display list for 
-    their drawing. 
-*/
-if (!use_dl)
-    newcubes_new = true ;
-
-    if ( newcubes_new )
-    //if ( 1 )
-    {
-
-if (use_dl)
-{
-        newcubes_new = false ; // only need to go in here once
-        glDeleteLists( gl_newcubes, 1 ) ;
-        gl_newcubes  = glGenLists(1) ; 
-        glNewList(gl_newcubes, GL_COMPILE);
-}
-        // FIXME: this code belongs in the geometry extrusion section  
-        // It is only here while rendering must rely on unavailable geometry. 
-        loopi(sel_counts[Y(orien)])
-        {
-            loopj(sel_counts[X(orien)])
-            {
-                draw_corner_cube(
-                    new_corner,
-                    sel_size
-                    ) ; 
-
-                new_corner[X(orien)] += ((sel_size)) ;
-            }
-            new_corner[X(orien)] = newcube[X(orien)] ;
-            new_corner[Y(orien)] += ((sel_size));
-        }
-
-if (use_dl)
-{
-        glEndList() ;
-}
-    }
-    else
-    {
-        glCallList( gl_newcubes ) ;
-    }
-
-    // vertex arrays ...
-    //glEnableClientState() ; 
-    //glDisableClientState() ; 
-
-
 }
 
 void World::initialize()

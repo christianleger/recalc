@@ -52,6 +52,7 @@ struct Font
 } ; 
 
 void initialize_text() ; 
+void clean_up_text() ; 
 
 #endif // __TEXT_H__
 

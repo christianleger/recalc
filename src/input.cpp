@@ -14,6 +14,9 @@
 
 #include "recalc.h"
 
+//FIXME: put me where this is useful to everybody
+float deg_to_radians = M_PI / 1800.0f ;
+
 // Data that will often get manipulated by user inputs 
 extern Engine engine ;
 extern World world ;
@@ -74,9 +77,10 @@ void gridsize_scroll(void * args)
     }
     world.gridsize = 1<<(world.gridscale) ;
     printf("\n world.gridscale = %d \n", world.gridscale ) ;
-    sprintf( input_msgs[input_msgs_num], "world.gridscale=%d", 
+
+    /*sprintf( input_msgs[input_msgs_num], "world.gridscale=%d", 
         world.gridscale
-        ); input_msgs_num++ ;
+        ); input_msgs_num++ ;*/
 }
 
 void toggle_gridsize_scroll( bool enable = true ) 
@@ -211,11 +215,10 @@ void handle_mouse_motion( SDL_Event* event )
 
     vec dir = camera.dir ;
 
-    float to_radians = M_PI / 1800.0f ;
-    float pitch_cos =   cos(  camera.pitch      * to_radians ) ;
-    dir.x = pitch_cos * cos( (camera.yaw+900)   * to_radians ) ;
-    dir.y = pitch_cos * sin( (camera.yaw+900)   * to_radians ) ;
-    dir.z = sin(  camera.pitch      * to_radians ) ;
+    float pitch_cos =   cos(  camera.pitch      * deg_to_radians ) ;
+    dir.x = pitch_cos * cos( (camera.yaw+900)   * deg_to_radians ) ;
+    dir.y = pitch_cos * sin( (camera.yaw+900)   * deg_to_radians ) ;
+    dir.z = sin(  camera.pitch      * deg_to_radians ) ;
 
     float len = dir.x*dir.x + dir.y*dir.y + dir.z*dir.z ;
     len = sqrt( len ) ;
@@ -225,17 +228,7 @@ void handle_mouse_motion( SDL_Event* event )
     camera.dir.z = dir.z / len ;
 
     input_msgs_num = 0 ;
-    sprintf(
-        input_msgs[input_msgs_num], 
-        "direction vector : %.2f %.2f %.2f %.2f", 
-        camera.dir.x,
-        camera.dir.y,
-        camera.dir.z, 
-        camera.pitch
-        ) ; input_msgs_num++ ;
-    sprintf( input_msgs[input_msgs_num], "pitch = %.2f and sin (theta) = %.2f", 
-        camera.pitch, sin(  camera.pitch      * to_radians )
-        ); input_msgs_num++ ;
+
     //camera.dir = dir ;
 
     len = sqrt( 
@@ -647,9 +640,9 @@ void handle_key( SDL_Event* event )
             
             case SDLK_F4:
             {   
-                extern bool use_dl ;
-                use_dl = !use_dl ;
-                if ( use_dl ) printf("\n now using display list ") ; 
+                ///extern bool use_dl ;
+                ///use_dl = !use_dl ;
+                ///if ( use_dl ) printf("\n now using display list ") ; 
                 break ;
             }
             /*
@@ -685,9 +678,11 @@ void handle_key( SDL_Event* event )
                     basic_velocity *= 5 ;
                 }
                 //printf("") ; 
+                /*
                 TRACE(("\n basic_velocity just set to %.2f \n",basic_velocity ));
                 sprintf(input_msgs[input_msgs_num], " basic_velocity just set to %.2f ",basic_velocity );input_msgs_num++ ;
                 break ;
+                */
             }
             /*
             SDLK_RCTRL		= 305,
@@ -904,4 +899,32 @@ void clear_main_commands()
 
 /*
 */
+void update_input_messages()
+{
+    input_msgs_num = 0 ;
+
+    sprintf( input_msgs[input_msgs_num], "world.gridscale=%d", 
+        world.gridscale
+        ); input_msgs_num++ ;
+
+    sprintf(
+        input_msgs[input_msgs_num], 
+        "direction vector : %.2f %.2f %.2f %.2f", 
+        camera.dir.x,
+        camera.dir.y,
+        camera.dir.z, 
+        camera.pitch
+        ) ; input_msgs_num++ ;
+
+    sprintf( input_msgs[input_msgs_num], "pitch = %.2f and sin (theta) = %.2f", 
+        camera.pitch, sin(  camera.pitch      * deg_to_radians )
+        ); input_msgs_num++ ;
+
+            extern float basic_velocity ;
+    sprintf(
+        input_msgs[input_msgs_num], 
+        " basic_velocity set to %.2f ",
+        basic_velocity 
+        ); input_msgs_num++ ;
+}
 

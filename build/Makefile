@@ -29,7 +29,7 @@ ifeq ($(PLATFORM),linux)
 #########
 
     CXX=g++
-    CXX_FLAGS=
+    CXX_FLAGS= -msse -msse2 -msse3
     ifeq ($(DEBUG),1)
         DEBUG_FLAGS=-g -DDEBUG
     else
@@ -111,15 +111,16 @@ endif
 ################################################################################
 
 OBJS=\
-    console.$(OBJ_EXT) \
+    console.$(OBJ_EXT)  \
     geometry.$(OBJ_EXT) \
-    input.$(OBJ_EXT) \
-    math.$(OBJ_EXT) \
-    menu.$(OBJ_EXT) \
-    physics.$(OBJ_EXT) \
+    input.$(OBJ_EXT)    \
+    math.$(OBJ_EXT)     \
+    menu.$(OBJ_EXT)     \
+    physics.$(OBJ_EXT)  \
     platform.$(OBJ_EXT) \
-    recalc.$(OBJ_EXT) \
-    render.$(OBJ_EXT) \
+    recalc.$(OBJ_EXT)   \
+    render.$(OBJ_EXT)   \
+    test.$(OBJ_EXT)     \
     text.$(OBJ_EXT) 
 #    sound.$(OBJ_EXT) \
 
@@ -222,7 +223,14 @@ recalc.$(OBJ_EXT): ../src/recalc.cpp
 	$(info )
 
 ################################################################################
-text.$(OBJ_EXT): ../src/text.cpp
+test.$(OBJ_EXT): ../src/test.cpp
+	$(info )
+	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
+    $(LIB_LOCATIONS) $(LIBS) ../src/test.cpp $(OUT_FLAG) test.$(OBJ_EXT)
+	$(info )
+
+################################################################################
+text.$(OBJ_EXT): ../src/text.cpp ../src/text.h
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
     $(LIB_LOCATIONS) $(LIBS) ../src/text.cpp $(OUT_FLAG) text.$(OBJ_EXT)
