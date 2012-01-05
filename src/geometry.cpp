@@ -50,12 +50,6 @@ bool hit_world = false ;
 
 int orientation = 0 ;
 
-#define o orientation 
-#define octstep(x,y,z,scale) ((z>>(scale))&1)<<2 | ((y>>(scale))&1)<<1 | ((x>>(scale))&1)
-// corner determines the selection: it is the minimum in X,Y,Z of a box 
-// of size gridsize*(xCount,yCount,zCount). 
-vec corner( 0, 0, 0 ) ;
-
 Octant::Octant()
 {
     children = NULL ;
@@ -91,12 +85,19 @@ void new_octant( Octant& oct )
 //------------------------------------------------------------------------
 //                  EDITING VARIABLES AND FUNCTIONS
 //------------------------------------------------------------------------
+#define o orientation 
+#define octstep(x,y,z,scale) ((z>>(scale))&1)<<2 | ((y>>(scale))&1)<<1 | ((x>>(scale))&1)
+// corner determines the selection: it is the minimum in X,Y,Z of a box 
+// of size gridsize*(xCount,yCount,zCount). 
+vec corner( 0, 0, 0 ) ;
+
 bool havesel = false ;
 bool havesel_end = false ;
 bool havenewcube = false ;
 bool newcubes_new = false ;
 
 ivec newcube ;
+//vec newcube ;
 #define NC newcube 
 
 int sel_size = 0 ;
@@ -105,6 +106,7 @@ ivec sel_start ;
 ivec sel_end ;
 ivec sel_counts ;
 ivec sel_min ;
+//vec sel_min ;
 ivec sel_max ;
 
 
@@ -423,6 +425,7 @@ void update_editor()
     */
 
 
+bool have_sel_start_node = false ;
 //if (0)
 {
     if (!hitworld)
@@ -450,6 +453,7 @@ void update_editor()
                     min_t = t ;
                     fcorner = vec(front) ;
                     sel_path[0] = -1 ;
+                    have_sel_start_node = true ;
                 }
             }
         } // end looping over all hitplane candidates 
@@ -485,15 +489,18 @@ void update_editor()
 
 
 
+    if (have_sel_start_node)
+    {
+        Octant* oct = findNodeAt(icorner) ;
+        sprintf(
+            geom_msgs[geom_msgs_num], 
+            "current selection: (has children = %c, has geom = %c, has extent = %c)", 
+            (oct->children) ? 'Y' :'N',
+            (oct->geom) ? 'Y':'N',
+            (oct->has_geometry()) ? 'Y':'N'
+        ) ; geom_msgs_num++ ;
+    }
     /*
-    Octant* oct = findNodeAt(icorner) ;
-    sprintf(
-        geom_msgs[geom_msgs_num], 
-        "current selection: (has children = %c, has geom = %c, has extent = %c)", 
-        (oct->children) ? 'Y' :'N',
-        (oct->geom) ? 'Y':'N',
-        (oct->has_geometry()) ? 'Y':'N'
-    ) ; geom_msgs_num++ ;
     */
 
 
@@ -576,14 +583,19 @@ void update_editor()
         }
     }
 
-    Octant* oct = findNodeAt(corner) ;
+/*
+    Octant* oct = findNodeAt(icorner) ;
     sprintf(
         geom_msgs[geom_msgs_num], 
-        "current selection: (has children = %c, has geom = %c, has extent = %c)", 
+        "current selection: (%.0f %.0f %.0f) -> (children = %c, geom = %c, extent = %c)", 
+        corner.x, 
+        corner.y, 
+        corner.z, 
         (oct->children) ? 'Y' :'N',
         (oct->geom) ? 'Y':'N',
         (oct->has_geometry()) ? 'Y':'N'
     ) ; geom_msgs_num++ ;
+    */
 
 } // end update_editor 
 
@@ -812,7 +824,7 @@ void delete_subtree(Octant* in_oct)
         {
             delete CN->children ;
             CN->children = NULL ;
-            printf("\ndeleting 8 children. \n") ; 
+            //printf("\ndeleting 8 children. \n") ; 
         }
         idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
     }   // end while d>=0
@@ -963,7 +975,7 @@ void extrude( void * _in )
             // Every cube's position can be uniquely defined 
             // by its min corner.
             newcube = sel_min ; 
-            printf("\n\n\t\t\t\t\t    selection: %d   %d   %d  \n\n", NC.x, NC.y, NC.z ) ;
+            //printf("\n\n\t\t\t\t\t    selection: %.2f   %.2f   %.2f  \n\n", NC.x, NC.y, NC.z ) ;
             newcubes_new = true ;
 
             // check if our orientation is even. This allows 'popping out' 
@@ -995,11 +1007,11 @@ void extrude( void * _in )
                             //printf("\n  allocating 8 children (depth %d)",depth) ; 
                             oct->children = new Octant[8] ; 
 
-                            printf("\n creating child nodes on path \n") ;
-                            loopj(depth+1)
-                            {
-                               printf(" %d ", sel_path[j]) ;
-                            }
+                            //printf("\n creating child nodes on path \n") ;
+                            //loopj(depth+1)
+                            //{
+                             //  printf(" %d ", sel_path[j]) ;
+                            //}
                         }
 
                         i = octastep(NC.x,NC.y,NC.z,CGS) ;
@@ -1010,6 +1022,7 @@ void extrude( void * _in )
                         depth++ ;
                         CGS-- ;
                     }
+                    // printf ("\nprocessing node = %d %d %d\n", NC.x, NC.y, NC.z ) ;
 
                     if (oct)
                     {
@@ -1017,7 +1030,7 @@ void extrude( void * _in )
                         {
                             delete_subtree( oct ) ;
                         }
-                        //printf("\n Solidifying a child node. \n") ;
+                        // printf("\n Solidifying a child node = %d %d %d\n", NC.x, NC.y, NC.z ) ;
                         oct->set_all_edges() ;
                     }
                     // Reset variables for any subsequent new nodes. 

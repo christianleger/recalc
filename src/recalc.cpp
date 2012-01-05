@@ -7,6 +7,10 @@ void Quit( int returnCode )
 {
     /* clean up SDL */
 
+    printf("\n QUIT -- CLEANING UP TEXT ... ") ;
+    clean_up_text() ;
+    printf("\n QUIT -- CLEANING UP TEXT FINISHED. ") ;
+    printf("\n") ;
 
     SDL_Quit( );
     while (SDL_PollEvent(NULL)) ; 
@@ -30,7 +34,7 @@ void Engine::initialize()
     engine.rendering = true ;
     engine.physics = true ;
     engine.paused = false ; 
-    engine.fov = 75 ;
+    engine.fov = 60 ;
 //    engine.gridscale = 10 ;
 //    engine.gridsize = 2<<10 ;
 

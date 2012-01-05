@@ -917,7 +917,7 @@ void update_input_messages()
         ) ; input_msgs_num++ ;
 
     sprintf( input_msgs[input_msgs_num], "pitch = %.2f and sin (theta) = %.2f", 
-        camera.pitch, sin(  camera.pitch      * deg_to_radians )
+        camera.pitch/10.f, sin(  camera.pitch      * deg_to_radians )
         ); input_msgs_num++ ;
 
             extern float basic_velocity ;

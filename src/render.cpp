@@ -153,7 +153,8 @@ void render_editor()
     glEnd() ; 
 */
 
-    glDisable( GL_DEPTH_TEST ) ;
+    // glDisable( GL_DEPTH_TEST ) ;
+    glEnable ( GL_DEPTH_TEST ) ;
     // If we're aiming at the world, then we draw a helpful box 
     // around it. 
     draw_world_box() ;
@@ -194,6 +195,9 @@ void render_tester()
 
     glEnd() ; 
 
+    extern void render_test_001() ;
+    render_test_001() ;
+
 
 }
 
@@ -220,7 +224,8 @@ void render_menu()
 
     glMatrixMode( GL_MODELVIEW ) ; 
     glPopMatrix() ; 
-
+/*
+*/
 }
 
 
@@ -314,29 +319,26 @@ void render_console()
 */
 void render_info()
 {
-    // info from inputs
-    extern int input_msgs_num ;
-    extern char input_msgs[100][256] ;
-
-    // info from geometry 
-    extern int geom_msgs_num ;
-    extern char geom_msgs[100][256] ;
 
 
     int i = 0 ;
-    #define next_line ((i++)+1)               // is that the stupidest thing to do or just effective? 
+    int j = 0 ;
+
+    #define next_line ((i++)+1)     // is that the stupidest thing to do or just effective? 
     int height = fonts[0]->_height ;
 
     render_ortho_begin() ;
 
-    // Message used to debug this function! 
-    char info_msg[256] ;
-    sprintf(info_msg, "height=%d ", height) ;
-
+        // Message used to debug this function! 
+        char info_msg[256] ;
+        sprintf(info_msg, "height=%d ", height) ;
         prstr( 0, 600.f, 0 + next_line*height,
                    info_msg) ; 
+
         // messages from inputs
-        int j = 0 ;
+        // info from inputs
+        extern int input_msgs_num ;
+        extern char input_msgs[100][256] ;
         extern void update_input_messages() ;
         update_input_messages() ;
         while (j<input_msgs_num)
@@ -346,6 +348,9 @@ void render_info()
                    input_msgs[j]) ; j++ ;
         }
 
+        // info from geometry 
+        extern int geom_msgs_num ;
+        extern char geom_msgs[100][256] ;
         // messages from geometry 
         j = 0 ;
         while (j<geom_msgs_num)
@@ -355,8 +360,8 @@ void render_info()
                    geom_msgs[j]) ; j++ ;
         }
 
-      extern int main_msgs_num ;
-      extern char main_msgs[100][256] ;
+        extern int main_msgs_num ;
+        extern char main_msgs[100][256] ;
         // messages from main
         j = 0 ;
         while (j<main_msgs_num)
@@ -366,9 +371,8 @@ void render_info()
             prstr( 0, 10, 400 + next_line*height, 
                      main_msgs[j]) ; j++ ;
         }
-    // These go to the right side of the screen 
-    // scrstrlen("hello how are you")
-
+/*
+*/
     render_ortho_end() ;
 }
 

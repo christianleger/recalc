@@ -32,6 +32,7 @@ void Font::LoadFontFile()
 }
 
 vector<Font *> fonts ;
+int numFonts = 0 ;
 
 int initialized = 0;
 int yMax = 0; 
@@ -40,7 +41,7 @@ int desc = 0;
 int check_phase_done = 0; 
 
 
-void createFontDisplayLists(FT_Face face,
+void createFontDisplayList(FT_Face face,
                             char ch, 
                             Font * _font, bool check_phase=false)
 {
@@ -55,7 +56,6 @@ void createFontDisplayLists(FT_Face face,
 
     FT_Get_Glyph( face->glyph, &glyph );
     FT_Glyph_Get_CBox( glyph, FT_GLYPH_BBOX_PIXELS, &bbox ); 
-//zzz
 
     FT_Render_Glyph( face->glyph, FT_RENDER_MODE_NORMAL );
     FT_GlyphSlot slot = face->glyph; 
@@ -88,7 +88,6 @@ void createFontDisplayLists(FT_Face face,
     }
 
 
-
     if (check_phase)
     {
         // character width 
@@ -114,7 +113,7 @@ void createFontDisplayLists(FT_Face face,
         _font->height[(int)ch] = bitmap.rows ; 
 
         // overall font dimensions 
-        if (_font->_width< _font->width[(int)ch])
+        if (_font->_width < _font->width[(int)ch])
         {
             _font->_width = _font->width[(int)ch]; 
             //printf("\n widest character: %c w=%d", ch, _font->width[(int)ch]);
@@ -297,15 +296,18 @@ void initializeFonts(
     _font->gl_list_base = glGenLists(128);
     glGenTextures(128, _font->gl_char_IDs);
 
+    _font->_width = 0 ;
+    _font->_height = 0 ;
+
     /* due to the sfml principle, we first do a learning pass */ 
     for ( i = 0 ; i < 128 ; i++ )
     {
-        createFontDisplayLists(face, i, _font, true);
+        createFontDisplayList(face, i, _font, true);
     }
     /* then we do a real pass */
     for ( i = 0 ; i < 128 ; i++ )
     {
-        createFontDisplayLists(face, i, _font, false);
+        createFontDisplayList(face, i, _font, false);
     }
     printf("\n widest character width: %d\n", _font->_width);
     printf("\n height of font: %d\n", _font->_height);
@@ -337,16 +339,18 @@ void initfonts()
     initialized = 1; 
 
     fonts.add( new Font("default font") ) ;
+    numFonts++ ;
     initializeFonts((fonts[0]), "../data/fonts/unifont.ttf", 16);
 
     // 
-    //initializeFonts((fonts[0]), "../data/fonts/classic-robot.ttf", 16);
+    //initializeFonts((fonts[0]), "../data/fonts/JuraBook.ttf", 16);  
     //initializeFonts((fonts[0]), "../data/fonts/unifont.ttf", 16);
     //initializeFonts((fonts[1]), "../data/fonts/unifont.ttf", 16, 0x0022);
     //initializeFonts((fonts[0]), "../data/fonts/unifont.ttf", 32);
 
     // this one is pretty good. no question mark! 
     //initializeFonts((fonts[0]), "../data/fonts/FreeMono.ttf", 16);
+    //initializeFonts((fonts[0]), "../data/fonts/classic-robot.ttf", 16);
 
 
     //initializeFonts((fonts[0]), "../data/fonts/LiberationMono-Bold.ttf", 16);
@@ -372,11 +376,14 @@ void initfonts()
 
 void clearFonts()
 {
-    glDeleteLists(fonts[0]->gl_list_base, 128);
-    glDeleteTextures(128, fonts[0]->gl_char_IDs);
+    loopi(numFonts)
+    {
+        glDeleteLists(fonts[i]->gl_list_base, 128);
+        glDeleteTextures(128, fonts[i]->gl_char_IDs);
+    }
 
-    glDeleteLists(fonts[1]->gl_list_base, 128);
-    glDeleteTextures(128, fonts[1]->gl_char_IDs);
+    //glDeleteLists(fonts[1]->gl_list_base, 128);
+    //glDeleteTextures(128, fonts[1]->gl_char_IDs);
 
     return; 
 }
@@ -521,4 +528,7 @@ void initialize_text()
 
 void clean_up_text()
 {
+    clearFonts() ;
 }
+
+

@@ -10,7 +10,9 @@
 #ifndef __recalc_h_
 #define __recalc_h_
 
+// RETARD MAGIC YOU GOTTA FIND OUT ABOUT WITH PAIN AND MISERY OR LUCK
 
+#define GL_GLEXT_PROTOTYPES
 //--------------------------------------------------------------------------------------------------
 //                  SYSTEM INCLUDE FILES 
 //--------------------------------------------------------------------------------------------------
@@ -22,6 +24,7 @@
 #include <float.h>
 #include <SDL.h>
 #include <GL/gl.h>
+#include <GL/glext.h>
 
 #ifdef WIN32
 	#include "windows.h"

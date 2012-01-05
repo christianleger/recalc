@@ -185,19 +185,24 @@ void initGL( )
     /* Depth buffer setup */
     glClearDepth( 1.0f );
     /* Enables Depth Testing */
-    glEnable( GL_DEPTH_TEST | GL_BLEND );
+    
+    
     /* Really Nice Perspective Calculations */
     glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_SMOOTH );
-    glHint( GL_TEXTURE_COMPRESSION_HINT, GL_NICEST );
+    // glHint( GL_TEXTURE_COMPRESSION_HINT, GL_NICEST );
     glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
     glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST );
     glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
 
-    glEnable(GL_BLEND);
+    glEnable( GL_DEPTH_TEST );
+    glEnable( GL_BLEND );
+    // glDepthFunc( GL_GREATER ) ;
+    // glEnable(GL_CULL_FACE) ;
+    // glCullFace(GL_CW) ;
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     /* The Type Of Depth Test To Do */
-    glDepthFunc( GL_LESS | GL_NOTEQUAL ) ;
+    // glDepthFunc( GL_LESS | GL_NOTEQUAL ) ;
 
     //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE) ;
 
@@ -291,6 +296,8 @@ int main( int argc, char **argv )
 
 
     resize_window( engine.scr_w , engine.scr_h, engine.fov ) ;
+
+    printf("\n engine.scr_w = %d   engine.src_h = %d\n", engine.scr_w, engine.scr_h) ;
 
 
     // Bookkeeping and timing variables. 
@@ -439,7 +446,6 @@ int main( int argc, char **argv )
             // frame counting 
             sec_progress += delta_millis ;
 
-            delta_millis = 0 ;
             SDL_GL_SwapBuffers(); 
             framecount++; 
 
@@ -454,29 +460,18 @@ int main( int argc, char **argv )
             }
             SDL_Delay(1) ; 
             delay_count++ ;
-            //SDL_GL_SwapBuffers(); 
         }
 
         
         // FRAME COUNTING and other 1Hz actions. 
         if ( sec_progress >= 1000 )
         {
-            /*
-            printf(
-                " \n \t\t\t\tgetticks = %d     delay_count = %d\n", 
-                SDL_GetTicks()/1000, 
-                delay_count 
-                ) ;
-                */
             main_msgs_num = 0 ;
-            sprintf(
-                main_msgs[0], 
+            sprintf( main_msgs[0], 
                 "  running time: %d. FPS=%d.", 
-                SDL_GetTicks()/1000,
-                framecount 
+                SDL_GetTicks()/1000, framecount 
                 ) ; main_msgs_num ++ ;
 
-                //printf("\n%s\n", main_msgs[0]) ;
             delay_count = 0 ;
             framecount = 0 ; 
             sec_progress = 0 ; 
