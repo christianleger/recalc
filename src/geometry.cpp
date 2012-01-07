@@ -305,6 +305,8 @@ void draw_world_box()
     draw_square(center, world.size, 3) ; center[0] += half ; center[1] -= half ;
     draw_square(center, world.size, 1) ; center[0] -= half ; center[1] -= half ;
     draw_square(center, world.size, 2) ;
+    
+    glEnable ( GL_DEPTH_TEST ) ; 
     /*  */
 }
 

@@ -171,7 +171,7 @@ void render_editor()
     //draw_newcubes() ;
     draw_new_octs() ;
 
-    glEnable( GL_DEPTH_TEST ) ;
+    // glEnable( GL_DEPTH_TEST ) ;
 }
 
 void render_tester()

@@ -240,7 +240,8 @@ void resize_window( int width, int height, int fov )
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity( );
 
-    gluPerspective( (GLfloat)angle, ratio, 0.01f, 10000000.0f );
+    ////gluPerspective( (GLfloat)angle, ratio, 0.01f, 10000000.0f );
+    gluPerspective( (GLfloat)angle, ratio, 0.01f, 1000000.0f );
     //gluPerspective( 60.0f, ratio, 0.01f, 50000.0f );
 
     /* default matrix to manipulate is modelview */
