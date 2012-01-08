@@ -348,7 +348,8 @@ void render_info()
                    input_msgs[j]) ; j++ ;
         }
 
-        // info from geometry 
+
+        // info from geometry - PER ACTION
         extern int geom_msgs_num ;
         extern char geom_msgs[100][256] ;
         // messages from geometry 
@@ -359,6 +360,21 @@ void render_info()
             prstr( 0, 600.f, 0 + next_line*height, 
                    geom_msgs[j]) ; j++ ;
         }
+
+
+        // info from geometry - PER FRAME
+        extern int geom_msgs_num2 ;
+        extern char geom_msgs2[100][256] ;
+        // messages from geometry 
+        j = 0 ;
+        while (j<geom_msgs_num2)
+        {
+            //prstr( 0, 600.f, engine.current_h - next_line*height, 
+            prstr( 0, 600.f, 0 + next_line*height, 
+                   geom_msgs2[j]) ; j++ ;
+        }
+
+
 
         extern int main_msgs_num ;
         extern char main_msgs[100][256] ;

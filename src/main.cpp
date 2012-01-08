@@ -190,9 +190,9 @@ void initGL( )
     /* Really Nice Perspective Calculations */
     glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_SMOOTH );
     // glHint( GL_TEXTURE_COMPRESSION_HINT, GL_NICEST );
-    glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
-    glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST );
-    glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
+    // glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
+    // glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST );
+    // glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
 
     glEnable( GL_DEPTH_TEST );
     glEnable( GL_BLEND );
@@ -202,7 +202,7 @@ void initGL( )
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     /* The Type Of Depth Test To Do */
-    // glDepthFunc( GL_LESS | GL_NOTEQUAL ) ;
+    glDepthFunc( GL_EQUAL | GL_NOTEQUAL ) ;
 
     //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE) ;
 

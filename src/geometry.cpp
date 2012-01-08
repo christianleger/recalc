@@ -14,6 +14,11 @@
 
 extern Camera camera ;
 
+
+
+
+
+
 //------------------------------------------------------------------------
 //                  GLOBAL VARIABLES
 //------------------------------------------------------------------------
@@ -25,9 +30,16 @@ vec  camdir ;
 // How much will that cost? 25K my good man. 
 // You can afford that how many times? At least 2000 times? Splendid! 
 // You won't regret this sir!!
+
 int geom_msgs_num = 0 ;
 char geom_msgs[100][256] ;
 
+int geom_msgs_num2 = 0 ;
+char geom_msgs2[100][256] ;
+
+
+
+// sprintf(geom_msgs[geom_msgs_num], "pointcount=%d.", pointcount ) ; geom_msgs_num++ ;
 //------------------------------------------------------------------------
 //                  GEOMETRY SUPPORT FUNCTIONS  (octree, memory, etc.)
 //------------------------------------------------------------------------
@@ -151,6 +163,8 @@ void set_sel_end()
         sel_counts.y, 
         sel_counts.z
         ); 
+
+    sprintf(geom_msgs[geom_msgs_num], "selection counts: %d %d ", sel_counts.x, sel_counts.y) ; geom_msgs_num++ ;
 }
 
 int orientation_indexes[6][3] = 
@@ -299,14 +313,14 @@ void draw_world_box()
 
     vec center( 0, half, half ) ;
 
-    glDisable( GL_DEPTH_TEST ) ; 
+    // glDisable( GL_DEPTH_TEST ) ; 
 
     draw_square(center, world.size, 0) ; center[0] += half ; center[1] += half ;
     draw_square(center, world.size, 3) ; center[0] += half ; center[1] -= half ;
     draw_square(center, world.size, 1) ; center[0] -= half ; center[1] -= half ;
     draw_square(center, world.size, 2) ;
     
-    glEnable ( GL_DEPTH_TEST ) ; 
+    // glEnable ( GL_DEPTH_TEST ) ; 
     /*  */
 }
 
@@ -391,7 +405,6 @@ int sel_path[20] = {-2} ;
 
         - which, if any, world planes are currently selected. 
 
-
 */
 
 void update_editor()
@@ -409,7 +422,7 @@ void update_editor()
 
     int gridscale = world.gridscale ; // maximum size of a selection square is half the world size. Else we wouldn't know! 
     //int gridscale = world.gridscale ; // maximum size of a selection square is half the world size. Else we wouldn't know! 
-    geom_msgs_num = 0 ; 
+    geom_msgs_num2 = 0 ; 
 
 
     #define hittingplane (hitplanes>>(3*i))&0x07
@@ -423,9 +436,6 @@ void update_editor()
         hitplanes |= ( camdir[i]<0 ? 2*i : 2*i+1 ) << (3*i) ;
     }
     min_t = FLT_MAX ;
-    /*
-    */
-
 
 bool have_sel_start_node = false ;
 //if (0)
@@ -487,29 +497,77 @@ bool have_sel_start_node = false ;
     }
 
 }
-    sprintf(geom_msgs[geom_msgs_num], "update_editor: point at %d %d %d", icorner[0], icorner[1], icorner[2]) ; geom_msgs_num++ ;
+ //    sprintf(geom_msgs[geom_msgs_num], "update_editor: point at %d %d %d", icorner[0], icorner[1], icorner[2]) ; geom_msgs_num++ ;
 
 
 
-    if (have_sel_start_node)
-    {
-        Octant* oct = findNodeAt(icorner) ;
-        sprintf(
-            geom_msgs[geom_msgs_num], 
-            "current selection: (has children = %c, has geom = %c, has extent = %c)", 
-            (oct->children) ? 'Y' :'N',
-            (oct->geom) ? 'Y':'N',
-            (oct->has_geometry()) ? 'Y':'N'
-        ) ; geom_msgs_num++ ;
-    }
+    // TARGET FINDER PHASE 2: Compute the first node our ray starts tracking 
+
     /*
     */
+    if (!have_sel_start_node)
+    {
+        loopi(3)
+        {
+            icorner[i] = ( ((int)(pos[i])) >> gridscale ) << gridscale ;
+        }
+    }
+
+    // Find node corresponding to ray front
+    Octant* oct = findNodeAt(icorner) ;
+
+// Some helpful debug info
+#define VERBOSE
+#ifdef VERBOSE
+    sprintf(
+        geom_msgs2[geom_msgs_num2], 
+        "ray start node: (has children = %c, has geom = %c, has extent = %c)", 
+        (oct->children) ? 'Y' :'N',
+        (oct->geom) ? 'Y':'N',
+        (oct->has_geometry()) ? 'Y':'N'
+    ) ; geom_msgs_num2++ ;
+#endif
 
 
     //    sprintf(geom_msgs[geom_msgs_num], "update_editor: point at %d %d %d", ) ; geom_msgs_num++ ;
 
 
     // TARGET FINDER PHASE 2: in-world content. 
+    /*
+        When this block begins, we know that 'oct' is a non-null node which contains 
+        either the camera or the ray front where it hits the world from the outside. 
+
+        In other words, it is the place where the ray 'begins' inside the world. 
+
+        So we need to check from this point forward whether the ray hits geometry or 
+        entities. 
+    */
+
+    // while ( ray hits nothing )
+
+    /*
+    while ( !havetarget )
+    {
+        // if ray intersects with node contents or geometry, we have a target
+        if (rayhitbox(camdir, bbox_min, bbox_max))
+        {
+            havetarget = true ;
+        }
+        else
+        {
+            // move to the next node
+            //  - figure out which of three possible planes we will hit. 
+
+            //  hittingplane will tell us
+            int dx = fabs(camdir.x-wp.x)
+            ...
+
+            oct = neighbornode(
+                orientation
+                ) ;
+        }
+    }
+    */
 
 
     // TARGET FINDER PHASE 3: far world planes. 
@@ -597,7 +655,7 @@ bool have_sel_start_node = false ;
         (oct->geom) ? 'Y':'N',
         (oct->has_geometry()) ? 'Y':'N'
     ) ; geom_msgs_num++ ;
-    */
+*/
 
 } // end update_editor 
 
@@ -819,16 +877,19 @@ void delete_subtree(Octant* in_oct)
         // Every time we reach this part of the loop, it means we are 
         // finished looking at CN's children. We can delete CN's children 
         // now. 
-        CN = path[d] ;
-        // Delete children. 
-        if (CN)
-        if (CN->children)
+        if (d>=0) // Of course, don't bother if we've backed up 'past' the start of our node path. 
         {
-            delete CN->children ;
-            CN->children = NULL ;
-            //printf("\ndeleting 8 children. \n") ; 
+            CN = path[d] ;
+            // Delete children. 
+            if (CN)
+            if (CN->children)
+            {
+                delete [] CN->children ;
+                CN->children = NULL ;
+                //printf("\ndeleting 8 children. \n") ; 
+            }
+            idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
         }
-        idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
     }   // end while d>=0
 }
 
@@ -838,7 +899,7 @@ Octant* findNodeAt(ivec at)
 {
     int WGSc = world.gridscale ;
     int CGS = world.scale ;
-    int depth = 0 ;
+//    int depth = 0 ;
     int i = 0 ;
     Octant* oct = &world.root ;
 
@@ -854,7 +915,7 @@ Octant* findNodeAt(ivec at)
         {
             break ;
         }
-        depth++ ;
+//        depth++ ;
         CGS-- ;
     }
     return oct ;
@@ -921,7 +982,7 @@ void extrude( void * _in )
     int CGS = WS ;                  // current grid scale
     int i = 0 ;                     // child index
     ivec pos(0) ;                   // used to compute vertices that go into our vbo_array
-    vectormap vmap ;                // used to record new nodes and then to construct and update vector arrays
+    // vectormap vmap ;                // used to record new nodes and then to construct and update vector arrays
 
     // define a range of cubes that will be created, bounded by 
     // sel_min and sel_max. These will bound the same rectangle 
@@ -993,14 +1054,28 @@ void extrude( void * _in )
             Octant* oct = &world.root ;
             int depth = 0 ; // first child of root
 
+
             int x_count = 0 ;
             int y_count = 0 ;
+
+            x_count = 0 ;
+            y_count = 0 ;
+            
             ivec NCstart = NC ;
             // Do this for as many 'rows' and 'columns' as the selection is wide. 
+            // while ( y_count < sel_counts.y )
             while ( y_count < sel_counts[Y(O)] )
             {
+                //while ( x_count < sel_counts.x )
                 while ( x_count < sel_counts[X(O)] )
                 {
+                /*
+                    sprintf(geom_msgs[geom_msgs_num], "(start) new node -- x_count = %d   y_count = %d  NC = %d %d %d (sel_counts = %d %d)", 
+                        x_count, y_count, NC.x, NC.y, NC.z,
+                        sel_counts.x, 
+                        sel_counts.y 
+                        ) ; geom_msgs_num++ ;
+                        */
                     //printf("\n \n") ;
                     while (CGS>=WGSc)
                     {
@@ -1008,16 +1083,12 @@ void extrude( void * _in )
                         { 
                             //printf("\n  allocating 8 children (depth %d)",depth) ; 
                             oct->children = new Octant[8] ; 
-
-                            //printf("\n creating child nodes on path \n") ;
-                            //loopj(depth+1)
-                            //{
-                             //  printf(" %d ", sel_path[j]) ;
-                            //}
+                            if (!oct->children)
+                            {
+                                sprintf(geom_msgs[geom_msgs_num], "ERROR ASSIGNING CHILDREN TO A NODE! ") ; geom_msgs_num++ ;
+                            }
                         }
-
                         i = octastep(NC.x,NC.y,NC.z,CGS) ;
-                        //printf("\n\t\t\t\t octastep giving %d \n", i) ; 
                         sel_path[depth] = i ;
                         oct = &oct->children[i] ;
 
@@ -1025,6 +1096,7 @@ void extrude( void * _in )
                         CGS-- ;
                     }
                     // printf ("\nprocessing node = %d %d %d\n", NC.x, NC.y, NC.z ) ;
+                    //sprintf(geom_msgs[geom_msgs_num], "(1 not inc) x_count now = %d ", x_count) ; geom_msgs_num++ ;
 
                     if (oct)
                     {
@@ -1038,12 +1110,15 @@ void extrude( void * _in )
                     // Reset variables for any subsequent new nodes. 
                     CGS = WS ; 
                     depth = 0 ;
+                    //sprintf(geom_msgs[geom_msgs_num], "(2 not inc) x_count now = %d ", x_count) ; geom_msgs_num++ ;
                     oct = &world.root ;
 
                     // Move to next position for a new node 
+                    //sprintf(geom_msgs[geom_msgs_num], "(3 not inc) x_count now = %d ", x_count) ; geom_msgs_num++ ;
                     NC[X(O)] += GS ;
                     x_count ++ ;
-                }
+                    //sprintf(geom_msgs[geom_msgs_num], "(inc) x_count now = %d ", x_count) ; geom_msgs_num++ ;
+                } // end while ( x_count < sel_counts.x )
                 x_count = 0 ;
                 y_count ++ ;
                 NC[X(O)] = NCstart[X(O)] ;
@@ -1227,7 +1302,7 @@ void draw_new_octs()
         idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
     }                   // end while d>=0
     glEnd() ;
-    sprintf(geom_msgs[geom_msgs_num], "pointcount=%d.", pointcount ) ; geom_msgs_num++ ;
+    // sprintf(geom_msgs[geom_msgs_num], "pointcount=%d.", pointcount ) ; geom_msgs_num++ ;
 }
 
 /*

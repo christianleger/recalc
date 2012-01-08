@@ -383,8 +383,13 @@ void handle_key( SDL_Event* event )
 /*
             SDLK_UNKNOWN		= 0,
             SDLK_FIRST		= 0,
-            SDLK_BACKSPACE		= 8,
             */
+            case SDLK_BACKSPACE:
+            {
+                extern int geom_msgs_num ;
+                geom_msgs_num = 0 ;
+                break ;
+            }
             case SDLK_TAB:
             {
                 current_commands[ SDLK_TAB ] ;
@@ -480,14 +485,11 @@ void handle_key( SDL_Event* event )
                 else
                 {
                     current_commands = NULL ; 
-                }*/
+                }
+*/
                 break ;
             }
-            /*
-
-
-
-
+/*
             SDLK_DELETE		= 127,
             // End of ASCII mapped keysyms 
             //@}
@@ -645,7 +647,7 @@ void handle_key( SDL_Event* event )
                 ///if ( use_dl ) printf("\n now using display list ") ; 
                 break ;
             }
-            /*
+/*
             SDLK_F5			= 286,
             SDLK_F6			= 287,
             SDLK_F7			= 288,
@@ -665,7 +667,7 @@ void handle_key( SDL_Event* event )
             SDLK_CAPSLOCK		= 301,
             SDLK_SCROLLOCK		= 302,
             SDLK_RSHIFT		= 303,
-            */
+*/
             case SDLK_LSHIFT:
             {
             extern float basic_velocity ;
@@ -778,13 +780,14 @@ void handle_key( SDL_Event* event )
             //SDLK_z			= 122,
             case SDLK_z:
             {
+                static int lastfov = engine.fov ;
                 if ( engine.fov > 50 )
                 {
                     engine.fov = 30 ; 
                 }
                 else
                 {
-                    engine.fov = 100 ; 
+                    engine.fov = lastfov ; 
                 }
                 resize_window( engine.current_w, engine.current_h, engine.fov ) ; 
                 break ;
