@@ -155,7 +155,7 @@ again: clean all
 ################################################################################
 #####################         THE EXECUTABLE         ###########################
 ################################################################################
-recalc: ../src/main.cpp $(OBJS)
+recalc: ../src/recalc.h ../src/main.cpp $(OBJS)
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) $(LIB_LOCATIONS) $(LIBS) \
     $(OBJS) ../src/main.cpp $(OUT_FLAG) ../bin/recalc

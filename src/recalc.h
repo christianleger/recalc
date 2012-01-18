@@ -34,8 +34,8 @@
 //                  LOCAL INCLUDE FILES 
 //--------------------------------------------------------------------------------------------------
 #include "tools.h"      // data structures and primitives
-#include "utils.h"      // debugging, logging, timing and profiling
-#include "math.h"
+#include "utils.h"      // timing, debugging, logging, timing and profiling
+#include "math.h"       // vectors, certain number crunchers
 #include "geometry.h"
 #include "input.h"
 #include "text.h"
@@ -181,6 +181,7 @@ struct Camera
     void stop_backward() ;
     void stop_strafe_left() ;
     void stop_strafe_right() ;
+    bool inworld(World current_world) ;
 } ; 
 
 struct Area
@@ -317,8 +318,8 @@ void draw_sel_start() ;
 void draw_sel_end() ;
 void set_sel_start() ;
 void set_sel_end() ;
+void clear_selection() ;
 void extrude( void * ) ; 
-void draw_newcubes() ;
 void draw_new_octs() ;
 void initialize() ;
 

@@ -172,6 +172,14 @@ void Camera::stop_strafe_right()
     strafe = false ; 
 }
 
+bool Camera::inworld(World current_world)
+{
+    return  
+       ( (pos.x >= 0) && (pos.x <= current_world.size) &&
+         (pos.y >= 0) && (pos.y <= current_world.size) &&
+         (pos.z >= 0) && (pos.z <= current_world.size) ) ;
+}
+
 
 Area area ;
 void Area::initialize()

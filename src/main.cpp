@@ -47,6 +47,7 @@ int default_screen_height = 800 ;
 
 
 void read_args( int, char** ) ;
+bool testonly = false ;
 
 
 void read_configs() ;
@@ -71,6 +72,37 @@ void initialize_subsystems() ;
 
 void read_args( int argc, char** argv )
 {
+    // Args
+
+    int i = 0 ;
+    int args = argc ;
+    while (args>0)
+    {
+        if (argv[i][0]=='-')
+        {
+            switch (argv[i][1])
+            {
+                case 'h':
+                {
+                    printf("\nTEST ONLY MODE SELECTED. NOW PROBABLY EXITING. \n") ;
+                    args = 0 ;
+                    testonly = true ;
+                    break ;
+                }
+                default:
+                {
+                    printf("\nUnhandled argument: %s\n", argv[i]) ;
+                    break ;
+                }
+            }
+        }
+        else
+        {
+            printf("\nI don't understand your shit. Quitting. (got '%s' from args)\n", argv[i]) ;
+        }
+        args-- ;
+        i++ ;
+    }
 }
 
 
@@ -202,7 +234,8 @@ void initGL( )
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     /* The Type Of Depth Test To Do */
-    glDepthFunc( GL_EQUAL | GL_NOTEQUAL ) ;
+    // glDepthFunc( GL_EQUAL | GL_NOTEQUAL ) ;
+    glDepthFunc( GL_LESS ) ;
 
     //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE) ;
 
@@ -269,8 +302,28 @@ int main( int argc, char **argv )
     // time and frame calculations 
     bool time_delta_big_enough ;
 
+    unsigned long long first_cycle = 0 ;
+    unsigned long long delta_cycle = 0 ;
+    get_time(first_cycle) ;
+    printf("\nENGINE STARTING ON CLOCK CYCLE %lld\n", first_cycle) ;
 
+    
     read_args(argc, argv); 
+
+    // Move this block further down is some resources are needed to perform some tests. 
+    if (testonly)
+    {
+        // Things to test: 
+        // sub-milimeter timing code
+        testtiming() ;
+        // floating-point to integer conversion
+        // Whoops haha we leave now because we only wanted to run some arbitrary code ! 
+        // get_time(delta_cycle) ;
+        cycle_delta(first_cycle, delta_cycle) ;
+        printf("\nENGINE EXITING AFTER %lld CYCLES\n", delta_cycle) ;
+        Quit(0) ;
+    }
+
     read_configs() ; 
 
     // cheap, expendable initialization section 

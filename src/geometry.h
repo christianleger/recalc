@@ -32,9 +32,9 @@ struct Octant
     {
         struct 
         {
-            int32_t c ;         // leaf vertex count            // 4 bytes
-            int32_t int2 ;      // unused                       // 4 bytes
-            int32_t int3 ;      // unused                       // 4 bytes
+            int32_t c ;         // leaf vertex count (should be 3X(number of triangles) minus number of reused vertices)
+            int32_t int2 ;      // unused            
+            int32_t int3 ;      // unused            
         } lvc ; 
 
         uchar    edges[12] ;                                    // 12 bytes 
@@ -56,6 +56,7 @@ struct Octant
         define geometry). 
     */
     bool has_geometry() ;
+    bool has_children() ;
     void set_all_edges(int in_value) ;
 
     void test_func_def()

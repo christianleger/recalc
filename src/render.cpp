@@ -57,7 +57,8 @@ void render_world( int sec_progress )
     glRotatef( -90 , 1, 0, 0 ) ; 
 
     //glTranslatef( -camera.pos.x, -camera.pos.y, -camera.pos.z ) ;
-    glTranslatef( -camera.pos.x, -camera.pos.y, -(1.8+camera.pos.z) ) ;
+    //glTranslatef( -camera.pos.x, -camera.pos.y, -(1.8+camera.pos.z) ) ;
+    glTranslatef( -camera.pos.x, -camera.pos.y, -(camera.pos.z) ) ;
 
 
     glColor3f( 0, 1, 0) ; 
@@ -171,12 +172,17 @@ void render_editor()
     //draw_newcubes() ;
     draw_new_octs() ;
 
+    extern void draw_ray_start_node() ;
+    draw_ray_start_node() ;
+
     // glEnable( GL_DEPTH_TEST ) ;
 }
 
 void render_tester()
 {
 
+
+    glEnable( GL_DEPTH_TEST ) ;
 
     float v1[3] = { 0, 50, 20 } ; 
 
@@ -328,15 +334,17 @@ void render_info()
     int height = fonts[0]->_height ;
 
     render_ortho_begin() ;
-
-        // Message used to debug this function! 
+////////////////////////////////////////////////////////////////////////////////
+//                      MESSAGES FROM INFO SYSTEM
+////////////////////////////////////////////////////////////////////////////////
         char info_msg[256] ;
         sprintf(info_msg, "height=%d ", height) ;
         prstr( 0, 600.f, 0 + next_line*height,
                    info_msg) ; 
 
-        // messages from inputs
-        // info from inputs
+////////////////////////////////////////////////////////////////////////////////
+//                      MESSAGES FROM INPUT SYSTEM
+////////////////////////////////////////////////////////////////////////////////
         extern int input_msgs_num ;
         extern char input_msgs[100][256] ;
         extern void update_input_messages() ;
@@ -348,11 +356,12 @@ void render_info()
                    input_msgs[j]) ; j++ ;
         }
 
-
-        // info from geometry - PER ACTION
+////////////////////////////////////////////////////////////////////////////////
+//                      MESSAGES FROM GEOMETRY
+////////////////////////////////////////////////////////////////////////////////
+        // PER ACTION messages
         extern int geom_msgs_num ;
         extern char geom_msgs[100][256] ;
-        // messages from geometry 
         j = 0 ;
         while (j<geom_msgs_num)
         {
@@ -362,7 +371,7 @@ void render_info()
         }
 
 
-        // info from geometry - PER FRAME
+        // PER FRAME messages
         extern int geom_msgs_num2 ;
         extern char geom_msgs2[100][256] ;
         // messages from geometry 
@@ -376,6 +385,9 @@ void render_info()
 
 
 
+////////////////////////////////////////////////////////////////////////////////
+//                      MESSAGES FROM MAIN
+////////////////////////////////////////////////////////////////////////////////
         extern int main_msgs_num ;
         extern char main_msgs[100][256] ;
         // messages from main
@@ -387,8 +399,7 @@ void render_info()
             prstr( 0, 10, 400 + next_line*height, 
                      main_msgs[j]) ; j++ ;
         }
-/*
-*/
+////////////////////////////////////////////////////////////////////////////////
     render_ortho_end() ;
 }
 
