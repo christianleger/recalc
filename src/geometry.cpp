@@ -620,14 +620,26 @@ void update_editor()
         entities. 
 
         Parameters: */
-
     front = pos ;
     vec ray = camdir ;
-    front.add(ray.mul(min_t)) ; 
     dir = camdir ;
     ray = dir ;              // reset ray to length 1
+    vec rayfront ;
+
+    if (have_ray_start_node ) // Redundant (should already be done) but hey life is made for fun. 
+    {
+        front.add(ray.mul(min_t)) ; 
+        rayfront = front ;
+    }
+    else    // If we aren't aiming at the world exterior, it's because we're inside the world. 
+            // Ray front therefore starts at our position. 
+    {
+        rayfront = pos ;
+        // icorner = 
+    }
+    ray = dir ;              // reset ray to length 1
+
     
-    vec rayfront = front ;
     loopj(3) 
     {
         if (rayfront[j]<0) { rayfront[j]=0;}
@@ -639,9 +651,9 @@ void update_editor()
 
 
     // pos is float vector of where we are
-    float fx = rayfront.x, fy = rayfront.y, fz = rayfront.z ;
-    float rx = ray.x, ry = ray.y, rz = ray.z ;
-    float dx = 0.f, dy = 0.f, dz = 0.f ;
+    // float fx = rayfront.x, fy = rayfront.y, fz = rayfront.z ;
+    // float rx = ray.x, ry = ray.y, rz = ray.z ;
+    // float dx = 0.f, dy = 0.f, dz = 0.f ;
     float r = 0.f ;
     float d = 0.f ;
     t = 0.f ; // divisions are minimized 
@@ -659,50 +671,19 @@ void update_editor()
     sprintf( geom_msgs2[geom_msgs_num2], "numchildren = %d", numchildren) ; geom_msgs_num2++ ;
     sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
     sprintf( geom_msgs2[geom_msgs_num2], "position : %.2f %.2f %.2f", pos.x, pos.y, pos.z) ; geom_msgs_num2++ ;
-    sprintf( geom_msgs2[geom_msgs_num2], "ray = %.4f %.4f %.4f", rx, ry, rz ) ; geom_msgs_num2++ ;
+    sprintf( geom_msgs2[geom_msgs_num2], "ray = %.4f %.4f %.4f", ray.x, ray.y, ray.z ) ; geom_msgs_num2++ ;
 
 
-    if (have_ray_start_node)
+//    if (have_ray_start_node)
     {
         int Nscale = 0; 
 
-        // set icorner 'equal' to the ray front
-
-        // icorner[0] = (int)rayfront.x ; icorner[1] = (int)rayfront.y ; icorner[2] = (int)rayfront.z ;
-       // loopj(3) { 
-            // if (!(i==j))   { icorner[j] = (icorner[j] >> Nscale) << Nscale ; }
-            // else        
-        //    { icorner[j] = floor(rayfront[j]+.5f) ;} 
-        //}
-
-       // if (rx<0 && icorner.x>=world.size) {icorner.x = world.size ;} 
-       // if (ry<0 && icorner.y>=world.size) {icorner.y = world.size ;} 
-       // if (rz<0 && icorner.z>=world.size) {icorner.z = world.size ;} 
-       // if (rx>=0 && icorner.x<0) {icorner.x = 0 ;} 
-       // if (ry>=0 && icorner.y<0) {icorner.y = 0 ;} 
-       // if (rz>=0 && icorner.z<0) {icorner.z = 0 ;} 
-
-        //Octant* oct = findNode(icorner, &Nscale, &NS) ;
-        // if we're exceeded the limits of the world, then we're 
-
-        // loopj(3) { if ((orientation>>1)<=j) { i = j>>1 ; break ; } }
-        // loopj(3) { if ((orientation>>1)<=j) { i = j>>1 ; break ; } }
-
         i = (orientation>>1) ;
 
-//        loopj(3) { icorner[j] = (int)rayfront[j] ; }
         // In our direction of penetration, we want to make sure that our probe is guaranteed 
         // inside the node we should be finding. 
-        if (ray[i]<0 && icorner[i]>=world.size) {icorner[i] -= 1 ;} else {icorner[i]+=1;}
+//         if (ray[i]<0 && icorner[i]>=world.size) {icorner[i] -= 1 ;} else {icorner[i]+=1;}
 
-
-/*
-        loopj(3)
-        { 
-            if 
-            icorner[j] = (icorner[j] >> Nscale) << Nscale ; 
-        }
-*/
 
         sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
         sprintf( geom_msgs2[geom_msgs_num2], "********** RAY START **********") ; geom_msgs_num2++ ;
@@ -716,23 +697,22 @@ void update_editor()
     {
 
 
-        limit++ ; if (limit>5) { break ; } // Kill runaway loops
+        limit++ ; if (limit>10) { break ; } // Kill runaway loops
        
         loopj(3) {icorner[j] = (int)rayfront[j] ;}
+
         sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
         sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
         sprintf( geom_msgs2[geom_msgs_num2], "new ray front at :            %.2f    %.2f    %.2f    (crossing through %s plane) d = %.2f (size = %d)", 
             rayfront.x, rayfront.y, rayfront.z, plane_names[i], d, NS) ; geom_msgs_num2++ ;
-        icorner[i] += (ray[i]>0?1:-1) ;     // Snap to inside of node we're looking at
+        icorner[i] += (ray[i]>=0?1:-1) ;     // Snap to inside of node we're looking at
+        sprintf( geom_msgs2[geom_msgs_num2], "icorner currently:            %d    %d    %d ", icorner[0], icorner[1], icorner[2]
+            ) ; geom_msgs_num2++ ;
 
 
-        if ( (icorner[0]<=0 && rx<0)      ||
-             (ray.x>=0 && icorner[0]>=WS) ||
-             (icorner[1]<=0 && ry<0)      ||
-             (ray.y>=0 && icorner[1]>=WS) ||
-             (icorner[2]<=0 && rz<0)      ||  
-             (ray.z>=0 && icorner[2]>=WS)
-           )
+        if ( (icorner[0]<=0 && ray.x<0) || (ray.x>=0 && icorner[0]>=WS) ||
+             (icorner[1]<=0 && ray.y<0) || (ray.y>=0 && icorner[1]>=WS) ||
+             (icorner[2]<=0 && ray.z<0) || (ray.z>=0 && icorner[2]>=WS) )
         { 
             sprintf( geom_msgs2[geom_msgs_num2], "Ray exiting world bounds at %.2f %.2f %.2f ", 
                 rayfront[0], rayfront[1], rayfront[2] ) ; geom_msgs_num2++ ;
@@ -777,7 +757,7 @@ void update_editor()
 
         sprintf( geom_msgs2[geom_msgs_num2], "distances = %.2f %.2f %.2f    rx=%.4f ry=%.4f rz=%.4f  r=%.4f d=%.4f t=%.4f",
             fabs(ds.x), fabs(ds.y), fabs(ds.z), ray.x, ray.y, ray.z, r, d, t  ) ; geom_msgs_num2++ ;
-        sprintf( geom_msgs2[geom_msgs_num2], "r = %.4f, d = %.4f, t = %.4f", r, d, t) ; geom_msgs_num2++ ;
+        // sprintf( geom_msgs2[geom_msgs_num2], "r = %.4f, d = %.4f, t = %.4f", r, d, t) ; geom_msgs_num2++ ;
 
         rayfront.add(ray.mul(t)) ;  // move ray to new plane
         ray = dir ;                 // reset ray to length 1
