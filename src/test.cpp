@@ -18,8 +18,8 @@
 // GLuint                m_nVertexCount;                                // Vertex Count
 
 // CVert*            m_pVertices;                                // Vertex Data
-vec m_vertices[300] ;
-vec m_colors[100] ;
+vec m_vertices[10000] ;
+vec m_colors[10000] ;
 
 // CTexCoord*        m_pTexCoords;                                // Texture Coordinates
 // CTexCoord*        m_pTexCoords;                                // Texture Coordinates
@@ -58,7 +58,26 @@ void initiate_test_001()
         m_vertices[9] = vec(1800, 500, 0) ;
         m_vertices[10] = vec(2200, 200, 30) ;
         m_vertices[11] = vec(2400, 300, 800) ;
-       
+
+        // How many triangles: 
+        // 600 vertices where after the first two each new one is another triangle. 
+        // So 598 triangles. 
+        for (int j=12;j<600;j+=3)
+        {
+            m_vertices[j] = m_vertices[j-2] ;
+            m_vertices[j+1] = m_vertices[j-1] ;
+            m_vertices[j+2] = vec(200*j, 0+(j%2?300:0), 20*j) ;
+        }
+      
+      vec colors[10] = 
+      {
+        vec(1.0, 1.0, 1.0) , vec(0.0, 1.0, 0.0) , 
+        vec(1.0, 0.0, 1.0) , vec(1.0, 1.0, 0.0) , 
+        vec(1.0, 0.0, 0.0) , vec(0.5, 0.5, 1.0) , 
+        vec(0.5, 0.5, 0.0) , vec(0.0, 0.5, 0.8) , 
+        vec() , vec() 
+      } ;
+
         m_colors[0] = vec(1,1,1) ;
         m_colors[1] = vec(1,1,1) ;
         m_colors[2] = vec(1,1,1) ;
@@ -75,6 +94,11 @@ void initiate_test_001()
         m_colors[10] = vec(.2,.5,.3) ;
         m_colors[11] = vec(.2,.5,.3) ;
        
+        for (int j=12;j<600;j++)
+        {
+            m_colors[j] = colors[j%9] ;
+            m_colors[j+1] = colors[j%10] ;
+        }
        /*
         m_vertices[3][0] = 1 * i  ;
         m_vertices[3][1] = 1 * 7 *i ;
@@ -112,13 +136,13 @@ void initiate_test_001()
     // VERTICES
     glGenBuffers( 1, &m_vertVBO );                            // Get A Valid Name
     glBindBuffer( GL_ARRAY_BUFFER, m_vertVBO );            // Bind The Buffer
-    glBufferData( GL_ARRAY_BUFFER, 300*3*sizeof(float), m_vertices, GL_STATIC_DRAW );
+    glBufferData( GL_ARRAY_BUFFER, 500*9*sizeof(float), m_vertices, GL_STATIC_DRAW );
     // glBufferData( GL_ARRAY_BUFFER, 500*3*sizeof(float), m_vertices, GL_STATIC_DRAW );
 
     // COLOR VALUES 
     glGenBuffers( 1, &m_colorVBO );                            // Get A Valid Name
     glBindBuffer( GL_ARRAY_BUFFER, m_colorVBO );            // Bind The Buffer
-    glBufferData( GL_ARRAY_BUFFER, 100*1*sizeof(float), m_colors, GL_STATIC_DRAW );
+    glBufferData( GL_ARRAY_BUFFER, 500*9*sizeof(float), m_colors, GL_STATIC_DRAW );
     /*
     */
 
@@ -177,7 +201,57 @@ void render_test_001()
    
     
     // DRAW LIKE AN ALMIGHTY GOD
-    glDrawArrays( GL_TRIANGLES, 0, 12 );    // Draw All Of The Triangles At Once
+    glDrawArrays( GL_TRIANGLES, 0, 650 );    // Draw All Of The Triangles At Once
+
+    /*
+*/
+    glPushMatrix() ;
+
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 500 );    // Draw All Of The Triangles At Once
+
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
+
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
+
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
+
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
+
+    glRotatef(80, 0,0,1) ;
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
+
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
+
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 500 );    // Draw All Of The Triangles At Once
+
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
+
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
+
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
+
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
+
+    glRotatef(80, 0,0,1) ;
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
+
+    glTranslatef(0,5000,4000) ;
+    glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
+
+    glPopMatrix() ;
     // glDrawArrays( GL_TRIANGLES, 0, numElements*elementSize );    // Draw All Of The Triangles At Once
     // FIXME: use element arrays
 

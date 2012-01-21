@@ -41,13 +41,16 @@
 
 inline uint64_t rdtsc() {
     uint32_t lo, hi;
-    __asm__ __volatile__ (
+    __asm__ __volatile__ 
+    (
       "xorl %%eax, %%eax\n"
       "cpuid\n"
       "rdtsc\n"
       : "=a" (lo), "=d" (hi)
       :
-      : "%ebx", "%ecx");
+      : "%ebx", "%ecx"
+    );
+
     return (uint64_t)hi << 32 | lo;
 }
 
@@ -66,7 +69,7 @@ inline void testtiming()
 
 }
 
-inline void get_time(
+inline void get_cycle(
     unsigned long long& init_time
 )
 {

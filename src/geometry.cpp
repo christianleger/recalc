@@ -62,9 +62,10 @@ void update_editor() ;
 ////////////////////////////////////////////////////////////////////////////////
 // here 'world scale' really means the largest piece out of the world, which 
 // is one of the 8 cubes that divide the world
-             // default 15   size: 2^15       gridscale    max gridsize: 2^15
+             // default 15   size: 2^15=65536    gridscale    max gridsize: 2^15
 World world = { WORLD_SCALE, 2<<WORLD_SCALE , WORLD_SCALE, 2<<(WORLD_SCALE-1) } ;
 #define w world
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -268,14 +269,15 @@ void draw_corner_square(
     int _o
     )
 {
-    vec c(_corner.v) ;
+    ivec c(_corner) ;
+    //ivec v(_corner) ;
 // FIXME FIXME FIXME FIXME
 
     glBegin( GL_LINE_LOOP ) ;
-        glVertex3fv( c.v ) ; c[X(_o)] += size ;  // bottom-right
-        glVertex3fv( c.v ) ; c[Y(_o)] += size ;  // top-right
-        glVertex3fv( c.v ) ; c[X(_o)] -= size ;  // top-left
-        glVertex3fv( c.v ) ;
+        glVertex3iv( c.v ) ; c[X(_o)] += size ;  // bottom-right
+        glVertex3iv( c.v ) ; c[Y(_o)] += size ;  // top-right
+        glVertex3iv( c.v ) ; c[X(_o)] -= size ;  // top-left
+        glVertex3iv( c.v ) ;
     glEnd() ;
 /*
 */
@@ -430,6 +432,25 @@ void RayHitPlane( vec& pos, vec ray, plane& pl, float* t )
         *t = 0 ; 
     }
 }
+vec RayHitPlanePosition( vec& pos, vec ray, plane& pl, float* t )
+{
+    double numerator = 0, denominator = 0 ;
+
+    numerator   = - pl.offset - ( pos.dot( pl.v) ) ;
+    denominator =        camdir.dot( pl.v )  ;
+
+    if ( denominator != 0 ) 
+    { 
+        *t = ( numerator ) / ( denominator ) ;  
+    }
+    // if denominator in plane equation is 0, that means vector parallel to plane. 
+    else  
+    { 
+        *t = 0 ; 
+    }
+    vec hitpos = pos.add(ray.mul(*t)) ;
+    return hitpos ;
+}
 
 
 /* 
@@ -548,7 +569,7 @@ void update_editor()
                 else
                 {   
                     // This nastiness is so that we are always flat against grid boundaries
-                    icorner[j] = floor( fcorner[j] + .5f ) ;
+                    icorner[j] = floor( fcorner[j] ) ;
                 }
             }
         }
@@ -571,7 +592,6 @@ void update_editor()
     */
 
 /*
-
     // Some helpful debug info
     #define VERBOSE
     #ifdef VERBOSE
@@ -591,8 +611,7 @@ void update_editor()
 
 
     // TARGET FINDER PHASE 2: in-world content. 
-    /*
-        When this block begins, we know that 'oct' is a non-null node which contains 
+    /*  When this block begins, we know that 'oct' is a non-null node which contains 
         either the camera or the ray front where it hits the world from the outside. 
 
         In other words, it is the place where the ray 'begins' inside the world. 
@@ -600,8 +619,7 @@ void update_editor()
         So we need to check from this point forward whether the ray hits geometry or 
         entities. 
 
-        Parameters: 
-    */
+        Parameters: */
 
     front = pos ;
     vec ray = camdir ;
@@ -610,7 +628,10 @@ void update_editor()
     ray = dir ;              // reset ray to length 1
     
     vec rayfront = front ;
-    // rayfront.add(ray.mul(min_t)) ; 
+    loopj(3) 
+    {
+        if (rayfront[j]<0) { rayfront[j]=0;}
+    }
 
     // ray_start_node = oct ;
     ray_start_vec = icorner ;
@@ -633,150 +654,134 @@ void update_editor()
     int limit = 0 ;
     int NS = 0 ; // target node size
     bool havetarget = false ;
-    // Find node corresponding to ray front
-    // Octant* oct = findNode(icorner, &NS) ;
+
     sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
     sprintf( geom_msgs2[geom_msgs_num2], "numchildren = %d", numchildren) ; geom_msgs_num2++ ;
     sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
-    sprintf( geom_msgs2[geom_msgs_num2], "position : %.2f %.2f %.2f", 
-        pos.x, pos.y, pos.z
-        ) ; geom_msgs_num2++ ;
-    sprintf( geom_msgs2[geom_msgs_num2], "ray = %.4f %.4f %.4f", 
-        rx, ry, rz 
-        ) ; geom_msgs_num2++ ;
-
+    sprintf( geom_msgs2[geom_msgs_num2], "position : %.2f %.2f %.2f", pos.x, pos.y, pos.z) ; geom_msgs_num2++ ;
+    sprintf( geom_msgs2[geom_msgs_num2], "ray = %.4f %.4f %.4f", rx, ry, rz ) ; geom_msgs_num2++ ;
 
 
     if (have_ray_start_node)
     {
-
-/*
-        sprintf( geom_msgs2[geom_msgs_num2], "rayfront start = %.4f %.4f %.4f", 
-            rayfront.x, rayfront.y, rayfront.z ) ; geom_msgs_num2++ ;
-        sprintf( geom_msgs2[geom_msgs_num2], "icorner (from editor) start = %d %d %d", 
-            icorner.x, icorner.y, icorner.z ) ; geom_msgs_num2++ ;
-        sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
-*/
-
         int Nscale = 0; 
 
-        //if (rx<0 && icorner.x>=world.size) {icorner.x -= 1 ;} else {icorner.x+=1;}
-        //if (ry<0 && icorner.y>=world.size) {icorner.y -= 1 ;} else {icorner.y+=1;}
-        //if (rz<0 && icorner.z>=world.size) {icorner.z -= 1 ;} else {icorner.z+=1;}
-        
-
         // set icorner 'equal' to the ray front
-        icorner[0] = (int)rayfront.x ;
-        icorner[1] = (int)rayfront.y ;
-        icorner[2] = (int)rayfront.z ;
-        if (rx<0 && icorner.x>=world.size) {icorner.x -= 1 ;} // else {icorner.x+=1;}
-        if (ry<0 && icorner.y>=world.size) {icorner.y -= 1 ;} // else {icorner.y+=1;}
-        if (rz<0 && icorner.z>=world.size) {icorner.z -= 1 ;} // else {icorner.z+=1;}
 
-        // bring this corner well within the desired cube
-        icorner[0] += (i==0?(rx>0?1:-1):(0)) ;     // Move corner to where rayfront is, in the direction through which 
-        icorner[1] += (i==1?(ry>0?1:-1):(0)) ;     // we're switching nodes. 
-        icorner[2] += (i==2?(rz>0?1:-1):(0)) ;
-        sprintf( geom_msgs2[geom_msgs_num2], "ICORNER before findNode: %d %d %d",
-            icorner[0], 
-            icorner[1], 
-            icorner[2] 
-            ) ; geom_msgs_num2++ ;
-        // find node that encompasses whereever icorner is at
-        Octant* oct = findNode(icorner, &Nscale, &NS) ;
-        // Now we should know the size and scale of the node encompassing icorner
-        // The following step places icorner exactly at the corner of the current node. 
-        // This helps us produce exact distance increments. 
-        loopj(3)
-        {
-            icorner[j] = (icorner[j] >> Nscale) << Nscale ;
-        }
-    while (!havetarget)
-    {
-        limit++ ; if (limit>1) { break ; } // Kill runaway loops
-       
-        
-
-
-        // if ( oct->has_geometry() || oct->has_children() )
-        if ( oct->has_geometry() )
-        {
-            sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
-            sprintf( geom_msgs2[geom_msgs_num2], "HAVE GEOMETRY NODE") ; geom_msgs_num2++ ;
-            havetarget = true ; continue ;
-        }
-
-        sprintf( geom_msgs2[geom_msgs_num2], "Node present. SIZE=%d SCALE=%d USING ICORNER=%d %d %d",
-            NS,
-            Nscale,
-            icorner[0], 
-            icorner[1], 
-            icorner[2] 
-            ) ; geom_msgs_num2++ ;
-        
-        fx = rayfront.x ; fy = rayfront.y ; fz = rayfront.z ;
-        rx = ray.x ; ry = ray.y ; rz = ray.z ;
-        r = 0.f ; d = 0.f ; t = 0.f ; 
-
-        dx = (rx>0?(float(icorner.x+NS)-fx):(fx-float(icorner.x))) ; 
-        dy = (ry>0?(float(icorner.y+NS)-fy):(fy-float(icorner.y))) ; 
-        dz = (rz>0?(float(icorner.z+NS)-fz):(fz-float(icorner.z))) ;
- 
-        if (fabs(rx*dy) > fabs(ry*dx))              // is rx/dx bigger than ry/dy? 
-        { r = rx ; d = dx ; i = 0 ; }
-        else
-        { r = ry ; d = dy ; i = 1 ; }
-        if ((fabs(rz*d) > fabs(r*dz)))              // is the last best smaller not bigger 
-        { r = rz ; d = dz ; i = 2 ; }
-        t = fabs(d/r) ;                       // divisions are minimized 
-    
-        rayfront.add(ray.mul(t)) ; 
-        ray = dir ;                  // reset ray to length 1
-
-        // WRONG PLACE TO PUT THIS!!!!!!!!!!!!!!! NEED CORNER WHICH IS RIGHT NEXT TO RAYFRONT, 
-        // IN DOMINANT DIRECTION
-        // replace that with // icorner[i] += (r[i]>0?NS:-1) ;
-
-        // Check: is moving the ray front to this point hitting a world boundary? 
-        //if (icorner[i]<=0 || icorner[i]>=world.size)
-        //{
-        //    havetarget = true ;
-         //   sprintf( geom_msgs2[geom_msgs_num2], "Hitting a world boundary. Target is a wall. " 
-          //      ) ; geom_msgs_num2++ ;
+        // icorner[0] = (int)rayfront.x ; icorner[1] = (int)rayfront.y ; icorner[2] = (int)rayfront.z ;
+       // loopj(3) { 
+            // if (!(i==j))   { icorner[j] = (icorner[j] >> Nscale) << Nscale ; }
+            // else        
+        //    { icorner[j] = floor(rayfront[j]+.5f) ;} 
         //}
-        // if ((rx>0) && icorner.x>=world.size) 
+
+       // if (rx<0 && icorner.x>=world.size) {icorner.x = world.size ;} 
+       // if (ry<0 && icorner.y>=world.size) {icorner.y = world.size ;} 
+       // if (rz<0 && icorner.z>=world.size) {icorner.z = world.size ;} 
+       // if (rx>=0 && icorner.x<0) {icorner.x = 0 ;} 
+       // if (ry>=0 && icorner.y<0) {icorner.y = 0 ;} 
+       // if (rz>=0 && icorner.z<0) {icorner.z = 0 ;} 
+
+        //Octant* oct = findNode(icorner, &Nscale, &NS) ;
+        // if we're exceeded the limits of the world, then we're 
+
+        // loopj(3) { if ((orientation>>1)<=j) { i = j>>1 ; break ; } }
+        // loopj(3) { if ((orientation>>1)<=j) { i = j>>1 ; break ; } }
+
+        i = (orientation>>1) ;
+
+//        loopj(3) { icorner[j] = (int)rayfront[j] ; }
+        // In our direction of penetration, we want to make sure that our probe is guaranteed 
+        // inside the node we should be finding. 
+        if (ray[i]<0 && icorner[i]>=world.size) {icorner[i] -= 1 ;} else {icorner[i]+=1;}
+
+
+/*
+        loopj(3)
+        { 
+            if 
+            icorner[j] = (icorner[j] >> Nscale) << Nscale ; 
+        }
+*/
 
         sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
-        sprintf( geom_msgs2[geom_msgs_num2], "icorner at %d %d %d",
-            icorner.x, 
-            icorner.y, 
-            icorner.z 
-            ) ; geom_msgs_num2++ ;
-        sprintf( geom_msgs2[geom_msgs_num2], "new front at : %.2f %.2f %.2f (crossing through %s plane) d = %.2f (size = %d)", 
-            rayfront.x, rayfront.y, rayfront.z, plane_names[i], d, NS) ; geom_msgs_num2++ ;
-        sprintf( geom_msgs2[geom_msgs_num2], "distances = %.2f %.2f %.2f         rx=%.2f ry=%.2f rz=%.2f  r=%.2f d=%.2f t=%.2f",
-            dx, dy, dz,
-            rx, ry, rz,
-            r, d, t
-            ) ; geom_msgs_num2++ ;
-        // sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
-        ray = dir ;                  // reset ray to length 1
-        sprintf( geom_msgs2[geom_msgs_num2], "r = %.2f, d = %.2f, t = %.2f",
-            r, d, t) ; geom_msgs_num2++ ;
-//        sprintf( geom_msgs2[geom_msgs_num2], "new corner: %d %d %d ", icorner[0], icorner[1], icorner[2]) ; geom_msgs_num2++ ;
+        sprintf( geom_msgs2[geom_msgs_num2], "********** RAY START **********") ; geom_msgs_num2++ ;
+        sprintf( geom_msgs2[geom_msgs_num2], "  penetration plane: %s   (orientation=%d)", plane_names[i], orientation) ; geom_msgs_num2++ ;
+        sprintf( geom_msgs2[geom_msgs_num2], "  rayfront: %.2f %2.f %.2f", rayfront.x, rayfront.y, rayfront.z); geom_msgs_num2++ ;
 
-        // Locate now at new coordinates
-        icorner[0] = (int)rayfront.x ;
-        icorner[1] = (int)rayfront.y ;
-        icorner[2] = (int)rayfront.z ;
-        icorner[0] += (i==0?(rx>0?1:-1):(0)) ;     // Move corner to where rayfront is, in the direction through which 
-        icorner[1] += (i==1?(ry>0?1:-1):(0)) ;     // we're switching nodes. 
-        icorner[2] += (i==2?(rz>0?1:-1):(0)) ;
-        Octant* oct = findNode(icorner, &Nscale, &NS) ;
-        loopj(3)
-        {
-            icorner[j] = (icorner[j] >> Nscale) << Nscale ;
+
+    int WS = world.size ;
+
+    while (!havetarget)
+    {
+
+
+        limit++ ; if (limit>5) { break ; } // Kill runaway loops
+       
+        loopj(3) {icorner[j] = (int)rayfront[j] ;}
+        sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
+        sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
+        sprintf( geom_msgs2[geom_msgs_num2], "new ray front at :            %.2f    %.2f    %.2f    (crossing through %s plane) d = %.2f (size = %d)", 
+            rayfront.x, rayfront.y, rayfront.z, plane_names[i], d, NS) ; geom_msgs_num2++ ;
+        icorner[i] += (ray[i]>0?1:-1) ;     // Snap to inside of node we're looking at
+
+
+        if ( (icorner[0]<=0 && rx<0)      ||
+             (ray.x>=0 && icorner[0]>=WS) ||
+             (icorner[1]<=0 && ry<0)      ||
+             (ray.y>=0 && icorner[1]>=WS) ||
+             (icorner[2]<=0 && rz<0)      ||  
+             (ray.z>=0 && icorner[2]>=WS)
+           )
+        { 
+            sprintf( geom_msgs2[geom_msgs_num2], "Ray exiting world bounds at %.2f %.2f %.2f ", 
+                rayfront[0], rayfront[1], rayfront[2] ) ; geom_msgs_num2++ ;
+            break ; 
         }
+
+
+
+        Octant* oct = findNode(icorner, &Nscale, &NS) ; // Find out what tree node encloses this point
+
+
+        loopj(3) { icorner[j] = (icorner[j] >> Nscale) << Nscale ; } // Now icorner is right on the node corner. 
+        sprintf( geom_msgs2[geom_msgs_num2], "icorner at        %d %d %d    (i=%d) (i>>1=%d)", icorner.x, icorner.y, icorner.z, i, i>>1 ) ; geom_msgs_num2++ ;
+        sprintf( geom_msgs2[geom_msgs_num2], "CURRENT NODE SIZE: %d (scale %d)", NS, Nscale) ; geom_msgs_num2++ ;
+        
+// if ( oct->has_geometry() || oct->has_children() )
+        if ( oct->has_geometry() ) {
+            sprintf( geom_msgs2[geom_msgs_num2], "HAVE TARGET NODE") ; geom_msgs_num2++ ;
+            havetarget = true ; break ; }
+
+
+        vec f = rayfront ;
+        vec ds = vec(0) ;
+        // fx = rayfront.x ; fy = rayfront.y ; fz = rayfront.z ;
+        // rx = ray.x ; ry = ray.y ; rz = ray.z ;
+        r = 0.f ; d = 0.f ; t = 0.f ; 
+
+/*
+*/
+
+        // Distances 
+        loopj(3) { ds[j] = (ray[j]>=0?(float(icorner[j]+NS)-f[j]):(f[j]-float(icorner[j]))) ; }
+
+        if (fabs(ray.x*ds.y) > fabs(ray.y*ds.x))              // is rx/dx bigger than ry/dy? 
+        { r = ray.x ; d = ds.x ; i = 0 ; }
+        else
+        { r = ray.y ; d = ds.y ; i = 1 ; }
+        if ((fabs(ray.z*d) > fabs(r*ds.z)))              // is the last best smaller not bigger 
+        { r = ray.z ; d = ds.z ; i = 2 ; }
+        
+        t = fabs(d/r) ;                       // divisions are minimized 
+
+        sprintf( geom_msgs2[geom_msgs_num2], "distances = %.2f %.2f %.2f    rx=%.4f ry=%.4f rz=%.4f  r=%.4f d=%.4f t=%.4f",
+            fabs(ds.x), fabs(ds.y), fabs(ds.z), ray.x, ray.y, ray.z, r, d, t  ) ; geom_msgs_num2++ ;
+        sprintf( geom_msgs2[geom_msgs_num2], "r = %.4f, d = %.4f, t = %.4f", r, d, t) ; geom_msgs_num2++ ;
+
+        rayfront.add(ray.mul(t)) ;  // move ray to new plane
+        ray = dir ;                 // reset ray to length 1
+
     }
     } // end if (have_ray_start_node)
 
@@ -785,25 +790,17 @@ void update_editor()
 
 
 
+    // Draw a color-coded cross centered on the rayfront
 
 
+    // glBegin(GL_LINES) ;
 
-
-
-
-
-
-
-
-
-
-
-
-    loopi(3)
-    {
-        if (icorner[i]>world.size) { icorner[i] = world.size ; }
-        if (icorner[i]<0) { icorner[i] = 0 ; }
-    }
+    vec fc ;
+    fc.x = (float)icorner.x ;
+    fc.y = (float)icorner.y ;
+    fc.z = (float)icorner.z ;
+    // draw_corner_cube( fc, NS) ;
+    // glEnd() ;
 
     sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
 
@@ -1202,7 +1199,7 @@ Octant* findNode(ivec at, int* Nscale, int* out_size)
 
     if (out_size!=NULL)
     {
-        *out_size = 1<<CGS ;
+        *out_size = 2<<CGS ;
     }
 
     return oct ;

@@ -222,9 +222,9 @@ void initGL( )
     /* Really Nice Perspective Calculations */
     glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_SMOOTH );
     // glHint( GL_TEXTURE_COMPRESSION_HINT, GL_NICEST );
-    // glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
+    glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
     // glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST );
-    // glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
+    glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
 
     glEnable( GL_DEPTH_TEST );
     glEnable( GL_BLEND );
@@ -304,7 +304,7 @@ int main( int argc, char **argv )
 
     unsigned long long first_cycle = 0 ;
     unsigned long long delta_cycle = 0 ;
-    get_time(first_cycle) ;
+    get_cycle(first_cycle) ;
     printf("\nENGINE STARTING ON CLOCK CYCLE %lld\n", first_cycle) ;
 
     
@@ -318,7 +318,7 @@ int main( int argc, char **argv )
         testtiming() ;
         // floating-point to integer conversion
         // Whoops haha we leave now because we only wanted to run some arbitrary code ! 
-        // get_time(delta_cycle) ;
+        // get_cycle(delta_cycle) ;
         cycle_delta(first_cycle, delta_cycle) ;
         printf("\nENGINE EXITING AFTER %lld CYCLES\n", delta_cycle) ;
         Quit(0) ;
@@ -467,6 +467,8 @@ int main( int argc, char **argv )
         {
             glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
+
+
             if ( engine.rendering ) 
             {
                 render_world( sec_progress ) ; 
@@ -497,6 +499,7 @@ int main( int argc, char **argv )
                 render_console() ; 
             }
 
+
             // frame counting 
             sec_progress += delta_millis ;
 
@@ -514,6 +517,7 @@ int main( int argc, char **argv )
             }
             SDL_Delay(1) ; 
             delay_count++ ;
+                SDL_GL_SwapBuffers(); 
         }
 
         

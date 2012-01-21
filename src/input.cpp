@@ -784,10 +784,13 @@ void handle_key( SDL_Event* event )
                 if ( engine.fov > 50 )
                 {
                     engine.fov = 30 ; 
+                    mouse_sensitivity = 1.0f ;
                 }
-                else
+                else // zzz   mouse sensitivity needed here 
+                     // (sensitive for normal operation, slow for in-fovus operation)
                 {
                     engine.fov = lastfov ; 
+                    mouse_sensitivity = 3.0f ;
                 }
                 resize_window( engine.current_w, engine.current_h, engine.fov ) ; 
                 break ;
