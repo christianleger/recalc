@@ -173,7 +173,7 @@ void musicdone()
 //     execute(cmd);
     delete[] cmd;
 }
-
+extern stream *openzipfile(const char *name, const char *mode) ;
 Mix_Music *loadmusic(const char *name)
 {
     if(!musicstream) musicstream = openzipfile(name, "rb");

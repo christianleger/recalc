@@ -128,7 +128,8 @@ OBJS=\
     render.$(OBJ_EXT)   \
     test.$(OBJ_EXT)     \
     text.$(OBJ_EXT)     \
-    sound.$(OBJ_EXT) 
+    sound.$(OBJ_EXT)    \
+    zip.$(OBJ_EXT) 
 
 #HEADERS=\
 #    recalc.h \
@@ -258,6 +259,13 @@ menu.$(OBJ_EXT): ../src/menu.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
     $(LIB_LOCATIONS) $(LIBS) ../src/menu.cpp $(OUT_FLAG) menu.$(OBJ_EXT)
+	$(info )
+
+################################################################################
+zip.$(OBJ_EXT): ../src/zip.cpp
+	$(info )
+	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
+    $(LIB_LOCATIONS) $(LIBS) ../src/zip.cpp $(OUT_FLAG) zip.$(OBJ_EXT)
 	$(info )
 
     
