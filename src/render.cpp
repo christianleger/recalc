@@ -21,7 +21,8 @@ void render_ortho_begin()
     glMatrixMode( GL_PROJECTION ) ;
     glPushMatrix() ; 
     glLoadIdentity() ; 
-    glOrtho( 0, engine.current_w, 0, engine.current_h, -1, 1000 ) ; 
+    extern int console_scale ;
+    glOrtho( 0, engine.console_scale*engine.current_w, 0, engine.console_scale*engine.current_h, -1, 1000 ) ; 
 
     glMatrixMode( GL_MODELVIEW ) ; 
 }
@@ -222,7 +223,7 @@ void render_menu()
 
     glLoadIdentity() ; 
     glOrtho( 0, engine.current_w, 0, engine.current_h, -1, 1000 ) ; 
-        prstr( 0, 0.f, fonts[0]->_height, "Engage Delta Niner." ) ;
+//        prstr( 0, 0.f, fonts[0]->_height, "Engage Delta Niner." ) ;
 
 
     glMatrixMode( GL_PROJECTION ) ;
@@ -352,7 +353,7 @@ void render_info()
         while (j<input_msgs_num)
         {
             //prstr( 0, 600.f, engine.current_h - next_line*height,
-            prstr( 0, 600.f, 0 + next_line*height,
+            prstr( 0, 60.f, 0 + next_line*height,
                    input_msgs[j]) ; j++ ;
         }
 
@@ -366,7 +367,7 @@ void render_info()
         while (j<geom_msgs_num)
         {
             //prstr( 0, 600.f, engine.current_h - next_line*height, 
-            prstr( 0, 600.f, 0 + next_line*height, 
+            prstr( 0, 60.f, 0 + next_line*height, 
                    geom_msgs[j]) ; j++ ;
         }
 
@@ -379,7 +380,7 @@ void render_info()
         while (j<geom_msgs_num2)
         {
             //prstr( 0, 600.f, engine.current_h - next_line*height, 
-            prstr( 0, 600.f, 0 + next_line*height, 
+            prstr( 0, 60.f, 0 + next_line*height, 
                    geom_msgs2[j]) ; j++ ;
         }
 

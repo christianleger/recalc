@@ -62,6 +62,7 @@
 #define FALSE 0
 
 //#define PHYSICS_FRAME_TIME 10
+// #define PHYSICS_FRAME_TIME 5 
 #define PHYSICS_FRAME_TIME 5 
 
 #define TRACE(args) printf args
@@ -106,6 +107,8 @@ struct Engine
     bool testing ;
     bool testing_physics ;
     bool console ;
+
+    float console_scale ;
 
     void initialize() ; 
 

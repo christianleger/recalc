@@ -16,6 +16,10 @@
 struct Geom
 {
     // Texture tex_slot ;
+    // vertex ID given by and used with OpenGL for any VBOs used by this Geom's owner. 
+    unsigned int geoVBOid ; 
+    // texture ID given by and used with OpenGL for any VBOs used by this Geom's owner. 
+    unsigned int texVBOid ; 
 } ;
 
 #include "stdint.h"

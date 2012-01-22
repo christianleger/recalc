@@ -127,8 +127,8 @@ OBJS=\
     recalc.$(OBJ_EXT)   \
     render.$(OBJ_EXT)   \
     test.$(OBJ_EXT)     \
-    text.$(OBJ_EXT) 
-#    sound.$(OBJ_EXT) \
+    text.$(OBJ_EXT)     \
+    sound.$(OBJ_EXT) 
 
 #HEADERS=\
 #    recalc.h \

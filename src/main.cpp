@@ -274,7 +274,7 @@ void resize_window( int width, int height, int fov )
     glLoadIdentity( );
 
     ////gluPerspective( (GLfloat)angle, ratio, 0.01f, 10000000.0f );
-    gluPerspective( (GLfloat)angle, ratio, 0.01f, 1000000.0f );
+    gluPerspective( (GLfloat)angle, ratio, 0.1f, 300000.0f );
     //gluPerspective( 60.0f, ratio, 0.01f, 50000.0f );
 
     /* default matrix to manipulate is modelview */
@@ -310,6 +310,8 @@ int main( int argc, char **argv )
     
     read_args(argc, argv); 
 
+    // Testing code. This can run stuff just to evaluate the characteristics of some 
+    // code without having to load and run everything. 
     // Move this block further down is some resources are needed to perform some tests. 
     if (testonly)
     {
@@ -387,7 +389,7 @@ int main( int argc, char **argv )
     //unsigned int last_frame = SDL_GetTicks() ;
     
     /* main loop */
-#define FRAME_TIME 5 // about 200 fps
+#define FRAME_TIME 5 // 5 gives about 200 fps
     while ( !done )
     {
         millis = SDL_GetTicks();
@@ -460,14 +462,12 @@ int main( int argc, char **argv )
 
 
         if (
-               ( delta_millis >= FRAME_TIME) &&
+             //  ( delta_millis >= FRAME_TIME) &&
                ( engine.window_active ) &&
                ( !engine.paused )
            )
         {
             glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-
 
             if ( engine.rendering ) 
             {
@@ -499,7 +499,6 @@ int main( int argc, char **argv )
                 render_console() ; 
             }
 
-
             // frame counting 
             sec_progress += delta_millis ;
 
@@ -515,9 +514,11 @@ int main( int argc, char **argv )
                 delta_millis = 0 ;
                 SDL_GL_SwapBuffers(); 
             }
-            SDL_Delay(1) ; 
+            // SDL_Delay(1) ; 
             delay_count++ ;
+            // glFlush() ;
                 SDL_GL_SwapBuffers(); 
+            // glFinish() ;
         }
 
         

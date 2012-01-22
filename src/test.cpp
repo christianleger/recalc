@@ -66,7 +66,7 @@ void initiate_test_001()
         {
             m_vertices[j] = m_vertices[j-2] ;
             m_vertices[j+1] = m_vertices[j-1] ;
-            m_vertices[j+2] = vec(200*j, 0+(j%2?300:0), 20*j) ;
+            m_vertices[j+2] = vec(200*j, 0+(j%2?900:0), 20*j) ;
         }
       
       vec colors[10] = 
@@ -177,8 +177,8 @@ void render_test_001()
     //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     // Enable Pointers
-     glEnableClientState( GL_VERTEX_ARRAY );                        // Enable Vertex Arrays
-     glEnableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
+    glEnableClientState( GL_VERTEX_ARRAY );                        // Enable Vertex Arrays
+    glEnableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
     /*
      */
     // glEnableClientState( GL_TEXTURE_COORD_ARRAY );                // Enable Texture Coord Arrays
@@ -201,57 +201,60 @@ void render_test_001()
    
     
     // DRAW LIKE AN ALMIGHTY GOD
+/*
+*/
     glDrawArrays( GL_TRIANGLES, 0, 650 );    // Draw All Of The Triangles At Once
 
-    /*
-*/
     glPushMatrix() ;
 
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 500 );    // Draw All Of The Triangles At Once
 
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
 
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
 
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
 
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
 
     glRotatef(80, 0,0,1) ;
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
 
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
 
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 500 );    // Draw All Of The Triangles At Once
 
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
 
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
 
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
 
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
 
     glRotatef(80, 0,0,1) ;
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
 
-    glTranslatef(0,5000,4000) ;
+    glTranslatef(0,2000,4000) ;
     glDrawArrays( GL_TRIANGLES, 0, 200 );    // Draw All Of The Triangles At Once
 
     glPopMatrix() ;
+/*
+*/
+
     // glDrawArrays( GL_TRIANGLES, 0, numElements*elementSize );    // Draw All Of The Triangles At Once
     // FIXME: use element arrays
 

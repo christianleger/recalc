@@ -631,8 +631,19 @@ void handle_key( SDL_Event* event )
 	        // @name Function keys 
             //@{
             SDLK_F1			= 282,
-            SDLK_F2			= 283,
             */
+            case SDLK_F2:
+            {
+                if (engine.console_scale>=3.0f)
+                {
+                    engine.console_scale = 1.0f ;
+                }
+                else
+                {
+                    engine.console_scale *= 1.5f ;
+                }
+                break ;
+            }
             case SDLK_F3:
             {
                 engine.toggle_fullscreen() ;

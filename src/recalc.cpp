@@ -42,6 +42,7 @@ void Engine::initialize()
     engine.info = true ;
     engine.console = false ;  // when this is set to true, then the pointer to 
                               // current_commands points to console_commands 
+    engine.console_scale = 1.0f ;
 }
 
 
