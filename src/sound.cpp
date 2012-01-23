@@ -1,5 +1,11 @@
 // sound.cpp: basic positional sound using sdl_mixer
 
+/*
+    Copyright whoever wrote this for Sauer. 
+
+    Copyright Christian Léger for things that differ from the sauer original. 
+*/
+
 //#include "engine.h"
 #include "recalc.h"
 
@@ -7,6 +13,12 @@
 #define MAXVOL MIX_MAX_VOLUME
 
 bool nosound = true;
+char soundvol = 128 ;
+char musicvol = 128 ;
+
+// PROTOTYPES
+void closemumble() ;
+
 
 struct soundsample
 {
@@ -54,13 +66,12 @@ struct soundchannel
 vector<soundchannel> channels;
 int maxchannels = 0;
 
-/*
-soundchannel &newchannel(int n, soundslot *slot, const vec *loc = NULL, extentity *ent = NULL, int radius = 0)
+soundchannel &newchannel(int n, soundslot *slot, const vec *loc = NULL, /*extentity *ent = NULL,*/ int radius = 0)
 {
-    if(ent)
+  //  if(ent)
     {
-        loc = &ent->o;
-        ent->visible = true;
+//        loc = &ent->o;
+ //       ent->visible = true;
     }
     while(!channels.inrange(n)) channels.add(channels.length());
     soundchannel &chan = channels[n];
@@ -68,10 +79,11 @@ soundchannel &newchannel(int n, soundslot *slot, const vec *loc = NULL, extentit
     chan.inuse = true;
     if(loc) chan.loc = *loc;
     chan.slot = slot;
-    chan.ent = ent;
+    //chan.ent = ent;
     chan.radius = radius;
     return chan;
 }
+/*
 */
 
 void freechannel(int n)
@@ -173,7 +185,9 @@ void musicdone()
 //     execute(cmd);
     delete[] cmd;
 }
+
 extern stream *openzipfile(const char *name, const char *mode) ;
+extern const char *findfile(const char *filename, const char *mode) ;
 Mix_Music *loadmusic(const char *name)
 {
     if(!musicstream) musicstream = openzipfile(name, "rb");
@@ -191,7 +205,9 @@ Mix_Music *loadmusic(const char *name)
     }
     return music;
 }
- 
+
+
+extern char* path(char *s) ;
 void startmusic(char *name, char *cmd)
 {
     if(nosound) return;
@@ -208,17 +224,18 @@ void startmusic(char *name, char *cmd)
             if(cmd[0]) musicdonecmd = newstring(cmd);
             Mix_PlayMusic(music, cmd[0] ? 0 : -1);
             Mix_VolumeMusic((musicvol*MAXVOL)/255);
-            intret(1);
+            // intret(1); FIXME: THIS IS THE RETURN FOR A CONSOLE COMMAND
         }
         else
         {
-            conoutf(CON_ERROR, "could not play music: %s", file);
-            intret(0); 
+            // FIXME: replace  - conoutf(CON_ERROR, "could not play music: %s", file);
+            // intret(0); FIXME: THIS IS THE RETURN FOR A CONSOLE COMMAND
         }
     }
 }
 
-COMMANDN(music, startmusic, "ss");
+// FIXME: how do my console commands work? :) 
+// COMMANDN(music, startmusic, "ss");
 
 hashtable<const char *, soundsample> samples;
 vector<soundslot> gamesounds, mapsounds;
@@ -258,11 +275,22 @@ int addsound(const char *name, int vol, int maxuses, vector<soundslot> &sounds)
     return oldlen;
 }
 
-void registersound(char *name, int *vol) { intret(addsound(name, *vol, 0, gamesounds)); }
-COMMAND(registersound, "si");
+void registersound(char *name, int *vol) 
+{
+    // intret(
+    addsound(name, *vol, 0, gamesounds) ;
+      //   ); 
+}
 
-void mapsound(char *name, int *vol, int *maxuses) { intret(addsound(name, *vol, *maxuses < 0 ? 0 : max(1, *maxuses), mapsounds)); }
-COMMAND(mapsound, "sii");
+// COMMAND(registersound, "si");
+
+void mapsound(char *name, int *vol, int *maxuses) 
+{ 
+    // intret(
+    addsound(name, *vol, *maxuses < 0 ? 0 : max(1, *maxuses), mapsounds) ;
+    // ); 
+}
+// COMMAND(mapsound, "sii");
 
 void resetchannels()
 {
@@ -306,9 +334,12 @@ void stopmapsound(extentity *e)
     }
 }
 */
-        
+
+
+// FIXME: this will be useful once I have my own entities. 
 void checkmapsounds()
 {
+/*
     const vector<extentity *> &ents = entities::getents();
     loopv(ents)
     {
@@ -320,11 +351,15 @@ void checkmapsounds()
         }
         else if(e.visible) stopmapsound(&e);
     }
+*/
 }
 
-VAR(stereo, 0, 1, 1);
+// VAR(stereo, 0, 1, 1);
+// bool stereo = true ;
+bool stereo = false ;
 
-VARP(maxsoundradius, 0, 340, 10000);
+// VARP(maxsoundradius, 0, 340, 10000);
+int maxsoundradius = 50000 ; // FIXME :)
 
 bool updatechannel(soundchannel &chan)
 {
@@ -333,8 +368,8 @@ bool updatechannel(soundchannel &chan)
     if(chan.hasloc())
     {
         vec v;
-        float dist = chan.loc.dist(camera1->o, v);
-        int rad = maxsoundradius;
+        float dist = 0.0f ; // FIXME chan.loc.dist(camera1->o, v);
+        int rad = maxsoundradius ;
         if(chan.ent)
         {
         /*
@@ -350,7 +385,7 @@ bool updatechannel(soundchannel &chan)
         if(rad > 0) vol -= int(clamp(dist/rad, 0.0f, 1.0f)*soundvol); // simple mono distance attenuation
         if(stereo && (v.x != 0 || v.y != 0) && dist>0)
         {
-            v.rotate_around_z(-camera1->yaw*RAD);
+            // v.rotate_around_z(-camera1->yaw*RAD);
             pan = int(255.9f*(0.5f - 0.5f*v.x/v.magnitude2())); // range is from 0 (left) to 255 (right)
         }
     }
@@ -391,9 +426,11 @@ void updatesounds()
     }
 }
 
-VARP(maxsoundsatonce, 0, 5, 100);
+// VARP(maxsoundsatonce, 0, 5, 100);
+int maxsoundsatonce = 2 ;
 
-VAR(dbgsound, 0, 0, 1);
+// VAR(dbgsound, 0, 0, 1);
+bool dbgsound = true ;
 
 static Mix_Chunk *loadwav(const char *name)
 {
@@ -415,19 +452,24 @@ static Mix_Chunk *loadwav(const char *name)
 
 
 extern unsigned int millis ;
-int playsound(int n, const vec *loc, extentity *ent, int loops, int fade, int chanid, int radius, int expire)
+int playsound(int n, const vec *loc, /*extentity *ent,*/ int loops, int fade, int chanid, int radius, int expire)
 {
     if(nosound || !soundvol) return -1;
 
-    vector<soundslot> &sounds = ent ? mapsounds : gamesounds;
-    if(!sounds.inrange(n)) { conoutf(CON_WARN, "unregistered sound: %d", n); return -1; }
+    // vector<soundslot> &sounds = ent ? mapsounds : gamesounds;
+    vector<soundslot> &sounds = gamesounds;
+    if(!sounds.inrange(n)) 
+    { 
+        // FIXME conoutf(CON_WARN, "unregistered sound: %d", n); return -1; 
+    }
     soundslot &slot = sounds[n];
 
     if(loc && (maxsoundradius || radius > 0))
     {
         // cull sounds that are unlikely to be heard
         int rad = radius > 0 ? (maxsoundradius ? min(maxsoundradius, radius) : radius) : maxsoundradius;
-        if(camera1->o.dist(*loc) > 1.5f*rad)
+        // if(camera1->o.dist(*loc) > 1.5f*rad)
+        // FIXME if(camera1->o.dist(*loc) > 1.5f*rad)
         {
             if(channels.inrange(chanid) && channels[chanid].inuse && channels[chanid].slot == &slot)
             {
@@ -467,7 +509,10 @@ int playsound(int n, const vec *loc, extentity *ent, int loops, int fade, int ch
             if(slot.sample->chunk) break;
         }
 
-        if(!slot.sample->chunk) { conoutf(CON_ERROR, "failed to load sample: %s", buf); return -1; }
+        if(!slot.sample->chunk) 
+        { 
+            // FIXME conoutf(CON_ERROR, "failed to load sample: %s", buf); return -1; 
+        }
     }
 
     if(channels.inrange(chanid))
@@ -482,7 +527,10 @@ int playsound(int n, const vec *loc, extentity *ent, int loops, int fade, int ch
     }
     if(fade < 0) return -1;
            
-    if(dbgsound) conoutf("sound: %s", slot.sample->name);
+    if(dbgsound) 
+    {
+        // FIXME - conoutf("sound: %s", slot.sample->name);
+    }
  
     chanid = -1;
     loopv(channels) if(!channels[i].inuse) { chanid = i; break; }
@@ -496,8 +544,8 @@ int playsound(int n, const vec *loc, extentity *ent, int loops, int fade, int ch
         Mix_HaltChannel(chanid);
         freechannel(chanid);
     }
-    soundchannel &chan = newchannel(chanid, &slot, loc, ent, radius);
-//    updatechannel(chan);
+    soundchannel &chan = newchannel(chanid, &slot, loc, /*ent,*/ radius);
+    updatechannel(chan);
     int playing = -1;
     if(fade) 
     {
@@ -523,7 +571,10 @@ void stopsounds()
 bool stopsound(int n, int chanid, int fade)
 {
     if(!channels.inrange(chanid) || !channels[chanid].inuse || !gamesounds.inrange(n) || channels[chanid].slot != &gamesounds[n]) return false;
-    if(dbgsound) conoutf("stopsound: %s", channels[chanid].slot->sample->name);
+    if(dbgsound) 
+    {
+        // FIXME - conoutf("stopsound: %s", channels[chanid].slot->sample->name);
+    }
     if(!fade || !Mix_FadeOutChannel(chanid, fade))
     {
         Mix_HaltChannel(chanid);
@@ -537,21 +588,21 @@ int playsoundname(const char *s, const vec *loc, int vol, int loops, int fade, i
     if(!vol) vol = 100;
     int id = findsound(s, vol, gamesounds);
     if(id < 0) id = addsound(s, vol, 0, gamesounds);
-    return playsound(id, loc, NULL, loops, fade, chanid, radius, expire);
+    return playsound(id, loc, /*NULL,*/ loops, fade, chanid, radius, expire);
 }
 
-void sound(int *n) { playsound(*n); }
-COMMAND(sound, "i");
+// void sound(int *n) { playsound(*n); }
+// COMMAND(sound, "i");
 
 void resetsound()
 {
     const SDL_version *v = Mix_Linked_Version();
     if(SDL_VERSIONNUM(v->major, v->minor, v->patch) <= SDL_VERSIONNUM(1, 2, 8))
     {
-        conoutf(CON_ERROR, "Sound reset not available in-game due to SDL_mixer-1.2.8 bug. Please restart for changes to take effect.");
+        // FIXME - conoutf(CON_ERROR, "Sound reset not available in-game due to SDL_mixer-1.2.8 bug. Please restart for changes to take effect.");
         return;
     }
-    clearchanges(CHANGE_SOUND);
+    // clearchanges(CHANGE_SOUND);
     if(!nosound) 
     {
         enumerate(samples, soundsample, s, { Mix_FreeChunk(s.chunk); s.chunk = NULL; });
@@ -587,7 +638,7 @@ void resetsound()
     }
 }
 
-COMMAND(resetsound, "");
+// COMMAND(resetsound, "");
 
 #ifdef WIN32
 
@@ -627,9 +678,9 @@ static MumbleInfo *mumbleinfo = (MumbleInfo *)-1;
 #endif
 
 #ifdef VALID_MUMBLELINK
-VARFP(mumble, 0, 1, 1, { if(mumble) initmumble(); else closemumble(); });
+//VARFP(mumble, 0, 1, 1, { if(mumble) initmumble(); else closemumble(); });
 #else
-VARFP(mumble, 0, 0, 1, { if(mumble) initmumble(); else closemumble(); });
+//VARFP(mumble, 0, 0, 1, { if(mumble) initmumble(); else closemumble(); });
 #endif
 
 /*

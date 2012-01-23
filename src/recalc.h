@@ -26,6 +26,8 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 
+#include <zlib.h>
+
 #ifdef WIN32
 	#include "windows.h"
 #endif

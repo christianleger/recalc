@@ -1,4 +1,7 @@
-#include "cube.h"
+#include "recalc.h"
+
+extern char *path(char *s) ;
+extern size_t fixpackagedir(char *dir) ;
 
 enum
 {
@@ -106,7 +109,8 @@ static bool findzipdirectory(FILE *f, zipdirectoryheader &hdr)
 }
 
 #ifndef STANDALONE
-VAR(dbgzip, 0, 0, 1);
+// VAR(dbgzip, 0, 0, 1);
+bool dbgzip = true ;
 #endif
 
 static bool readzipdirectory(const char *archname, FILE *f, int entries, int offset, int size, vector<zipfile> &files)
@@ -156,7 +160,8 @@ static bool readzipdirectory(const char *archname, FILE *f, int entries, int off
         f.size = hdr.uncompressedsize;
         f.compressedsize = hdr.compression ? hdr.compressedsize : 0;
 #ifndef STANDALONE
-        if(dbgzip) conoutf(CON_DEBUG, "file %s, size %d, compress %d, flags %x", archname, name, hdr.uncompressedsize, hdr.compression, hdr.flags);
+        if(dbgzip) 
+            ; // FIXME conoutf(CON_DEBUG, "file %s, size %d, compress %d, flags %x", archname, name, hdr.uncompressedsize, hdr.compression, hdr.flags);
 #endif
 
         src += hdr.namelength + hdr.extralength + hdr.commentlength;
@@ -259,6 +264,8 @@ static void mountzip(ziparchive &arch, vector<zipfile> &files, const char *mount
     }
 }
 
+
+extern const char *findfile(const char *filename, const char *mode) ;
 bool addzip(const char *name, const char *mount = NULL, const char *strip = NULL)
 {
     string pname;
@@ -270,21 +277,21 @@ bool addzip(const char *name, const char *mount = NULL, const char *strip = NULL
     ziparchive *exists = findzip(pname);
     if(exists) 
     {
-        conoutf(CON_ERROR, "already added zip %s", pname);
+        // FIXME - conoutf(CON_ERROR, "already added zip %s", pname);
         return true;
     }
  
     FILE *f = fopen(findfile(pname, "rb"), "rb");
     if(!f) 
     {
-        conoutf(CON_ERROR, "could not open file %s", pname);
+        // FIXME - conoutf(CON_ERROR, "could not open file %s", pname);
         return false;
     }
     zipdirectoryheader h;
     vector<zipfile> files;
     if(!findzipdirectory(f, h) || !readzipdirectory(pname, f, h.entries, h.offset, h.size, files))
     {
-        conoutf(CON_ERROR, "could not read directory in zip %s", pname);
+        // FIXME - conoutf(CON_ERROR, "could not read directory in zip %s", pname);
         fclose(f);
         return false;
     }
@@ -295,7 +302,7 @@ bool addzip(const char *name, const char *mount = NULL, const char *strip = NULL
     mountzip(*arch, files, mount, strip);
     archives.add(arch);
 
-    conoutf("added zip %s", pname);
+    // FIXME - conoutf("added zip %s", pname);
     return true;
 } 
      
@@ -309,15 +316,15 @@ bool removezip(const char *name)
     ziparchive *exists = findzip(pname);
     if(!exists)
     {
-        conoutf(CON_ERROR, "zip %s is not loaded", pname);
+        // FIXME - conoutf(CON_ERROR, "zip %s is not loaded", pname);
         return false;
     }
     if(exists->openfiles)
     {
-        conoutf(CON_ERROR, "zip %s has open files", pname);
+        // FIXME - conoutf(CON_ERROR, "zip %s has open files", pname);
         return false;
     }
-    conoutf("removed zip %s", exists->name);
+    // FIXME - conoutf("removed zip %s", exists->name);
     archives.removeobj(exists); 
     delete exists;
     return true;
@@ -392,7 +399,17 @@ struct zipstream : stream
     {
         if(reading < 0) return;
 #ifndef STANDALONE
-        if(dbgzip) conoutf(CON_DEBUG, info->compressedsize ? "%s: zfile.total_out %d, info->size %d" : "%s: reading %d, info->size %d", info->name, info->compressedsize ? zfile.total_out : reading - info->offset, info->size);
+        if(dbgzip) 
+            ; 
+            
+            // FIXME - 
+            /*conoutf(
+                CON_DEBUG, 
+                info->compressedsize ? "%s: zfile.total_out %d, info->size %d" : "%s: reading %d, info->size %d", 
+                info->name, 
+                info->compressedsize ? zfile.total_out : reading - info->offset, 
+                info->size);
+            */
 #endif
         if(info->compressedsize) inflateEnd(&zfile);
         reading = -1;
@@ -510,7 +527,8 @@ struct zipstream : stream
                 else
                 {
 #ifndef STANDALONE
-                    if(dbgzip) conoutf(CON_DEBUG, "inflate error: %s", err);
+                    if(dbgzip) 
+                        ; // FIXME - conoutf(CON_DEBUG, "inflate error: %s", err);
 #endif
                     stopreading(); 
                 }
@@ -563,7 +581,7 @@ int listzipfiles(const char *dir, const char *ext, vector<char *> &files)
 }
 
 #ifndef STANDALONE
-ICOMMAND(addzip, "sss", (const char *name, const char *mount, const char *strip), addzip(name, mount[0] ? mount : NULL, strip[0] ? strip : NULL));
-ICOMMAND(removezip, "s", (const char *name), removezip(name));
+// ICOMMAND(addzip, "sss", (const char *name, const char *mount, const char *strip), addzip(name, mount[0] ? mount : NULL, strip[0] ? strip : NULL));
+// ICOMMAND(removezip, "s", (const char *name), removezip(name));
 #endif
 

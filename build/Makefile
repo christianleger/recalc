@@ -60,6 +60,7 @@ ifeq ($(PLATFORM),linux)
     LIBS=\
         -lrt \
         -lm \
+        -lz \
         -lGL \
         -lGLU \
         -lSDL \
@@ -129,7 +130,8 @@ OBJS=\
     test.$(OBJ_EXT)     \
     text.$(OBJ_EXT)     \
     sound.$(OBJ_EXT)    \
-    zip.$(OBJ_EXT) 
+    zip.$(OBJ_EXT)      \
+    stream.$(OBJ_EXT) 
 
 #HEADERS=\
 #    recalc.h \
@@ -259,6 +261,13 @@ menu.$(OBJ_EXT): ../src/menu.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
     $(LIB_LOCATIONS) $(LIBS) ../src/menu.cpp $(OUT_FLAG) menu.$(OBJ_EXT)
+	$(info )
+
+################################################################################
+stream.$(OBJ_EXT): ../src/stream.cpp
+	$(info )
+	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
+    $(LIB_LOCATIONS) $(LIBS) ../src/stream.cpp $(OUT_FLAG) stream.$(OBJ_EXT)
 	$(info )
 
 ################################################################################

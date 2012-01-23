@@ -291,6 +291,7 @@ extern Camera camera ;
 
 int main_msgs_num = 0 ;
 char main_msgs[100][256] ;
+uint millis = 0 ;
 int main( int argc, char **argv )
 {
     bool done = false ;
@@ -359,7 +360,6 @@ int main( int argc, char **argv )
     // Bookkeeping and timing variables. 
     bool frame_drawn = true ;
     uint framecount = 0; 
-    uint millis;
     uint last_millis = 0;
     uint sec_progress = 0 ; 
     int delta = 0 ; 

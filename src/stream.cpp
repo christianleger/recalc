@@ -1,4 +1,4 @@
-#include "cube.h"
+#include "recalc.h"
 
 ///////////////////////// file system ///////////////////////
 
@@ -149,6 +149,7 @@ void addpackagedir(const char *dir)
     if(fixpackagedir(pdir) > 0) packagedirs.add(newstring(pdir));
 }
 
+extern bool dbgzip ;
 const char *findfile(const char *filename, const char *mode)
 {
     static string s;
@@ -218,6 +219,7 @@ bool listdir(const char *dir, const char *ext, vector<char *> &files)
     else return false;
 }
 
+extern int listzipfiles(const char *dir, const char *ext, vector<char *> &files) ;
 int listfiles(const char *dir, const char *ext, vector<char *> &files)
 {
     int dirs = 0;
@@ -347,7 +349,8 @@ struct filestream : stream
 };
 
 #ifndef STANDALONE
-VAR(dbggz, 0, 0, 1);
+//VAR(dbggz, 0, 0, 1);
+bool dbggz = true ;
 #endif
 
 struct gzstream : stream
@@ -486,9 +489,9 @@ struct gzstream : stream
             loopi(4) checkcrc |= uint(readbyte()) << (i*8);
             loopi(4) checksize |= uint(readbyte()) << (i*8);
             if(checkcrc != crc)
-                conoutf(CON_DEBUG, "gzip crc check failed: read %X, calculated %X", checkcrc, crc);
+                ; // FIXME conoutf(CON_DEBUG, "gzip crc check failed: read %X, calculated %X", checkcrc, crc);
             if(checksize != zfile.total_out)
-                conoutf(CON_DEBUG, "gzip size check failed: read %d, calculated %d", checksize, zfile.total_out);
+                ; // FIXME conoutf(CON_DEBUG, "gzip size check failed: read %d, calculated %d", checksize, zfile.total_out);
         }
 #endif
     }
@@ -631,6 +634,7 @@ stream *openrawfile(const char *filename, const char *mode)
     return file;
 }
 
+extern stream *openzipfile(const char *name, const char *mode) ;
 stream *openfile(const char *filename, const char *mode)
 {
 #ifndef STANDALONE
