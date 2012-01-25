@@ -12,6 +12,15 @@ void Quit( int returnCode )
     printf("\n QUIT -- CLEANING UP TEXT FINISHED. ") ;
     printf("\n") ;
 
+    printf("\n QUIT -- CLEANING UP SOUND ... ") ;
+extern void clear_sound() ;
+    clear_sound() ;
+//extern void stopsounds() ;
+ //   stopsounds() ;
+//extern void stopchannels() ;
+ //   stopchannels() ;
+    printf("\n QUIT -- CLEANING UP SOUND FINISHED. ") ;
+
     SDL_Quit( );
     while (SDL_PollEvent(NULL)) ; 
 

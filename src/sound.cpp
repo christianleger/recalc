@@ -18,8 +18,11 @@ char musicvol = 128 ;
 
 // PROTOTYPES
 void closemumble() ;
+void startsound() ;
+void startmusic(char *name, char *cmd) ;
+void resetchannels() ;
 
-
+#define addOrFind access
 struct soundsample
 {
     char *name;
@@ -73,7 +76,17 @@ soundchannel &newchannel(int n, soundslot *slot, const vec *loc = NULL, /*extent
 //        loc = &ent->o;
  //       ent->visible = true;
     }
-    while(!channels.inrange(n)) channels.add(channels.length());
+        printf("\nLALALALALA\n") ;
+    if (channels.inrange(n)) 
+    {
+        printf("\nchannels says 'inrange' for %d\n", n) ;
+    }
+    while(!channels.inrange(n)) 
+    {   
+        printf("\nADDING A CHANNEL           \n") ;
+        printf("\nADDING A CHANNEL           \n") ;
+        channels.add(channels.length()) ;
+    } 
     soundchannel &chan = channels[n];
     chan.reset();
     chan.inuse = true;
@@ -81,6 +94,7 @@ soundchannel &newchannel(int n, soundslot *slot, const vec *loc = NULL, /*extent
     chan.slot = slot;
     //chan.ent = ent;
     chan.radius = radius;
+        // printf("\nNEW CHANNEL NUMBER %d\n", chan) ;
     return chan;
 }
 /*
@@ -210,25 +224,44 @@ Mix_Music *loadmusic(const char *name)
 extern char* path(char *s) ;
 void startmusic(char *name, char *cmd)
 {
-    if(nosound) return;
+    printf("\nWe are asked to play: %s\n", name) ;
+
+    if(nosound) 
+    {
+        return;
+    }
     stopmusic();
+    printf("\nHELLO \n", name) ;
     if(soundvol && musicvol && *name)
     {
-        defformatstring(file)("packages/%s", name);
+        //defformatstring(file)("packages/%s", name);
+        defformatstring(file)("%s", name);
         path(file);
         if(loadmusic(file))
         {
+            musicvol = 55 ;
+            printf("\nMUSIC FILE LOADED %s, musicvol = %d \n", name, (int)(musicvol)) ;
             DELETEA(musicfile);
             DELETEA(musicdonecmd);
             musicfile = newstring(file);
-            if(cmd[0]) musicdonecmd = newstring(cmd);
-            Mix_PlayMusic(music, cmd[0] ? 0 : -1);
-            Mix_VolumeMusic((musicvol*MAXVOL)/255);
+            // if(cmd[0]) musicdonecmd = newstring(cmd);
+            // Mix_PlayMusic(music, cmd[0] ? 0 : -1);
+            //            Mix_PlayMusic(music, 0 );
+
+            Mix_VolumeMusic(55);
+            if(Mix_PlayMusic(music, 1)==-1) 
+            {
+                printf("Mix_PlayMusic: %s\n", Mix_GetError());
+                // well, there's no music, but most games don't break without music...
+            }
+        Mix_PlayMusic(music, musicdonecmd ? 0 : -1);
+            //Mix_VolumeMusic((musicvol*MAXVOL)/255);
             // intret(1); FIXME: THIS IS THE RETURN FOR A CONSOLE COMMAND
         }
         else
         {
             // FIXME: replace  - conoutf(CON_ERROR, "could not play music: %s", file);
+            printf("\n\nFUCK NOMUSIC could not play music: %s", file);
             // intret(0); FIXME: THIS IS THE RETURN FOR A CONSOLE COMMAND
         }
     }
@@ -240,6 +273,16 @@ void startmusic(char *name, char *cmd)
 hashtable<const char *, soundsample> samples;
 vector<soundslot> gamesounds, mapsounds;
 
+void updatesounds() ;
+
+void startsound()
+{
+    //newchannel(int n, soundslot *slot, const vec *loc = NULL, /*extentity *ent = NULL,*/ int radius = 0)
+    initsound() ;
+    resetchannels();
+    newchannel(1, &gamesounds[0]) ;
+    updatesounds() ;
+}
 int findsound(const char *name, int vol, vector<soundslot> &sounds)
 {
     loopv(sounds)
@@ -251,7 +294,7 @@ int findsound(const char *name, int vol, vector<soundslot> &sounds)
 
 int addsound(const char *name, int vol, int maxuses, vector<soundslot> &sounds)
 {
-    soundsample *s = samples.access(name);
+    soundsample *s = samples.addOrFind(name);
     if(!s)
     {
         char *n = newstring(name);
@@ -275,10 +318,10 @@ int addsound(const char *name, int vol, int maxuses, vector<soundslot> &sounds)
     return oldlen;
 }
 
-void registersound(char *name, int *vol) 
+int registersound(char *name, int *vol) 
 {
     // intret(
-    addsound(name, *vol, 0, gamesounds) ;
+    return addsound(name, *vol, 0, gamesounds) ;
       //   ); 
 }
 
@@ -407,7 +450,7 @@ void updatesounds()
     loopv(channels)
     {
         soundchannel &chan = channels[i];
-//        if(chan.inuse && chan.hasloc() && updatechannel(chan)) dirty++;
+        if(chan.inuse && chan.hasloc() && updatechannel(chan)) dirty++;
     }
     if(dirty)
     {
@@ -450,17 +493,23 @@ static Mix_Chunk *loadwav(const char *name)
     return c;
 }
 
-
 extern unsigned int millis ;
-int playsound(int n, const vec *loc, /*extentity *ent,*/ int loops, int fade, int chanid, int radius, int expire)
-{
+
+// #error you did not compile me
+// /*extentity *ent,*/ 
+
+int playsound( vec* loc, int n, int loops, int fade, int chanid, int radius, int expire)
+{   
+    // nosound = false ;  // FIXME: put this in a control
     if(nosound || !soundvol) return -1;
+
 
     // vector<soundslot> &sounds = ent ? mapsounds : gamesounds;
     vector<soundslot> &sounds = gamesounds;
     if(!sounds.inrange(n)) 
     { 
         // FIXME conoutf(CON_WARN, "unregistered sound: %d", n); return -1; 
+        printf("\n\nUNREGISTERED: unregistered sound: %d", n); return -1; 
     }
     soundslot &slot = sounds[n];
 
@@ -470,7 +519,10 @@ int playsound(int n, const vec *loc, /*extentity *ent,*/ int loops, int fade, in
         int rad = radius > 0 ? (maxsoundradius ? min(maxsoundradius, radius) : radius) : maxsoundradius;
         // if(camera1->o.dist(*loc) > 1.5f*rad)
         // FIXME if(camera1->o.dist(*loc) > 1.5f*rad)
+        if (0)
         {
+            bool inrange = channels.inrange(chanid) ;
+            printf("\nINRANGE: %s    bad chanid=%d\n", (!inrange)?("false"):("true"), chanid) ;
             if(channels.inrange(chanid) && channels[chanid].inuse && channels[chanid].slot == &slot)
             {
                 Mix_HaltChannel(chanid);
@@ -479,6 +531,7 @@ int playsound(int n, const vec *loc, /*extentity *ent,*/ int loops, int fade, in
             return -1;    
         }
     }
+    printf("\n\nHAHHHHHHHHHHHHHHHHH\n\n") ;
 
     if(chanid < 0)
     {
@@ -499,11 +552,12 @@ int playsound(int n, const vec *loc, /*extentity *ent,*/ int loops, int fade, in
     {
         if(!slot.sample->name[0]) return -1;
 
-        const char *exts[] = { "", ".wav", ".ogg" };
+        const char *exts[] = { ".mp3", ".wav", ".ogg" };
         string buf;
         loopi(sizeof(exts)/sizeof(exts[0]))
         {
-            formatstring(buf)("packages/sounds/%s%s", slot.sample->name, exts[i]);
+            // formatstring(buf)("packages/sounds/%s%s", slot.sample->name, exts[i]);
+            formatstring(buf)("%s%s", slot.sample->name, exts[i]);
             path(buf);
             slot.sample->chunk = loadwav(buf);
             if(slot.sample->chunk) break;
@@ -514,6 +568,7 @@ int playsound(int n, const vec *loc, /*extentity *ent,*/ int loops, int fade, in
             // FIXME conoutf(CON_ERROR, "failed to load sample: %s", buf); return -1; 
         }
     }
+    printf("\n\nYESSSSSSSSSSSSSSS\n\n") ;
 
     if(channels.inrange(chanid))
     {
@@ -530,13 +585,17 @@ int playsound(int n, const vec *loc, /*extentity *ent,*/ int loops, int fade, in
     if(dbgsound) 
     {
         // FIXME - conoutf("sound: %s", slot.sample->name);
+        printf("sound: %s", slot.sample->name);
     }
  
+
     chanid = -1;
     loopv(channels) if(!channels[i].inuse) { chanid = i; break; }
     if(chanid < 0 && channels.length() < maxchannels) chanid = channels.length();
     if(chanid < 0) loopv(channels) if(!channels[i].volume) { chanid = i; break; }
     if(chanid < 0) return -1;
+
+    printf("\n\nNEW CHANNEL \n\n") ;
 
     SDL_LockAudio(); // must lock here to prevent freechannel/Mix_SetPanning race conditions
     if(channels.inrange(chanid) && channels[chanid].inuse)
@@ -558,6 +617,16 @@ int playsound(int n, const vec *loc, /*extentity *ent,*/ int loops, int fade, in
     SDL_UnlockAudio();
     return playing;
 }
+
+
+
+int justplay(int id)
+{
+    static char hello[] = "../data/cranberry-radio_edit.mp3" ;
+    startmusic(hello, hello) ;
+    return 0 ;
+}
+
 
 void stopsounds()
 {
@@ -583,17 +652,27 @@ bool stopsound(int n, int chanid, int fade)
     return true;
 }
 
-int playsoundname(const char *s, const vec *loc, int vol, int loops, int fade, int chanid, int radius, int expire) 
+//int playsoundname(const char *s, const vec *loc, int vol, int loops, int fade, int chanid, int radius, int expire) 
+int playsoundname(const char *s, vec *loc, int vol, int loops, int fade, int chanid, int radius, int expire) 
 { 
     if(!vol) vol = 100;
     int id = findsound(s, vol, gamesounds);
     if(id < 0) id = addsound(s, vol, 0, gamesounds);
-    return playsound(id, loc, /*NULL,*/ loops, fade, chanid, radius, expire);
+    return playsound(loc, id, /*NULL,*/ loops, fade, chanid, radius, expire);
 }
 
 // void sound(int *n) { playsound(*n); }
 // COMMAND(sound, "i");
-
+void soundoff() 
+{
+    stopmusic() ;
+    stopsounds() ;
+    nosound = true ;
+}
+void soundon()
+{
+    nosound = false ;
+}
 void resetsound()
 {
     const SDL_version *v = Mix_Linked_Version();
@@ -628,6 +707,7 @@ void resetsound()
     }
     if(music && loadmusic(musicfile))
     {
+        Mix_PlayMusic(music, musicdonecmd ? 0 : -1);
         Mix_PlayMusic(music, musicdonecmd ? 0 : -1);
         Mix_VolumeMusic((musicvol*MAXVOL)/255);
     }

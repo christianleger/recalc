@@ -23,6 +23,7 @@
 #include <math.h>
 #include <float.h>
 #include <SDL.h>
+#include <SDL_mixer.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
 
@@ -327,5 +328,18 @@ void clear_selection() ;
 void extrude( void * ) ; 
 void draw_new_octs() ;
 void initialize() ;
+
+// sound
+
+    // sound status
+    void soundoff() ;
+    void soundon() ;
+
+    // sound commands
+    void startsound() ; // initialize sound subsystem
+    
+    int justplay(int thesound) ; // a dysfunctional little puppy that insists a piece of audio be played. 
+
+    int playsound( vec* loc, int n, int loops, int fade, int chanid, int radius, int expire) ;
 
 

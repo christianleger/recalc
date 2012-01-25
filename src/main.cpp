@@ -48,7 +48,7 @@ int default_screen_height = 800 ;
 
 void read_args( int, char** ) ;
 bool testonly = false ;
-
+bool cancelsound = false ;
 
 void read_configs() ;
 
@@ -74,15 +74,22 @@ void read_args( int argc, char** argv )
 {
     // Args
 
-    int i = 0 ;
+    int i = 1 ; // first argument is the name of this program (unless this is a lib)
     int args = argc ;
-    while (args>0)
+    while (args>0 && i < argc)
     {
         if (argv[i][0]=='-')
         {
             switch (argv[i][1])
             {
-                case 'h':
+                case 'q':
+                {
+                    // extern bool nosound ;
+                    // soundoff() ; FIXME: one day maybe soundoff will work. For now it's boring. 
+                    printf("\nQUIET MODE SELECTED. SOUND SHOULDN'T PLAY. \n") ;
+                    break ; 
+                }
+                case 't':
                 {
                     printf("\nTEST ONLY MODE SELECTED. NOW PROBABLY EXITING. \n") ;
                     args = 0 ;
@@ -98,7 +105,7 @@ void read_args( int argc, char** argv )
         }
         else
         {
-            printf("\nI don't understand your shit. Quitting. (got '%s' from args)\n", argv[i]) ;
+            printf("\nNot Unhandled argument: '%s' from args)\n", argv[i]) ;
         }
         args-- ;
         i++ ;
@@ -162,6 +169,7 @@ void initSDL( Engine * engine )
 
 
     // FIXME: this is convoluted bullshit
+    // WINDOW
     if ( engine->fullscreen )
     {
         engine->scr_w = engine->desktop_w; 
@@ -175,6 +183,8 @@ void initSDL( Engine * engine )
     engine->current_w = engine->scr_w ;
     engine->current_h = engine->scr_h ;
 
+
+    // VISUAL
     printf("\nSetting video mode: \n") ; 
     printf("\n %d X %d \n", engine->scr_w, engine->scr_h ) ; 
     engine->surface = SDL_SetVideoMode( 
@@ -187,20 +197,13 @@ void initSDL( Engine * engine )
     /* Verify there is a surface */
     if ( !engine->surface )
     {
-        fprintf( 
-            stderr,  
-            "Video mode set failed: %s\n",
-            SDL_GetError( ) 
-        );
+        fprintf( stderr,  "Video mode set failed: %s\n", SDL_GetError( ) );
         Quit( 1 );
     }
     else
     {
-        fprintf( 
-            stderr,  
-            "Messages given by SDL_GetError: %s\n",
-            SDL_GetError( ) 
-        );
+        fprintf( stderr,  "GREAT SUCCESS FOR THE COMPUTER GENERATING A SURFACE: %s\n", SDL_GetError( ) );
+        //"Messages given by SDL_GetError: %s\n", 
     }
 
     printf("\n current screen width: %d", engine->scr_w ) ; 
@@ -230,7 +233,7 @@ void initGL( )
     glEnable( GL_BLEND );
     // glDepthFunc( GL_GREATER ) ;
     // glEnable(GL_CULL_FACE) ;
-    // glCullFace(GL_CW) ;
+    glCullFace(GL_CW) ;
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     /* The Type Of Depth Test To Do */
@@ -274,7 +277,7 @@ void resize_window( int width, int height, int fov )
     glLoadIdentity( );
 
     ////gluPerspective( (GLfloat)angle, ratio, 0.01f, 10000000.0f );
-    gluPerspective( (GLfloat)angle, ratio, 0.1f, 300000.0f );
+    gluPerspective( (GLfloat)angle, ratio, 10.0f, 300000.0f );
     //gluPerspective( 60.0f, ratio, 0.01f, 50000.0f );
 
     /* default matrix to manipulate is modelview */
@@ -288,6 +291,7 @@ void resize_window( int width, int height, int fov )
 // Main resources to use 
 extern Engine engine ;
 extern Camera camera ; 
+extern int playsound( vec*v, int a, int b, int c, int d, int e) ;
 
 int main_msgs_num = 0 ;
 char main_msgs[100][256] ;
@@ -308,14 +312,36 @@ int main( int argc, char **argv )
     get_cycle(first_cycle) ;
     printf("\nENGINE STARTING ON CLOCK CYCLE %lld\n", first_cycle) ;
 
-    
-    read_args(argc, argv); 
+  
+//  extern int addsound(const char *name, int vol, int maxuses, vector<soundslot> &sounds) ;
+int vol = 128 ;
+char hello[100] = "../data/cranberry-radio_edit.mp3" ;      // USELESS SHIT registersound("../data/cranberry-radio_edit.mp3", vol) ;
+int thesound = 0 ;
+    // registersound(hello, &vol) ;
+    // registersound(hello, &vol) ;
+    // registersound(hello, &vol) ;
+
+    vec loc(0,0,0) ;
+    vec* p_loc = &loc ;
+
+extern int registersound(char *name, int *vol) ;
+thesound = registersound(hello, &vol) ;
+printf("\nREGISTERED SOUND = %d\n", thesound) ;
+
+
+// extern void startsound() ;
+// startsound() ;
+// soundoff() ;
+justplay(thesound) ;
+
+read_args(argc, argv); 
 
     // Testing code. This can run stuff just to evaluate the characteristics of some 
     // code without having to load and run everything. 
     // Move this block further down is some resources are needed to perform some tests. 
     if (testonly)
     {
+        
         // Things to test: 
         // sub-milimeter timing code
         testtiming() ;
@@ -329,6 +355,8 @@ int main( int argc, char **argv )
 
     read_configs() ; 
 
+    // WANTED: an 'engine' module which knows what good defaults are and how 
+    // to present other options. 
     // cheap, expendable initialization section 
     engine.fullscreen = false ; 
     engine.window_active = true ;
@@ -389,7 +417,7 @@ int main( int argc, char **argv )
     //unsigned int last_frame = SDL_GetTicks() ;
     
     /* main loop */
-#define FRAME_TIME 5 // 5 gives about 200 fps
+#define FRAME_TIME 5 // 5 gives about 200 fps. Not relevant when in vsync. 
     while ( !done )
     {
         millis = SDL_GetTicks();
@@ -408,30 +436,42 @@ int main( int argc, char **argv )
         // I won't for now).
         while ( SDL_PollEvent( &event ) )
         {
+
             switch( event.type )
             {
+
                 case SDL_MOUSEMOTION: 
                 {
                     if (!engine.paused) 
                     handle_mouse_motion( &event ) ;
                     break ; 
                 }
+
+
+                case SDL_MOUSEBUTTONDOWN:
+                {
+                    handle_mouse_button( &event ) ;
+                    break ;
+                }
+
+
                 case SDL_KEYDOWN: 
                 case SDL_KEYUP:         
                 {
                     handle_key( &event ) ;
                     break ; 
                 }
-                case SDL_MOUSEBUTTONDOWN:
-                {
-                    handle_mouse_button( &event ) ;
-                    break ;
-                }
+
+
+                // Application master control
                 case SDL_QUIT: 
                 {
                     Quit( 0 ) ;
                     break ; 
                 }
+
+
+                // Interaction with OS
                 case SDL_ACTIVEEVENT:
                 {
                     //SDL_WM_GrabInput( SDL_GRAB_ON ) ;

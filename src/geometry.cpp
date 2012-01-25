@@ -11,6 +11,16 @@
 
 
 
+
+
+    See geometry.h for all the details we were able to document about this 
+    here module. 
+
+
+
+
+
+
     Deleting geometry: 
 
         Any rectangular polyhedron (shape that occupies R^3) whose boundaries 
@@ -297,6 +307,22 @@ void draw_square(
     The direction of the other corners is determined by the 
     orientation parameter. 
 */
+void draw_corner_squarei(
+    ivec c,        // corner; lowest values for the coords not in the orientation vector (see function description for info)
+    int size, 
+    int _o
+    )
+{
+    //draw_corner_square() ;
+
+    glBegin( GL_LINE_LOOP ) ;
+        glVertex3iv( c.v ) ; c[X(_o)] += size ;  // bottom-right
+        glVertex3iv( c.v ) ; c[Y(_o)] += size ;  // top-right
+        glVertex3iv( c.v ) ; c[X(_o)] -= size ;  // top-left
+        glVertex3iv( c.v ) ;
+    glEnd() ;
+}
+
 void draw_corner_square(
     vec& _corner,        // lowest values for the coords not in the orientation vector (see function description for info)
     int size, 
@@ -311,6 +337,21 @@ void draw_corner_square(
         glVertex3iv( c.v ) ; c[X(_o)] -= size ;  // top-left
         glVertex3iv( c.v ) ;
     glEnd() ;
+}
+
+void draw_corner_cubei(
+    ivec _corner,
+    int size
+    )
+{
+    // first two squares cornered at origin 
+    draw_corner_squarei( _corner, size, 0) ; 
+    draw_corner_squarei( _corner, size, 2) ; 
+    // third square cornered at origin.x + size 
+    corner[0] += size ; 
+    draw_corner_squarei( _corner, size, 1) ;
+    corner[0] -= size ; corner[1] += size ; 
+    draw_corner_squarei( _corner, size, 3) ;
 }
 
 void draw_corner_cube(
@@ -378,6 +419,14 @@ void draw_world_box()
     // glEnable ( GL_DEPTH_TEST ) ; 
 }
 
+/*
+    NS is node size. 
+
+*/
+void render_selection(ivec corner, int NS)
+{
+    draw_corner_cubei( corner, NS) ;
+}
 
 /*
     There is a relationship between orientations and the planes. 
@@ -517,6 +566,9 @@ void update_editor()
 
     vec dir ;
 
+
+    // Probably obsolete: 
+    //if (front[b[i][0]] < wp[2*i].offset && front[b[i][0]] > 0  &&    //    front[b[i][1]] < wp[2*i].offset && front[b[i][1]] > 0
     if (camera.inworld(world))
     {
         front = pos ;
@@ -536,12 +588,9 @@ void update_editor()
                     //front.add(t*camdir.x+t*camdir.y+t*camdir.z) ; // this works because camdir has length 1. 
                     // Here we check that the point // hitting the plane is inside // the world limits. 
 
-                    int f1 = front[b[i][0]] ;
-                    int f2 = front[b[i][1]] ;
+                    int f1 = front[b[i][0]] ; 
+                    int f2 = front[b[i][1]] ; 
                     int w = wp[2*i].offset ;
-
-                    //if (front[b[i][0]] < wp[2*i].offset && front[b[i][0]] > 0  &&    
-                    //    front[b[i][1]] < wp[2*i].offset && front[b[i][1]] > 0
 
                     if ( f1 > 0 && f1 < w && 
                          f2 > 0 && f2 < w 
@@ -682,11 +731,21 @@ void update_editor()
             // Distances to next plane intersections
             loopj(3) { ds[j] = (ray[j]>=0?(float(icorner[j]+NS)-f[j]):(f[j]-float(icorner[j]))) ; }
 
-            if (fabs(ray.x*ds.y) > fabs(ray.y*ds.x))         
-            { r = ray.x ; d = ds.x ; i = 0 ; }  else { r = ray.y ; d = ds.y ; i = 1 ; } 
-            if ((fabs(ray.z*d) > fabs(r*ds.z)))      { r = ray.z ; d = ds.z ; i = 2 ; }
+            if (fabs(ray.x*ds.y) > fabs(ray.y*ds.x)){ 
+                r = ray.x ; 
+                d = ds.x ; 
+                i = 0 ; 
+            }else{ 
+                r = ray.y ; 
+                d = ds.y ; 
+                i = 1 ; 
+            }
+            if ((fabs(ray.z*d) > fabs(r*ds.z))){ 
+                r = ray.z ; 
+                d = ds.z ; 
+                i = 2 ; 
+            }
             t = fabs(d/r) ; // divisions are minimized 
-
             rayfront.add(ray.mul(t)) ;  // move ray to new plane
             ray = dir ;                 // reset ray to length 1
 
@@ -699,7 +758,40 @@ void update_editor()
 
     // draw_corner_cube( fc, NS) ;
     // glEnd() ;
+    /*
+        loopi(3)
+        {
+            hitplanes |= ( camdir[i]<0 ? 2*i : 2*i+1 ) << (3*i) ;
+        }
+    */
+    //    loopj(3)
+     //   {
+      //  }
 
+    orientation = hittingplane ;
+    hitplanes = ( dir[i]>0 ? 2*i : 2*i+1 ) << (3*i) ;
+    if (havetarget)
+    { 
+        sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
+        sprintf( geom_msgs2[geom_msgs_num2], "We have a target. selection corner at: %d %d %d    ORIENTATION=%d", 
+            icorner.x,
+            icorner.y,
+            icorner.z,
+            orientation
+            ) ; geom_msgs_num2++ ;
+        sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
+        
+        ivec c = icorner ;
+        // render_selection(c, NS) ;
+    }
+
+    
+        sprintf( geom_msgs2[geom_msgs_num2], "ICORNER IS at: %d %d %d", 
+            icorner.x,
+            icorner.y,
+            icorner.z
+            ) ; geom_msgs_num2++ ;
+        
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -782,6 +874,14 @@ void update_editor()
             }
         }
     } // end if (!havetarget)
+
+
+//    FIXME make sure you know which corners are which at this point
+
+//            if ( !(O%2) )
+ //           {
+  //              NC[Z(O)] += wp[O][Z(O)] * (sel_size) * sel_counts[Z(O)] ;
+   //         }
 
 } // end update_editor 
 
@@ -958,6 +1058,26 @@ struct idx_triangle
 ivec vbo_array[1024] = {ivec(0)} ;
 uchar vbo_elements[1024] = {0} ;
 
+
+/*
+    Function: delete_VBOInfo
+
+    Used by the delete_subtree function. 
+
+    As a process is recycling a tree, it calls 
+    this function on its Geom element so that 
+    the memory can then be discarded without 
+    loose ends. 
+
+    Purpose: to release the OpenGL buffer objects that this 
+    node is using. 
+*/
+void delete_VBOInfo( Octant* oct ) 
+{
+    glDeleteBuffers(1,&(oct->geom->geoVBOid)) ;
+    glDeleteBuffers(1,&(oct->geom->texVBOid)) ;
+}
+
 /*
     Function: delete_subtree. 
 
@@ -984,6 +1104,8 @@ void delete_subtree(Octant* in_oct)
 
     ivec pos( 0, 0, 0 );
 
+
+// FIXME: use delete_VBOInfo( oct ) ; where appropriate. 
     // This is a depth-first descent down the tree. Can't delete a node before its children 
     // are gone, after all. 
     while (d>=0)
@@ -1144,6 +1266,33 @@ void extrude( void * _in )
        populating the tree: 
             - For every cube of size==world.gridsize in our selection, create a 
               child.
+
+
+
+
+
+    First thing we need to know when extruding: whether we are extruding into 
+    an available volume. If we are, then we can asses what already exists 
+    there, and touches it, that might have to be deleted, have a faced obscured, 
+    or be subdivided. 
+
+    Things that become affected belong to nodes that root their own subtree. 
+    Affected nodes use their Geom records to hand off the resources they've 
+    been using. In a nice metaphor for how I think we should try to live, 
+    the willingness to let go exists because there is assurance that more 
+    will come. 
+
+    So an affected subtree glDeleteBuffers'es its geoVBOid and texVBOid. 
+
+    Then it either deletes or subdivides its subtree. 
+
+    Note: nodes that only touch the new volume need to be flagged as 
+    needing update as well. This is somewhat uncomfortable, but it's not 
+    something the system can't handle. Maybe we can give it a switchable 
+    state so that when we want precision, it's off, and when we want 
+    speed and already know we're spending the resources to do it, we turn 
+    it off. 
+
     */
     // CASE: our cursor is on something within the octree. 
     if ( sel_path[0] >= 0 )
@@ -1358,7 +1507,8 @@ void extrude( void * _in )
     //path[0] = {NULL} ;
 
 
-    
+   
+    // FIXME: This is obviously not the right place to call this. 
     makeSubtreeVBO(&world.root, ivec(0,0,0), world.scale) ;
     if (0)
     {
@@ -1430,8 +1580,8 @@ void extrude( void * _in )
 */
 
 // FIXME! :) this is for TEMPORARY testing purposes only. 
-vec allvertices[100] ;
-vec allcolors[100] ;
+vec allvertices[10000] ;
+vec allcolors[10000] ;
 unsigned int allVertsVBO = 0 ;
 unsigned int allColorsVBO = 0 ;
 int numVerts = 0 ;
@@ -1459,7 +1609,9 @@ void makeSubtreeVBO(Octant* parent, ivec corner, int NS)
     // coordinate should increment. 
     bool incornot = false ;  
 
-    int32_t SI = NS ;
+
+    // Size increment. Used with tree-depth to localize our position to corners. 
+    int32_t SI = NS ;   
     int32_t incr = 0 ;
 
 
@@ -1500,11 +1652,14 @@ void makeSubtreeVBO(Octant* parent, ivec corner, int NS)
         {
             if ( CN->has_geometry() ) // If we have geometry, that has to go into a VBO
             {
-                sprintf(geom_msgs[geom_msgs_num], "GEOMETRY NODE OF SIZE %d at position %d %d %d", 1<<(SI-d+1), pos.x, pos.y, pos.z) ; geom_msgs_num++ ;
+                // sprintf(geom_msgs[geom_msgs_num], "GEOMETRY NODE OF SIZE %d at position %d %d %d", 1<<(SI-d+1), pos.x, pos.y, pos.z) ; geom_msgs_num++ ;
 
-                int nsize = 1<<(SI-d+1) ;
+
+                int NS = 1<<(SI-d+1) ;   // Node size. 
 
                 int colorNow = numVerts ;
+
+                // Triangle 1 ! FIXME: do a more iterative mechanism! 
                 allcolors[numVerts] = colors[colorNow%10] ;
                 allvertices[numVerts].x = pos.x ;
                 allvertices[numVerts].y = pos.y ;
@@ -1512,27 +1667,61 @@ void makeSubtreeVBO(Octant* parent, ivec corner, int NS)
                 allcolors[numVerts+1] = colors[colorNow%10] ;
                 allvertices[numVerts+1].x = pos.x ;
                 allvertices[numVerts+1].y = pos.y ;
-                allvertices[numVerts+1].z = pos.z + nsize ;
+                allvertices[numVerts+1].z = pos.z + NS ;
                 allcolors[numVerts+2] = colors[colorNow%10] ;
                 allvertices[numVerts+2].x = pos.x ;
-                allvertices[numVerts+2].y = pos.y + nsize ;
-                allvertices[numVerts+2].z = pos.z + nsize ;
+                allvertices[numVerts+2].y = pos.y + NS ;
+                allvertices[numVerts+2].z = pos.z + NS ;
 
+                // Triangle 2 ! 
                 allcolors[numVerts+3] = colors[colorNow%10] ;
                 allvertices[numVerts+3].x = pos.x ;
-                allvertices[numVerts+3].y = pos.y + nsize ;
-                allvertices[numVerts+3].z = pos.z + nsize ;
+                allvertices[numVerts+3].y = pos.y + NS ;
+                allvertices[numVerts+3].z = pos.z + NS ;
+
                 allcolors[numVerts+4] = colors[colorNow%10] ;
                 allvertices[numVerts+4].x = pos.x ;
-                allvertices[numVerts+4].y = pos.y + nsize ;
+                allvertices[numVerts+4].y = pos.y + NS ;
                 allvertices[numVerts+4].z = pos.z ;
+
                 allcolors[numVerts+5] = colors[colorNow%10] ;
                 allvertices[numVerts+5].x = pos.x ;
                 allvertices[numVerts+5].y = pos.y ;
                 allvertices[numVerts+5].z = pos.z ;
 
+                // Triangle 3 ! 
+                allcolors[numVerts+6] = colors[colorNow%10] ;
+                allvertices[numVerts+6].x = pos.x ;
+                allvertices[numVerts+6].y = pos.y ;
+                allvertices[numVerts+6].z = pos.z + NS ;
 
-                numVerts += 6 ;
+                allcolors[numVerts+7] = colors[colorNow%10] ;
+                allvertices[numVerts+7].x = pos.x ;
+                allvertices[numVerts+7].y = pos.y + NS ;
+                allvertices[numVerts+7].z = pos.z + NS ;
+
+                allcolors[numVerts+8] = colors[colorNow%10] ;
+                allvertices[numVerts+8].x = pos.x + NS ;
+                allvertices[numVerts+8].y = pos.y ;
+                allvertices[numVerts+8].z = pos.z + NS ;
+
+                allcolors[numVerts+9] = colors[colorNow%10] ;
+                allvertices[numVerts+9].x = pos.x + NS ;
+                allvertices[numVerts+9].y = pos.y ;
+                allvertices[numVerts+9].z = pos.z + NS ;
+
+                allcolors[numVerts+10] = colors[colorNow%10] ;
+                allvertices[numVerts+10].x = pos.x ;
+                allvertices[numVerts+10].y = pos.y + NS ;
+                allvertices[numVerts+10].z = pos.z + NS ;
+
+                allcolors[numVerts+11] = colors[colorNow%10] ;
+                allvertices[numVerts+11].x = pos.x + NS ;
+                allvertices[numVerts+11].y = pos.y + NS ;
+                allvertices[numVerts+11].z = pos.z + NS ;
+
+
+                numVerts += 12 ;
                 loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] += (incr); }
                 // glVertex3iv(pos.v) ; //            pointcount++ ;
                 loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] -= (incr); }
@@ -1562,17 +1751,11 @@ void makeSubtreeVBO(Octant* parent, ivec corner, int NS)
     sprintf(geom_msgs[geom_msgs_num], "After geometry creation numVerts = %d", numVerts
         ) ; geom_msgs_num++ ;
     sprintf(geom_msgs[geom_msgs_num], "allvertices = %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f  ", 
-        allvertices[0].x, 
-        allvertices[0].y, 
-        allvertices[0].z, 
+        allvertices[0].x, allvertices[0].y, allvertices[0].z, 
 
-        allvertices[1].x, 
-        allvertices[1].y, 
-        allvertices[1].z, 
+        allvertices[1].x, allvertices[1].y, allvertices[1].z, 
 
-        allvertices[2].x, 
-        allvertices[2].y, 
-        allvertices[2].z 
+        allvertices[2].x, allvertices[2].y, allvertices[2].z 
 
         ) ; geom_msgs_num++ ;
 }

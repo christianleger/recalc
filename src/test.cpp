@@ -32,7 +32,7 @@ unsigned int    m_colorVBO ;                                // Vertex VBO Name
 
 bool test_001_initiated = false ;
 // populate some fricking vertex arrays. 
-void initiate_test_001()
+void init_test_001()
 {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -161,7 +161,7 @@ void render_test_001()
 {
     if ( !test_001_initiated )
     {
-        initiate_test_001() ;
+        init_test_001() ;
         test_001_initiated = true ;
     }
 
@@ -293,6 +293,9 @@ void render_test_001()
 
 
 
+// Present the value of every bit in this particular number. 
+// Trying out multiple numbers to gather a sense of the position 
+// of the bits at certain values. 
 void float32_bits()
 {
     float number = 1.f ;
@@ -403,6 +406,13 @@ void float32_bits()
 }
 
 
+void init_test_002()
+{
+}
+void render_test_002()
+{
+}
+
 /*
     Function: initialize_tests
 
@@ -417,6 +427,6 @@ void initialize_tests()
     // Test: floating point numbers. 
     //float32_bits() ;
 
+    init_test_002() ;
 }
-
 

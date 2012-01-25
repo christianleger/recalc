@@ -38,7 +38,7 @@ char *makerelpath(const char *dir, const char *file, const char *prefix, const c
 }
 
 
-char *path(char *s)
+char* path(char *s)
 {
     for(char *curpart = s;;)
     {
