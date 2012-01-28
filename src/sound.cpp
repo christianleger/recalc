@@ -71,12 +71,12 @@ int maxchannels = 0;
 
 soundchannel &newchannel(int n, soundslot *slot, const vec *loc = NULL, /*extentity *ent = NULL,*/ int radius = 0)
 {
-  //  if(ent)
+//  if(ent)
     {
 //        loc = &ent->o;
- //       ent->visible = true;
+//        ent->visible = true;
     }
-        printf("\nLALALALALA\n") ;
+    printf("\nLALALALALA\n") ;
     if (channels.inrange(n)) 
     {
         printf("\nchannels says 'inrange' for %d\n", n) ;

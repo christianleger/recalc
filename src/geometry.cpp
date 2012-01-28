@@ -154,6 +154,7 @@ bool Octant::has_geometry()
             (edge_check[2]==MAX_INT)
            ) ;
 }
+
 bool Octant::has_children()
 {
     return (children != NULL) ;
@@ -161,20 +162,22 @@ bool Octant::has_children()
 
 //printf("\n set_all_edges: edges of this octant located at %d", (int)&edges[0]) ;
 //printf("\n set_all_edges: edges[%d] = %d", (i) , edges[i]) ;
-    void Octant::set_all_edges(int in_value=255)
+void Octant::set_all_edges(int in_value=255)
+{
+    //DEBUGTRACE(("\n setting all edges with d=%d\n", in_value)) ;
+    loopi(12)
     {
-        //DEBUGTRACE(("\n setting all edges with d=%d\n", in_value)) ;
-        loopi(12)
-        {
-            edges[i] = in_value ;
-        }
+        edges[i] = in_value ;
     }
+}
 
 void new_octant( Octant& oct )
 {
     oct.children = new Octant[8] ;
     return ;
-}   
+}
+
+
 //------------------------------------------------------------------------
 //                  EDITING VARIABLES AND FUNCTIONS
 //------------------------------------------------------------------------
@@ -204,9 +207,11 @@ bool have_ray_start_node = false ;
 ivec ray_start_vec ;
 int ray_start_orientation = 0 ;
 
+
 void clear_selection()
 {
 }
+
 
 void set_sel_start()
 {
@@ -220,6 +225,7 @@ void set_sel_start()
     sel_size = world.gridsize ;
     printf("\nselection starting at %d  %d  %d\n", sel_start.x, sel_start.y, sel_start.z ) ; 
 }
+
 
 // sprintf(geom_msgs[geom_msgs_num], "selection counts: %d %d ", sel_counts.x, sel_counts.y) ; geom_msgs_num++ ;
 void set_sel_end()
@@ -239,6 +245,7 @@ void set_sel_end()
     }
 }
 
+
 int orientation_indexes[6][3] = 
 {
     {1,2,0}, 
@@ -249,6 +256,7 @@ int orientation_indexes[6][3] =
     {0,1,2} 
 } ; 
 
+
 float direction_multipliers[6][3] = 
 {
     {-1, 1, -1}, 
@@ -258,6 +266,7 @@ float direction_multipliers[6][3] =
     {-1, 1, -1}, 
     { 1, 1,  1}
 } ; 
+
 
 // This stuff makes us able to pretend that any axis-aligned plane is just 
 // the plain old XY plane, with X increasing to the right and Y increasing upwards. 
@@ -278,6 +287,7 @@ float direction_multipliers[6][3] =
 #define Dx(_o) direction_multipliers[_o][0]
 #define Dy(_o) direction_multipliers[_o][1]
 #define Dz(_o) direction_multipliers[_o][2]
+
 
 // FIXME: this should all be done with ints. 
 // Oriented square centered on a point
@@ -419,6 +429,7 @@ void draw_world_box()
     // glEnable ( GL_DEPTH_TEST ) ; 
 }
 
+
 /*
     NS is node size. 
 
@@ -427,6 +438,7 @@ void render_selection(ivec corner, int NS)
 {
     draw_corner_cubei( corner, NS) ;
 }
+
 
 /*
     There is a relationship between orientations and the planes. 
@@ -444,7 +456,9 @@ plane world_planes[6] =
 } ;
 #define wp world_planes 
 
+
 char plane_names[3][2] = { "X", "Y", "Z" } ;
+
 
 int bounds[3][2] =
 {
@@ -452,7 +466,7 @@ int bounds[3][2] =
     {0, 2},  // point is on Y plane; check X and Z boundaries  
     {0, 1}   // point is on Z plane; check X and Y boundaries 
 } ;
-#define b bounds
+#define bds bounds
 
 
 /*
@@ -484,6 +498,7 @@ void RayHitPlane( vec& pos, vec ray, plane& pl, float* t )
         *t = 0 ; 
     }
 }
+
 
 /*
     Intersect a ray with a plane, and provide the point where that intersection 
@@ -525,6 +540,8 @@ vec RayHitPlanePos( vec& pos, vec ray, plane& pl, float* t )
 
 */
 int sel_path[20] = {-2} ;
+
+
 /*
     Outputs of this function: 
 
@@ -532,7 +549,6 @@ int sel_path[20] = {-2} ;
 
         - which, if any, world planes are currently selected. 
 */
-
 void update_editor()
 {
     //bool advancing = true ;
@@ -588,13 +604,11 @@ void update_editor()
                     //front.add(t*camdir.x+t*camdir.y+t*camdir.z) ; // this works because camdir has length 1. 
                     // Here we check that the point // hitting the plane is inside // the world limits. 
 
-                    int f1 = front[b[i][0]] ; 
-                    int f2 = front[b[i][1]] ; 
+                    int f1 = front[bds[i][0]] ; 
+                    int f2 = front[bds[i][1]] ; 
                     int w = wp[2*i].offset ;
 
-                    if ( f1 > 0 && f1 < w && 
-                         f2 > 0 && f2 < w 
-                       )
+                    if ( f1 > 0 && f1 < w && f2 > 0 && f2 < w )
                     {
                         orientation = (hittingplane) ; min_t = t ;
                         fcorner = vec(front) ; sel_path[0] = -1 ;
@@ -621,7 +635,7 @@ void update_editor()
         }
     }
 
- //    sprintf(geom_msgs[geom_msgs_num], "update_editor: point at %d %d %d", icorner[0], icorner[1], icorner[2]) ; geom_msgs_num++ ;
+    // sprintf(geom_msgs[geom_msgs_num], "update_editor: point at %d %d %d", icorner[0], icorner[1], icorner[2]) ; geom_msgs_num++ ;
 
 
 
@@ -685,67 +699,48 @@ void update_editor()
     //sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
     //sprintf( geom_msgs2[geom_msgs_num2], "position : %.2f %.2f %.2f", pos.x, pos.y, pos.z) ; geom_msgs_num2++ ;
     //sprintf( geom_msgs2[geom_msgs_num2], "ray = %.4f %.4f %.4f", ray.x, ray.y, ray.z ) ; geom_msgs_num2++ ;
-        //sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
-        //sprintf( geom_msgs2[geom_msgs_num2], "********** RAY START **********") ; geom_msgs_num2++ ;
-        //sprintf( geom_msgs2[geom_msgs_num2], "  penetration plane: %s   (orientation=%d)", plane_names[i], orientation) ; geom_msgs_num2++ ;
-        //sprintf( geom_msgs2[geom_msgs_num2], "  rayfront: %.2f %2.f %.2f", rayfront.x, rayfront.y, rayfront.z); geom_msgs_num2++ ;
-/*
+    //sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
+    //sprintf( geom_msgs2[geom_msgs_num2], "********** RAY START **********") ; geom_msgs_num2++ ;
+    //sprintf( geom_msgs2[geom_msgs_num2], "  penetration plane: %s   (orientation=%d)", plane_names[i], orientation) ; geom_msgs_num2++ ;
+    //sprintf( geom_msgs2[geom_msgs_num2], "  rayfront: %.2f %2.f %.2f", rayfront.x, rayfront.y, rayfront.z); geom_msgs_num2++ ;
+    /*
             if ( (icorner[0]<=0 && ray.x<0) || (ray.x>=0 && icorner[0]>=WS) ||
                  (icorner[1]<=0 && ray.y<0) || (ray.y>=0 && icorner[1]>=WS) ||
                  (icorner[2]<=0 && ray.z<0) || (ray.z>=0 && icorner[2]>=WS) )
             { 
                 break ; 
             }
-*/
+    */
 
+    // RAY SHOOTING THROUGH THE WORLD! ZAP!
+    int WS = world.size ;
     if (have_ray_start_node || camera.inworld(world))
     {
-// RAY SHOOTING THROUGH THE WORLD! ZAP!
         int Nscale = 0; 
-
-        i = (orientation>>1) ;
-
-
-
-        int WS = world.size ;
+        i = (orientation>>1) ; // Which axis dominates the ray's movement into the next node
 
         vec ds = vec(0) ; 
+        // sprintf( geom_msgs2[geom_msgs_num2], "HAVE TARGET") ; geom_msgs_num2++ ;
         while (!havetarget)
         {
             if (steps>50) { break ; }                                               // Kill runaway loops
             loopj(3) {icorner[j] = (int)rayfront[j] ;}                              // place, more or less, icorner at rayfront (imprecision from converting float to int)
             icorner[i] += (ray[i]>=0?1:-1) ;                                        // Snap to inside of node we're looking at
-            if ((icorner[i]>=WS&&ray[i]>0) ||(icorner[i]<=0&&ray[i]<0)) {break ;}   // If this adjustment brings us out of the world - move on
+            if ((icorner[i]>=WS&&ray[i]>0) || (icorner[i]<=0&&ray[i]<0)) {break ;}  // If this adjustment brings us out of the world - we're done
 
-            Octant* oct = findNode(icorner, &Nscale, &NS) ; // Find out what tree node encloses this point
-            loopj(3) { icorner[j] = (icorner[j] >> Nscale) << Nscale ; } // Now icorner is right on the node corner. 
+            Octant* oct = findNode(icorner, &Nscale, &NS) ;                 // Find out what tree node encloses this point
+
+            loopj(3) { icorner[j] = (icorner[j] >> Nscale) << Nscale ; }    // Now icorner is right on the node corner. 
             
-            if ( oct->has_geometry() ) 
-            { 
-                sprintf( geom_msgs2[geom_msgs_num2], "HAVE TARGET") ; geom_msgs_num2++ ;
-                havetarget = true ; break ; 
-            }
-
+            if ( oct->has_geometry() ) { havetarget = true ; break ; }
             vec f = rayfront ; r = 0.f ; d = 0.f ; t = 0.f ; 
 
             // Distances to next plane intersections
             loopj(3) { ds[j] = (ray[j]>=0?(float(icorner[j]+NS)-f[j]):(f[j]-float(icorner[j]))) ; }
-
-            if (fabs(ray.x*ds.y) > fabs(ray.y*ds.x)){ 
-                r = ray.x ; 
-                d = ds.x ; 
-                i = 0 ; 
-            }else{ 
-                r = ray.y ; 
-                d = ds.y ; 
-                i = 1 ; 
-            }
-            if ((fabs(ray.z*d) > fabs(r*ds.z))){ 
-                r = ray.z ; 
-                d = ds.z ; 
-                i = 2 ; 
-            }
-            t = fabs(d/r) ; // divisions are minimized 
+            if (fabs(ray.x*ds.y) > fabs(ray.y*ds.x)){ r = ray.x ; d = ds.x ; i = 0 ; }
+            else{ r = ray.y ; d = ds.y ; i = 1 ; }
+            if ((fabs(ray.z*d) > fabs(r*ds.z))){ r = ray.z ; d = ds.z ; i = 2 ; }
+            t = fabs(d/r) ;             // divisions are minimized 
             rayfront.add(ray.mul(t)) ;  // move ray to new plane
             ray = dir ;                 // reset ray to length 1
 
@@ -755,7 +750,6 @@ void update_editor()
 
 
     // glBegin(GL_LINES) ;
-
     // draw_corner_cube( fc, NS) ;
     // glEnd() ;
     /*
@@ -765,8 +759,9 @@ void update_editor()
         }
     */
     //    loopj(3)
-     //   {
-      //  }
+    //    {
+    //    }
+
 
     orientation = hittingplane ;
     hitplanes = ( dir[i]>0 ? 2*i : 2*i+1 ) << (3*i) ;
@@ -792,9 +787,9 @@ void update_editor()
             icorner.z
             ) ; geom_msgs_num2++ ;
         
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
     // TARGET FINDER PHASE 3: far world planes. 
     // The variable hitplanes encodes which three axis-aligned planes are 
     // always possible hits for a ray going through an octree. 
@@ -844,8 +839,8 @@ void update_editor()
                     front = pos ;
                     front.add(camdir.mul(t)) ; // this works because camdir has length 1. 
                     // Here we check that the point // hitting the plane is inside // the world limits. 
-                    if ( front[b[i][0]] < wp[2*i].offset && front[b[i][0]] > 0  &&    
-                         front[b[i][1]] < wp[2*i].offset && front[b[i][1]] > 0
+                    if ( front[bds[i][0]] < wp[2*i].offset && front[bds[i][0]] > 0  &&    
+                         front[bds[i][1]] < wp[2*i].offset && front[bds[i][1]] > 0
                        )
                     {
                         orientation = (hittingplane) ;
@@ -1433,6 +1428,7 @@ void extrude( void * _in )
     // FIXME:  instead of changing lvc.c when something HAS geometry (which alters its geometry!!!), 
     // we need to instead check: 
 
+    int count = 0 ;
     while (d>=0)
     {
         if ( CN->children )
@@ -1449,7 +1445,6 @@ void extrude( void * _in )
             else
             {
                 CC = &CN->children[0] ;
-                int count = 0 ;
                 loopi(8) 
                 { 
                     if (CC->has_geometry()) // Should only happen if CC is a child ... with geometry! 
@@ -1468,7 +1463,6 @@ void extrude( void * _in )
                     CC++ ; // next child 
                 }
                 CN->lvc.c = count ; // record total 
-                sprintf(geom_msgs[geom_msgs_num], "at depth %d a node has lvc count %d (from count=%d)", d, CN->lvc.c, count) ; geom_msgs_num++ ;
                 //DEBUGTRACE(("\n At depth %d, adding child lvc's. Total = %d \n", d, CN->lvc.c)) ;
             }
         } // end if ( CN->children )
@@ -1478,6 +1472,7 @@ void extrude( void * _in )
         d-- ;           // We're going up to our parent's depth.
         CN = path[d] ;  // Current node is now the last node we went down from. 
     }
+    sprintf(geom_msgs[geom_msgs_num], "After a geometry update root's lvc count  = %d (from count=%d)", d, world.root.lvc.c, count) ; geom_msgs_num++ ;
 
 //// step: determine which faces of our new cubes are visible 
 
@@ -1585,13 +1580,17 @@ vec allcolors[10000] ;
 unsigned int allVertsVBO = 0 ;
 unsigned int allColorsVBO = 0 ;
 int numVerts = 0 ;
-vec colors[10] =
-{
-  vec(1.0, 1.0, 1.0) , vec(0.0, 1.0, 0.0) ,
-  vec(1.0, 0.0, 1.0) , vec(1.0, 1.0, 0.0) ,
-  vec(1.0, 0.0, 0.0) , vec(0.5, 0.5, 1.0) ,
-  vec(0.5, 0.5, 0.0) , vec(0.0, 0.5, 0.8) ,
-  vec(1.0, 0.0, 0.5) , vec(0.5, 1.0, 0.5)
+vec colors[10] = {
+  vec(1.0, 1.0, 1.0) , 
+  vec(0.0, 1.0, 0.0) ,
+  vec(1.0, 0.0, 1.0) , 
+  vec(1.0, 1.0, 0.0) ,
+  vec(1.0, 0.0, 0.0) , 
+  vec(0.5, 0.5, 1.0) ,
+  vec(0.5, 0.5, 0.0) , 
+  vec(0.0, 0.5, 0.8) ,
+  vec(1.0, 0.0, 0.5) , 
+  vec(0.5, 1.0, 0.5)
 } ;
 
 void makeSubtreeVBO(Octant* parent, ivec corner, int NS)
@@ -1609,11 +1608,9 @@ void makeSubtreeVBO(Octant* parent, ivec corner, int NS)
     // coordinate should increment. 
     bool incornot = false ;  
 
-
     // Size increment. Used with tree-depth to localize our position to corners. 
     int32_t SI = NS ;   
     int32_t incr = 0 ;
-
 
     /*
         FIXME: REMOVE THIS! TESTING ONLY. 
@@ -1657,81 +1654,120 @@ void makeSubtreeVBO(Octant* parent, ivec corner, int NS)
 
                 int NS = 1<<(SI-d+1) ;   // Node size. 
 
-                int colorNow = numVerts ;
+                int colorNow = numVerts+17 ;
 
                 // Triangle 1 ! FIXME: do a more iterative mechanism! 
-                allcolors[numVerts] = colors[colorNow%10] ;
+                allcolors[numVerts]   = colors[0] ;
                 allvertices[numVerts].x = pos.x ;
                 allvertices[numVerts].y = pos.y ;
                 allvertices[numVerts].z = pos.z ;
-                allcolors[numVerts+1] = colors[colorNow%10] ;
+
+                allcolors[numVerts+1] = colors[0] ;
                 allvertices[numVerts+1].x = pos.x ;
                 allvertices[numVerts+1].y = pos.y ;
                 allvertices[numVerts+1].z = pos.z + NS ;
-                allcolors[numVerts+2] = colors[colorNow%10] ;
+                
+                allcolors[numVerts+2] = colors[0] ;
                 allvertices[numVerts+2].x = pos.x ;
                 allvertices[numVerts+2].y = pos.y + NS ;
                 allvertices[numVerts+2].z = pos.z + NS ;
 
                 // Triangle 2 ! 
-                allcolors[numVerts+3] = colors[colorNow%10] ;
+                allcolors[numVerts+3] = colors[1] ;
                 allvertices[numVerts+3].x = pos.x ;
                 allvertices[numVerts+3].y = pos.y + NS ;
                 allvertices[numVerts+3].z = pos.z + NS ;
 
-                allcolors[numVerts+4] = colors[colorNow%10] ;
+                allcolors[numVerts+4] = colors[1] ;
                 allvertices[numVerts+4].x = pos.x ;
                 allvertices[numVerts+4].y = pos.y + NS ;
                 allvertices[numVerts+4].z = pos.z ;
 
-                allcolors[numVerts+5] = colors[colorNow%10] ;
+                allcolors[numVerts+5] = colors[1] ;
                 allvertices[numVerts+5].x = pos.x ;
                 allvertices[numVerts+5].y = pos.y ;
                 allvertices[numVerts+5].z = pos.z ;
 
                 // Triangle 3 ! 
-                allcolors[numVerts+6] = colors[colorNow%10] ;
+                allcolors[numVerts+6] = colors[2] ;
                 allvertices[numVerts+6].x = pos.x ;
                 allvertices[numVerts+6].y = pos.y ;
                 allvertices[numVerts+6].z = pos.z + NS ;
 
-                allcolors[numVerts+7] = colors[colorNow%10] ;
+                allcolors[numVerts+7] = colors[2] ;
                 allvertices[numVerts+7].x = pos.x ;
                 allvertices[numVerts+7].y = pos.y + NS ;
                 allvertices[numVerts+7].z = pos.z + NS ;
 
-                allcolors[numVerts+8] = colors[colorNow%10] ;
+                allcolors[numVerts+8] = colors[2] ;
                 allvertices[numVerts+8].x = pos.x + NS ;
                 allvertices[numVerts+8].y = pos.y ;
                 allvertices[numVerts+8].z = pos.z + NS ;
 
-                allcolors[numVerts+9] = colors[colorNow%10] ;
+                // Triangle 4 !
+                allcolors[numVerts+9] = colors[3] ;
                 allvertices[numVerts+9].x = pos.x + NS ;
                 allvertices[numVerts+9].y = pos.y ;
                 allvertices[numVerts+9].z = pos.z + NS ;
 
-                allcolors[numVerts+10] = colors[colorNow%10] ;
+                allcolors[numVerts+10] = colors[3] ;
                 allvertices[numVerts+10].x = pos.x ;
                 allvertices[numVerts+10].y = pos.y + NS ;
                 allvertices[numVerts+10].z = pos.z + NS ;
 
-                allcolors[numVerts+11] = colors[colorNow%10] ;
+                allcolors[numVerts+11] = colors[3] ;
                 allvertices[numVerts+11].x = pos.x + NS ;
                 allvertices[numVerts+11].y = pos.y + NS ;
                 allvertices[numVerts+11].z = pos.z + NS ;
 
 
-                numVerts += 12 ;
-                loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] += (incr); }
+                numVerts += 12 ;    // 
+
+/*
+                sprintf(geom_msgs[geom_msgs_num], "colors first element:  %f %f %f", 
+                    colors[0].x, colors[0].y, colors[0].z) ; geom_msgs_num++ ;
+                sprintf(geom_msgs[geom_msgs_num], "colors second element:  %f %f %f", 
+                    colors[1].x, colors[1].y, colors[1].z) ; geom_msgs_num++ ;
+                sprintf(geom_msgs[geom_msgs_num], "colors third element:  %f %f %f", 
+                    colors[2].x, colors[2].y, colors[2].z) ; geom_msgs_num++ ;
+                sprintf(geom_msgs[geom_msgs_num], "colors fourth element:  %f %f %f", 
+                    colors[3].x, colors[3].y, colors[3].z) ; geom_msgs_num++ ;
+
+                sprintf(geom_msgs[geom_msgs_num], "colors first element:  %f %f %f", 
+                    colors[0].x, colors[0].y, colors[0].z) ; geom_msgs_num++ ;
+                sprintf(geom_msgs[geom_msgs_num], "colors second element:  %f %f %f", 
+                    colors[1].x, colors[1].y, colors[1].z) ; geom_msgs_num++ ;
+                sprintf(geom_msgs[geom_msgs_num], "colors third element:  %f %f %f", 
+                    colors[2].x, colors[2].y, colors[2].z) ; geom_msgs_num++ ;
+                sprintf(geom_msgs[geom_msgs_num], "colors fourth element:  %f %f %f", 
+                    colors[3].x, colors[3].y, colors[3].z) ; geom_msgs_num++ ;
+*/
+/*
+                sprintf(geom_msgs[geom_msgs_num], "allcolors first element:  %f %f %f",
+                    allcolors[0].x, allcolors[0].y, allcolors[0].z) ; geom_msgs_num++ ;
+                sprintf(geom_msgs[geom_msgs_num], "allcolors second element:  %f %f %f",
+                    allcolors[1].x, allcolors[1].y, allcolors[1].z) ; geom_msgs_num++ ;
+                sprintf(geom_msgs[geom_msgs_num], "allcolors third element:  %f %f %f",
+                    allcolors[2].x, allcolors[2].y, allcolors[2].z) ; geom_msgs_num++ ;
+                sprintf(geom_msgs[geom_msgs_num], "allcolors fourth element:  %f %f %f",
+                    allcolors[3].x, allcolors[3].y, allcolors[3].z) ; geom_msgs_num++ ;
+*/
+
+                // loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] += (incr); }
                 // glVertex3iv(pos.v) ; //            pointcount++ ;
-                loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] -= (incr); }
-            }
+                // loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] -= (incr); }
+
+            } // end if has geometry 
         }
         // These last lines of the while loop make up the 'going up the tree' action. 
         path[d] = NULL ;
         d-- ;
         CN = path[d] ;
         loopi(3) { incr = (1<<(SI-d)) ; incornot = ((idxs[d]>>i)&1) ; pos.v[i] -= incornot * incr ; }
+        if (d<0)
+        {
+            break ;
+        }
         idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
     }                   // end while d>=0
 
@@ -1739,25 +1775,48 @@ void makeSubtreeVBO(Octant* parent, ivec corner, int NS)
     glDeleteBuffers( 1, &allVertsVBO )  ; // clear existing VBO
     glGenBuffers( 1, &allVertsVBO );                            // Get A Valid Name
     glBindBuffer( GL_ARRAY_BUFFER, allVertsVBO );            // Bind The Buffer
+    glBufferData( GL_ARRAY_BUFFER, numVerts*sizeof(vec), allvertices, GL_STATIC_DRAW );
 
     glDeleteBuffers( 1, &allColorsVBO )  ; // clear existing VBO
     glGenBuffers( 1, &allColorsVBO );                            // Get A Valid Name
     glBindBuffer( GL_ARRAY_BUFFER, allColorsVBO );            // Bind The Buffer
+    glBufferData( GL_ARRAY_BUFFER, numVerts*sizeof(vec), allcolors, GL_STATIC_DRAW );
+
+
+    // glBufferData( GL_ARRAY_BUFFER, numVerts*sizeof(vec), allcolors, GL_STATIC_DRAW );
+   // glBufferData( GL_ARRAY_BUFFER, numVerts*9*sizeof(float), allcolors, GL_STATIC_DRAW );
+    //glBufferData( GL_ARRAY_BUFFER, numVerts*9*sizeof(float), allcolors, GL_STATIC_DRAW );
+    // glBufferData( GL_ARRAY_BUFFER, numVerts*3*sizeof(float), allcolors, GL_STATIC_DRAW );
+    //glBufferData( GL_ARRAY_BUFFER, numVerts*3*sizeof(float), allvertices, GL_STATIC_DRAW );
 
     // glBufferData( GL_ARRAY_BUFFER, 100*3*sizeof(float), allvertices, GL_STATIC_DRAW );
 
-    glBufferData( GL_ARRAY_BUFFER, numVerts*3*sizeof(float), allvertices, GL_STATIC_DRAW );
+/*
+    sprintf(geom_msgs[geom_msgs_num], "colors element:  %f %f %f", 
+        colors[0].x, colors[0].y, colors[0].z) ; geom_msgs_num++ ;
+    sprintf(geom_msgs[geom_msgs_num], "colors element:  %f %f %f", 
+        colors[1].x, colors[1].y, colors[1].z) ; geom_msgs_num++ ;
+    sprintf(geom_msgs[geom_msgs_num], "colors element:  %f %f %f", 
+        colors[2].x, colors[2].y, colors[2].z) ; geom_msgs_num++ ;
+    sprintf(geom_msgs[geom_msgs_num], "colors element:  %f %f %f", 
+        colors[3].x, colors[3].y, colors[3].z) ; geom_msgs_num++ ;
 
-    sprintf(geom_msgs[geom_msgs_num], "After geometry creation numVerts = %d", numVerts
-        ) ; geom_msgs_num++ ;
-    sprintf(geom_msgs[geom_msgs_num], "allvertices = %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f  ", 
-        allvertices[0].x, allvertices[0].y, allvertices[0].z, 
+    sprintf(geom_msgs[geom_msgs_num], "allcolors element:  %f %f %f", 
+        allcolors[0].x, allcolors[0].y, allcolors[0].z) ; geom_msgs_num++ ;
+    sprintf(geom_msgs[geom_msgs_num], "allcolors element:  %f %f %f", 
+        allcolors[1].x, allcolors[1].y, allcolors[1].z) ; geom_msgs_num++ ;
+    sprintf(geom_msgs[geom_msgs_num], "allcolors element:  %f %f %f", 
+        allcolors[2].x, allcolors[2].y, allcolors[2].z) ; geom_msgs_num++ ;
+    sprintf(geom_msgs[geom_msgs_num], "allcolors element:  %f %f %f", 
+        allcolors[3].x, allcolors[3].y, allcolors[3].z) ; geom_msgs_num++ ;
+*/
 
-        allvertices[1].x, allvertices[1].y, allvertices[1].z, 
-
-        allvertices[2].x, allvertices[2].y, allvertices[2].z 
-
-        ) ; geom_msgs_num++ ;
+    sprintf(geom_msgs[geom_msgs_num], "After geometry creation numVerts = %d", numVerts) ; geom_msgs_num++ ;
+//    sprintf(geom_msgs[geom_msgs_num], "allvertices = %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f  ", 
+ //       allvertices[0].x, allvertices[0].y, allvertices[0].z, 
+  //      allvertices[1].x, allvertices[1].y, allvertices[1].z, 
+   //     allvertices[2].x, allvertices[2].y, allvertices[2].z 
+    //    ) ; geom_msgs_num++ ;
 }
 
 
@@ -1796,23 +1855,29 @@ void draw_new_octs()
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // REPLACE ME AND MOVE ME! 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    glEnableClientState( GL_VERTEX_ARRAY );                        // Enable Vertex Arrays
-    glEnableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
+    if (allVertsVBO>0 &&allColorsVBO>0)
+    {
+        glEnableClientState( GL_VERTEX_ARRAY );                        // Enable Vertex Arrays
+        glEnableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
 
-    glBindBuffer(GL_ARRAY_BUFFER, allVertsVBO );
-    glVertexPointer( 3, GL_FLOAT,  0, (char *) NULL );        // Set The Vertex Pointer To The Vertex Buffer
-    glBindBuffer(GL_ARRAY_BUFFER, allColorsVBO );
-    glVertexPointer( 3, GL_FLOAT,  0, (char *) NULL );        // Set The Vertex Pointer To The Vertex Buffer
+        glBindBuffer(GL_ARRAY_BUFFER, allVertsVBO );
+        glVertexPointer( 3, GL_FLOAT,  0, (char *) NULL );        // Set The Vertex Pointer To The Vertex Buffer
 
-glEnable( GL_DEPTH_TEST ) ;
-    // DRAW LIKE AN ALMIGHTY GOD
-    // glDrawArrays( GL_TRIANGLES, 0, numVerts/3);    // Draw All Of The Triangles At Once
-    glDrawArrays( GL_TRIANGLES, 0, numVerts);    // Draw All Of The Triangles At Once
-    // glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, allColorsVBO );
+        glColorPointer( 3, GL_FLOAT,  0, (char *) NULL );        // Set The Vertex Pointer To The Vertex Buffer
 
-    // Disable Pointers
-    glDisableClientState( GL_VERTEX_ARRAY );                    // Disable Vertex Arrays
-    glDisableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
+        // DRAW LIKE AN ALMIGHTY GOD
+        // glDrawArrays( GL_TRIANGLES, 0, numVerts/3);    // Draw All Of The Triangles At Once
+        // glEnable( GL_DEPTH_TEST ) ;
+        glDrawArrays( GL_TRIANGLES, 0, numVerts);    // Draw All Of The Triangles At Once
+        // glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // Disable Pointers
+        glDisableClientState( GL_VERTEX_ARRAY );                    // Disable Vertex Arrays
+        glDisableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1847,14 +1912,14 @@ glEnable( GL_DEPTH_TEST ) ;
         {
             if ( CN->has_geometry() )
             {
-                    incr = (1<<(SI-d)) ;
+                incr = (1<<(SI-d)) ;
+
                 loopi(3) {
                     pos.v[i] += (incr);
                 }
 
                 glVertex3iv(pos.v) ;
 
-                    // incr = (1<<(SI-d)) ;
                 loopi(3) {
                     pos.v[i] -= (incr);
                 }
@@ -1864,6 +1929,10 @@ glEnable( GL_DEPTH_TEST ) ;
         // These last lines of the while loop make up the 'going up the tree' action. 
         path[d] = NULL ;
         d-- ;
+        if (d<0)    // Past the root? Then we're done. 
+        {   
+            break ;
+        }
         CN = path[d] ;
 
         loopi(3) {
