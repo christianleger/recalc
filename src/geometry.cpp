@@ -168,6 +168,10 @@ bool Octant::has_children()
     return (children != NULL) ;
 }
 
+/*
+    No arguments means make this solid. 
+    Having an argument means set edges to that value. 
+*/
 void Octant::set_all_edges(int in_value=255)
 {
     //DEBUGTRACE(("\n setting all edges with d=%d\n", in_value)) ;
@@ -240,7 +244,7 @@ float direction_multipliers[6][3] =
     { 1, 1,  1}, 
     { 1, 1, -1}, 
     {-1, 1,  1}, 
-    {-1, 1, -1}, 
+    {-1, 1, -1},    // +ve Y is 'up', -ve X is 'right'
     { 1, 1,  1}
 } ; 
 
@@ -1259,8 +1263,8 @@ void delete_subtree(Octant* in_oct)
 
     Outputs: 
         The node which encloses that point. 
-        The scale of the returned node
-        The size of the returned node. 
+        The size of the returned node. (optional)
+        The scale of the returned node (optional) 
 
     Possible speed optimization: 
 
@@ -1270,20 +1274,20 @@ void delete_subtree(Octant* in_oct)
         on the next search. 
 
 */
-Octant* findNode(ivec at, int* out_size, int* Nscale) // , int* out_size) 
+Octant* findNode(ivec at, int* out_size, int* nScale) // , int* out_size) 
 {
     int CGS = world.scale ;
     int i = 0 ;
     Octant* oct = &world.root ;
 
-    if (Nscale != NULL) { *Nscale = CGS ; }
+    if (nScale != NULL) { *nScale = CGS ; }
     while (CGS>2)
     {
         if ( oct->children ) 
         {
             i = octastep(at.x,at.y,at.z,CGS) ;
             oct = &oct->children[i] ;
-            if (Nscale != NULL) { *Nscale = CGS ; }
+            if (nScale != NULL) { *nScale = CGS ; }
         }
         else { break ; }
         CGS-- ;
@@ -1812,6 +1816,7 @@ void makeSubtreeVBO(Octant* parent, ivec in_corner, int NS)
         // If we don't have children, then maybe we have geometry.
         else
         {
+            bool visibleface = false ;
             if ( CN->has_geometry() ) // If we have geometry, that has to go into a VBO
             {
                 /*
@@ -1819,10 +1824,7 @@ void makeSubtreeVBO(Octant* parent, ivec in_corner, int NS)
                         - when an adjacent node is at least as big
                         - when the face can only be seen from outside world limits (this might change 
                           if we want to be able to have multiple worlds. 
-
-
                     Q. How do we calculate that first one, 'there is an at-least-as-big neighbor covering the face'? 
-
                     A. 
                     -> you take this node's corner, and generate with it a point 
                        that lies just outside the face concerned. 
@@ -1831,222 +1833,162 @@ void makeSubtreeVBO(Octant* parent, ivec in_corner, int NS)
                     -> you find the node located there
                     -> if that node is solid, and is bigger than this one, then 
                        we know we're skipping this face. 
-
                 */
-
                 ivec pcorner ;          // probe corner
                 Octant* pnode ;         // probe node
                 int NS = 1<<(SI-d+1) ;  // Node size. 
                 int ns = 0 ;            // neighbor size
 
-
-//printf("\nHAHA\n") ;
                 for (int face=0;face<6;face++)
                 {
                     int O = face ;
                     pcorner = pos ;
                     
                     // position probe to inside of any adjacent node
-                    pcorner[face>>1] = pos[face>>1]+=Dz(face)*(1 + (face%2)*(NS)) ; // I swear this does something sensical
+                    pcorner[face>>1] = pos[face>>1]+Dz(face)*(1 + (face%2)*(NS)) ; // I swear this does something sensical
                     pnode = findNode(pcorner, &ns) ;
-                    
                     pcorner = pos ;
 
-                    printf("\nHAHA   %d  vs  %d\n", ns, NS) ;
+                    // figure out if neighbors are solid - if so, we don't need a face here
+                    //if ( !(findNode(in_corner[sel_o>>1])->has_geometry()) ) // If we don't have a solid neighbor
 
-                // figure out if neighbors are solid - if so, we don't need a face here
-                //if ( !(findNode(in_corner[sel_o>>1])->has_geometry()) ) // If we don't have a solid neighbor
-
-                // If our node extends beyond what its neighbor can cover of that face
-                if ( !pnode->has_geometry() || ns<NS ) 
-                {
-                    if (numVerts+12>MAX_VERTS)
+                    // If our node extends beyond what its neighbor can cover of that face
+// if ( (( !pnode->has_geometry() && ns>NS )) || (( !pnode->has_geometry() || ns<=NS )))
+                    if ( !pnode->has_geometry() || ns<NS ) 
                     {
-                        sprintf(geom_msgs[geom_msgs_num], "VERTEX ARRAY FILLED! NO MORE GEOMETRY ALLOWED. ") ; geom_msgs_num++ ;
-                        break ;
-                    }
-                    // sprintf(geom_msgs[geom_msgs_num], "GEOMETRY NODE OF SIZE %d at position %d %d %d", 1<<(SI-d+1), pos.x, pos.y, pos.z) ; geom_msgs_num++ ;
+                        // visibleface = true ;
+                        if (numVerts+12>MAX_VERTS)
+                        {
+                            sprintf(geom_msgs[geom_msgs_num], "VERTEX ARRAY FILLED! NO MORE GEOMETRY ALLOWED. ") ; geom_msgs_num++ ;
+                            break ;
+                        }
+                        // sprintf(geom_msgs[geom_msgs_num], "GEOMETRY NODE OF SIZE %d at position %d %d %d", 1<<(SI-d+1), pos.x, pos.y, pos.z) ; geom_msgs_num++ ;
 
 
 
-                    int colorNow = numVerts+17 ;
-                    /*
-                        How triangles are made! Now are you starting to suspect that 
-                        we need (at minimum) to start coding within html-aware programs? 
-                        A  B
-                        *--*
-                        | /|
-                        |/ |
-                        *--*
-                        D  C
+                        int colorNow = numVerts+17 ;
+                        /*
+                            How triangles are made! Now are you starting to suspect that 
+                            we need (at minimum) to start coding within html-aware programs? 
+                            Depending on whether X(O) grows in the positive or negative for a 
+                            given face, the triangles to be drawn are like this: 
 
-                        Compute A, B, C then D. 
-                        Then set vertices to B, A, D and D, C, B. 
-                    */
-                    
-                    //pcorner[face>>1] = pos[face>>1]+=Dz(face)*(1 + (face%2)*(NS)) ; // I swear this does something sensical
-                    int zoffset = Dz(face)*NS*(face%2) ;
-                    pcorner[Z(O)] = zoffset ;
+                            A  B    A  B
+                            *--*    *--*
+                            | /|    |\ |
+                            |/ |    | \|
+                            *--*    *--*
+                            D  C    D  C
 
-                    printf("\n face %d gives zoffset=%d\n", face, zoffset) ;
-                        // vec A = vec A = 
-                        // vec C = pos[X(O)] + zoffset ;
-                        // vec D = pos[X(O)] + zoffset ;
-                    // Triangle BAD
-                    allcolors[numVerts]   = colors[colorNow%10] ;
-                        allvertices[numVerts][X(O)] = pcorner[X(O)] + Dx(O)*NS ;
-                        allvertices[numVerts][Y(O)] = pcorner[Y(O)] + Dy(O)*NS ;
-                        allvertices[numVerts][Z(O)] = pcorner[Z(O)] ; 
-                    allcolors[numVerts+1]   = colors[colorNow%10] ;
-                        allvertices[numVerts+1][X(O)] = pcorner[X(O)] ;
-                        allvertices[numVerts+1][Y(O)] = pcorner[Y(O)] + Dy(O)*NS ;
-                        allvertices[numVerts+1][Z(O)] = pcorner[Z(O)] ; 
-                    allcolors[numVerts+2]   = colors[colorNow%10] ;
-                        allvertices[numVerts+2][X(O)] = pcorner[X(O)] ;
-                        allvertices[numVerts+2][Y(O)] = pcorner[Y(O)] ;
-                        allvertices[numVerts+2][Z(O)] = pcorner[Z(O)] ; 
-                    
-                    // Triangle DCB
-                    allcolors[numVerts+3]   = colors[colorNow%10] ;
-                        allvertices[numVerts+3][X(O)] = pcorner[X(O)] ;
-                        allvertices[numVerts+3][Y(O)] = pcorner[Y(O)] ;
-                        allvertices[numVerts+3][Z(O)] = pcorner[Z(O)] ; 
-                    allcolors[numVerts+4]   = colors[colorNow%10] ;
-                        allvertices[numVerts+4][X(O)] = pcorner[X(O)] + Dx(O)*NS ;
-                        allvertices[numVerts+4][Y(O)] = pcorner[Y(O)] ;
-                        allvertices[numVerts+4][Z(O)] = pcorner[Z(O)] ; 
-                    allcolors[numVerts+5]   = colors[colorNow%10] ;
-                        allvertices[numVerts+5][X(O)] = pcorner[X(O)] + Dx(O)*NS ;
-                        allvertices[numVerts+5][Y(O)] = pcorner[Y(O)] + Dy(O)*NS ;
-                        allvertices[numVerts+5][Z(O)] = pcorner[Z(O)] ; 
+                            The first one is for when X grows in the positive, the second is for 
+                            when X grows in the negative. 
+
+                                                                        probably not: Compute A, B, C then D. 
+                            In case 1, we compute vertices BAD and DCB. 
+                            In case 2, we compute vertices ADC and CBA
+                        */
+                        
+                        //pcorner[face>>1] = pos[face>>1]+=Dz(face)*(1 + (face%2)*(NS)) ; // I swear this does something sensical
+                        int zoffset = Dz(face)*NS*(face%2) ;
+                        pcorner[Z(O)] += zoffset ;
+
+                        // Abbreviate otherwise repetitive expressions
+                        int x = X(O) ;
+                        int y = Y(O) ;
+                        int z = Z(O) ;
+                        // Faces 0, 3, 4 - where 'X' grows in the negative direction. 
+                        if (((face)&1)==((face>>1)&1))
+                        {
+                        //    if (1)
+                            // Triangle ADC
+                            allcolors[numVerts]   = colors[colorNow%10] ;
+                            allvertices[numVerts][x] = pcorner[x] + NS ;
+                            allvertices[numVerts][y] = pcorner[y] + NS ;
+                            allvertices[numVerts][z] = pcorner[z] ; 
+
+                            allcolors[numVerts+1]   = colors[colorNow%10] ;
+                            allvertices[numVerts+1][x] = pcorner[x] + NS ;
+                            allvertices[numVerts+1][y] = pcorner[y] ;
+                            allvertices[numVerts+1][z] = pcorner[z] ; 
+
+                            allcolors[numVerts+2]   = colors[colorNow%10] ;
+                            allvertices[numVerts+2][x] = pcorner[x] ;
+                            allvertices[numVerts+2][y] = pcorner[y] ;
+                            allvertices[numVerts+2][z] = pcorner[z] ; 
+
+                            // Triangle CBA
+                            allcolors[numVerts+3]   = colors[colorNow%10] ;
+                            allvertices[numVerts+3][x] = pcorner[x] ;
+                            allvertices[numVerts+3][y] = pcorner[y] ;
+                            allvertices[numVerts+3][z] = pcorner[z] ; 
+
+                            allcolors[numVerts+4]   = colors[colorNow%10] ;
+                            allvertices[numVerts+4][x] = pcorner[x] ;
+                            allvertices[numVerts+4][y] = pcorner[y] + NS ;
+                            allvertices[numVerts+4][z] = pcorner[z] ; 
+
+                            allcolors[numVerts+5]   = colors[colorNow%10] ;
+                            allvertices[numVerts+5][x] = pcorner[x] + NS ;
+                            allvertices[numVerts+5][y] = pcorner[y] + NS ;
+                            allvertices[numVerts+5][z] = pcorner[z] ; 
+                        }
+                        // Faces 1, 2, 5
+                        else 
+                        {
+                                            // Triangle BAD
+                                                allcolors[numVerts]   = colors[colorNow%10] ;
+                                                allvertices[numVerts][x] = pcorner[x] + NS ;
+                                                allvertices[numVerts][y] = pcorner[y] + NS ;
+                                                allvertices[numVerts][z] = pcorner[z] ; 
+
+                                                allcolors[numVerts+1]   = colors[colorNow%10] ;
+                                                allvertices[numVerts+1][x] = pcorner[x] ;
+                                                allvertices[numVerts+1][y] = pcorner[y] + NS ;
+                                                allvertices[numVerts+1][z] = pcorner[z] ; 
+
+                                                allcolors[numVerts+2]   = colors[colorNow%10] ;
+                                                allvertices[numVerts+2][x] = pcorner[x] ;
+                                                allvertices[numVerts+2][y] = pcorner[y] ;
+                                                allvertices[numVerts+2][z] = pcorner[z] ; 
+
+                                            // Triangle DCB
+                                                allcolors[numVerts+3]   = colors[colorNow%10] ;
+                                                allvertices[numVerts+3][x] = pcorner[x] ;
+                                                allvertices[numVerts+3][y] = pcorner[y] ;
+                                                allvertices[numVerts+3][z] = pcorner[z] ; 
+
+                                                allcolors[numVerts+4]   = colors[colorNow%10] ;
+                                                allvertices[numVerts+4][x] = pcorner[x] + NS ;
+                                                allvertices[numVerts+4][y] = pcorner[y] ;
+                                                allvertices[numVerts+4][z] = pcorner[z] ; 
+
+                                                allcolors[numVerts+5]   = colors[colorNow%10] ;
+                                                allvertices[numVerts+5][x] = pcorner[x] + NS ;
+                                                allvertices[numVerts+5][y] = pcorner[y] + NS ;
+                                                allvertices[numVerts+5][z] = pcorner[z] ; 
+                        }
+                        numVerts += 6 ;    //  Two new triangles for this face means 6 new vertices
+
+                        // loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] += (incr); }
+                        // glVertex3iv(pos.v) ; //            pointcount++ ;
+                        // loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] -= (incr); }
+
+                    } // end if neighbor is not in the way of this face
 
 
-                    printf("\nFirst three vertices: %.2f %.2f %.2f   %.2f %.2f %.2f   %.2f %.2f %.2f\n", 
-                        allvertices[0].x, allvertices[0].y, allvertices[0].z,
-                        allvertices[1].x, allvertices[1].y, allvertices[1].z,
-                        allvertices[2].x, allvertices[2].y, allvertices[2].z 
-                    ) ;
 
-
-
-                    numVerts += 6 ;    //  Two new triangles for this face means 6 new vertices
+                } // end for (int face=0;face<6;face++)
 
 /*
-                    // Triangle CBA ! FIXME: do a more iterative mechanism! 
-                    allcolors[numVerts]   = colors[colorNow%10] ;
-
-                    allvertices[numVerts].x = pos.x ; allvertices[numVerts].y = pos.y ; allvertices[numVerts].z = pos.z ;
-
-                    allcolors[numVerts+1] = colors[0] ;
-                    allvertices[numVerts+1].x = pos.x ; allvertices[numVerts+1].y = pos.y ; allvertices[numVerts+1].z = pos.z + NS ;
-                    
-                    allcolors[numVerts+2] = colors[0] ;
-                    allvertices[numVerts+2].x = pos.x ; allvertices[numVerts+2].y = pos.y + NS ; allvertices[numVerts+2].z = pos.z + NS ;
-
-                    // Triangle ADC ! 
-                    allcolors[numVerts+3] = colors[1] ;
-                    allvertices[numVerts+3].x = pos.x ; allvertices[numVerts+3].y = pos.y + NS ; allvertices[numVerts+3].z = pos.z + NS ;
-
-                    allcolors[numVerts+4] = colors[1] ;
-                    allvertices[numVerts+4].x = pos.x ; allvertices[numVerts+4].y = pos.y + NS ; allvertices[numVerts+4].z = pos.z ;
-
-                    allcolors[numVerts+5] = colors[1] ;
-                    allvertices[numVerts+5].x = pos.x ; allvertices[numVerts+5].y = pos.y ; allvertices[numVerts+5].z = pos.z ;
-
+                if (!visibleface)  // If the node we just processed is surrounded by neighbors
+                {
+                    CN->set_all_edges(0) ;
+//                    printf("\nSetting all edges of a node to zero. Now has_geometry is %s\n",
+ //                       (CN->has_geometry())?("true"):("false")
+  //                  ) ;
+                } 
 */
 
-
-
-////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-/*
-                    // Triangle 3 ! 
-                    allcolors[numVerts+6] = colors[2] ;
-                    allvertices[numVerts+6].x = pos.x ; allvertices[numVerts+6].y = pos.y ; allvertices[numVerts+6].z = pos.z + NS ;
-
-                    allcolors[numVerts+7] = colors[2] ;
-                    allvertices[numVerts+7].x = pos.x + NS ; allvertices[numVerts+7].y = pos.y ; allvertices[numVerts+7].z = pos.z + NS ;
-
-                    allcolors[numVerts+8] = colors[2] ;
-                    allvertices[numVerts+8].x = pos.x ; allvertices[numVerts+8].y = pos.y + NS ; allvertices[numVerts+8].z = pos.z + NS ;
-
-                    // Triangle 4 !
-                    allcolors[numVerts+9] = colors[3] ;
-                    allvertices[numVerts+9].x = pos.x + NS ; allvertices[numVerts+9].y = pos.y ; allvertices[numVerts+9].z = pos.z + NS ;
-
-                    allcolors[numVerts+10] = colors[3] ; 
-                    allvertices[numVerts+10].x = pos.x + NS ; allvertices[numVerts+10].y = pos.y + NS ; allvertices[numVerts+10].z = pos.z + NS ;
-
-                    allcolors[numVerts+11] = colors[3] ;
-                    allvertices[numVerts+11].x = pos.x ; allvertices[numVerts+11].y = pos.y + NS ; allvertices[numVerts+11].z = pos.z + NS ;
-
-
-                    // Triangle 5 !
-                    allcolors[numVerts+12] = colors[4] ;
-                    allvertices[numVerts+12].x = pos.x ; allvertices[numVerts+12].y = pos.y + NS ; allvertices[numVerts+12].z = pos.z ;
-
-                    allcolors[numVerts+13] = colors[4] ; 
-                    allvertices[numVerts+13].x = pos.x ; allvertices[numVerts+13].y = pos.y + NS ; allvertices[numVerts+13].z = pos.z + NS ;
-
-                    allcolors[numVerts+14] = colors[4] ;
-                    allvertices[numVerts+14].x = pos.x + NS ; allvertices[numVerts+14].y = pos.y + NS ; allvertices[numVerts+14].z = pos.z + NS ;
-
-                    // Triangle 6 !
-                    allcolors[numVerts+15] = colors[5] ;
-                    allvertices[numVerts+15].x = pos.x ; allvertices[numVerts+15].y = pos.y + NS ; allvertices[numVerts+15].z = pos.z ;
-
-                    allcolors[numVerts+16] = colors[5] ; 
-                    allvertices[numVerts+16].x = pos.x + NS ; allvertices[numVerts+16].y = pos.y + NS ; allvertices[numVerts+16].z = pos.z + NS ;
-
-                    allcolors[numVerts+17] = colors[5] ;
-                    allvertices[numVerts+17].x = pos.x + NS ; allvertices[numVerts+17].y = pos.y + NS ; allvertices[numVerts+17].z = pos.z ;
-*/
-////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-
-                    //numVerts += 18 ;    // 
-
-    /*
-                    sprintf(geom_msgs[geom_msgs_num], "colors first element:  %f %f %f", 
-                        colors[0].x, colors[0].y, colors[0].z) ; geom_msgs_num++ ;
-                    sprintf(geom_msgs[geom_msgs_num], "colors second element:  %f %f %f", 
-                        colors[1].x, colors[1].y, colors[1].z) ; geom_msgs_num++ ;
-                    sprintf(geom_msgs[geom_msgs_num], "colors third element:  %f %f %f", 
-                        colors[2].x, colors[2].y, colors[2].z) ; geom_msgs_num++ ;
-                    sprintf(geom_msgs[geom_msgs_num], "colors fourth element:  %f %f %f", 
-                        colors[3].x, colors[3].y, colors[3].z) ; geom_msgs_num++ ;
-
-                    sprintf(geom_msgs[geom_msgs_num], "colors first element:  %f %f %f", 
-                        colors[0].x, colors[0].y, colors[0].z) ; geom_msgs_num++ ;
-                    sprintf(geom_msgs[geom_msgs_num], "colors second element:  %f %f %f", 
-                        colors[1].x, colors[1].y, colors[1].z) ; geom_msgs_num++ ;
-                    sprintf(geom_msgs[geom_msgs_num], "colors third element:  %f %f %f", 
-                        colors[2].x, colors[2].y, colors[2].z) ; geom_msgs_num++ ;
-                    sprintf(geom_msgs[geom_msgs_num], "colors fourth element:  %f %f %f", 
-                        colors[3].x, colors[3].y, colors[3].z) ; geom_msgs_num++ ;
-    */
-    /*
-                    sprintf(geom_msgs[geom_msgs_num], "allcolors first element:  %f %f %f",
-                        allcolors[0].x, allcolors[0].y, allcolors[0].z) ; geom_msgs_num++ ;
-                    sprintf(geom_msgs[geom_msgs_num], "allcolors second element:  %f %f %f",
-                        allcolors[1].x, allcolors[1].y, allcolors[1].z) ; geom_msgs_num++ ;
-                    sprintf(geom_msgs[geom_msgs_num], "allcolors third element:  %f %f %f",
-                        allcolors[2].x, allcolors[2].y, allcolors[2].z) ; geom_msgs_num++ ;
-                    sprintf(geom_msgs[geom_msgs_num], "allcolors fourth element:  %f %f %f",
-                        allcolors[3].x, allcolors[3].y, allcolors[3].z) ; geom_msgs_num++ ;
-    */
-
-                    // loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] += (incr); }
-                    // glVertex3iv(pos.v) ; //            pointcount++ ;
-                    // loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] -= (incr); }
-
-                } // end if neighbor is not in the way
-
-
-
-                }
             } // end if has geometry 
         }
         // These last lines of the while loop make up the 'going up the tree' action. 
@@ -2179,6 +2121,7 @@ void draw_new_octs()
 // REPLACE ME AND MOVE ME! 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/*
     glBegin( GL_POINTS ) ;
 
 
@@ -2237,8 +2180,9 @@ void draw_new_octs()
         idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
     }                   // end while d>=0
     glEnd() ;
+*/
 
-}
+}   // end draw_new_octs()
 
 void World::initialize()
 {
