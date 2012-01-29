@@ -17,7 +17,7 @@ float distance_travelled = 0.f ;
 int physics_count = 0 ; // physics frame count 
 
 
-float basic_velocity = 10 ;
+float basic_velocity = 100 ;
 
 // FIXME: fix me!!!!!!!!!
 void physics_frame( unsigned int time_delta )
@@ -26,7 +26,8 @@ void physics_frame( unsigned int time_delta )
     float dist_delta ;
     float time_mul = 0 ;
 
-    time_mul = (float)time_delta / (float)PHYSICS_FRAME_TIME ;
+    // time_mul = (float)time_delta / (float)PHYSICS_FRAME_TIME ;
+    time_mul = (float)time_delta / (float)1000 ;
     //time_mul = 1.0f ;
 
     physics_count ++ ; 
@@ -60,7 +61,18 @@ void physics_frame( unsigned int time_delta )
 
 }
 
+/*
+    Basics: 
+        Using the entity's position, velocity and bounding box, 
+        determine the furthest it can move in a given time span. 
+        The time span is given by the number of milliseconds since 
+        the last step.
 
+    Steps: 
+        Compute the aabbox which completely contains the entity's 
+        current position and the position it's trying to move to. 
+        If any geometry 
+*/
 void move_entity(/* Entity * e*/)
 {
 

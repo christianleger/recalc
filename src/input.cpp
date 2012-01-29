@@ -682,9 +682,9 @@ void handle_key( SDL_Event* event )
             case SDLK_LSHIFT:
             {
             extern float basic_velocity ;
-                if ( basic_velocity > 6000 )
+                if ( basic_velocity > 25000 )
                 {
-                    basic_velocity = 10 ;
+                    basic_velocity = 100 ;
                 }
                 else
                 {

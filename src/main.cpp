@@ -375,11 +375,10 @@ read_args(argc, argv);
     engine.scr_w = default_screen_width ;
     engine.scr_h = default_screen_height ;
         printf("\n INITIALIZATION: resizing window after SDL init. dimensions are     %d x %d\n", engine.scr_w, engine.scr_h ) ; 
-   
-    // 
+
     initialize_subsystems(); 
 
-
+    // Any reason this can't be done in the previous subsystem initialization? 
     resize_window( engine.scr_w , engine.scr_h, engine.fov ) ;
 
     printf("\n engine.scr_w = %d   engine.src_h = %d\n", engine.scr_w, engine.scr_h) ;
@@ -529,6 +528,8 @@ read_args(argc, argv);
                 render_menu() ; 
             }
             
+            // Various stats. Mostly useful during debugging. Can be used to 
+            // supplement editing as well. 
             if ( engine.info ) 
             {
                 render_info() ; 

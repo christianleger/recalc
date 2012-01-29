@@ -9,19 +9,16 @@
 
     See geometry.h for the contents of the various geometrical structures. 
 
-
-
-
-
-    See geometry.h for all the details we were able to document about this 
+    Also see geometry.h for all the details we were able to document about this 
     here module. 
 
+----------------------------------
+    Overview of general operations
+----------------------------------
 
-
-
-
-
+----------------------
     Deleting geometry: 
+----------------------
 
         Any rectangular polyhedron (shape that occupies R^3) whose boundaries 
         lie on power-of-two coordinates can be selected. 
@@ -64,6 +61,10 @@
     well as its size. 
 
 
+----------------------
+    Creating geometry: 
+----------------------
+
 
 */
 
@@ -82,7 +83,6 @@ vec  pos ;
 vec  camdir ;
 
 // main renderable geometry data
-
 vector<Geom*> worldgeoms ;
 
 // How about 100 lines for monitoring your geometry action? 
@@ -102,7 +102,8 @@ char geom_msgs2[100][256] ;
 //------------------------------------------------------------------------
 //                  GEOMETRY SUPPORT FUNCTIONS  (octree, memory, etc.)
 //------------------------------------------------------------------------
-Octant* findNode(ivec at, int* nscale, int* out_size=NULL) ;
+//Octant* findNode(ivec at, int* nscale=NULL, int* out_size=NULL) ;
+Octant* findNode(ivec at, int* out_size, int* nscale=NULL) ; //, int* out_size=NULL) ;
 
 int numchildren = 0 ;
 
@@ -116,22 +117,29 @@ void makeSubtreeVBO(Octant* parent, ivec corner, int NS) ;
 
 
 ////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-//
-// The World and its Dimensions
-//
-////////////////////////////////////////////////////////////////////////////////
+//      The World and its Dimensions
 ////////////////////////////////////////////////////////////////////////////////
 // here 'world scale' really means the largest piece out of the world, which 
 // is one of the 8 cubes that divide the world
-             // default 15   size: 2^15=65536    gridscale    max gridsize: 2^15
-World world = { WORLD_SCALE, 2<<WORLD_SCALE , WORLD_SCALE, 2<<(WORLD_SCALE-1) } ;
+
+/*
+    About world dimensions: we treat 64 units (as seen when rendering graphics) 
+    to roughly mean a meter. This means something of size 2^6 is a meter. This 
+    also means that a typical 'place', or map, is 1024 'meters' on a side. A lot 
+    can be done and created in that space. 
+*/
+World world = 
+{ 
+    WORLD_SCALE,        // scale: default 15   
+    2<<WORLD_SCALE ,    // size: 2<<15=65536    (total size equals 2^16)
+    WORLD_SCALE,        // gridscale (scale used to size things while editing)
+    2<<(WORLD_SCALE-1)  // gridsize (size of new nodes when editing) max gridsize: 2^15
+} ;
 #define w world
 
 
 ////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
+//      Octant member and auxiliary functions
 ////////////////////////////////////////////////////////////////////////////////
 bool aiming_at_world ;
 
@@ -160,8 +168,6 @@ bool Octant::has_children()
     return (children != NULL) ;
 }
 
-//printf("\n set_all_edges: edges of this octant located at %d", (int)&edges[0]) ;
-//printf("\n set_all_edges: edges[%d] = %d", (i) , edges[i]) ;
 void Octant::set_all_edges(int in_value=255)
 {
     //DEBUGTRACE(("\n setting all edges with d=%d\n", in_value)) ;
@@ -177,16 +183,23 @@ void new_octant( Octant& oct )
     return ;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------
 //                  EDITING VARIABLES AND FUNCTIONS
 //------------------------------------------------------------------------
+
 #define o orientation 
 #define octstep(x,y,z,scale) ((z>>(scale))&1)<<2 | ((y>>(scale))&1)<<1 | ((x>>(scale))&1)
+
 // corner determines the selection: it is the minimum in X,Y,Z of a box 
 // of size gridsize*(xCount,yCount,zCount). 
+ivec ifront ;   // used to remember the location where a ray hits a node
+ivec icorner ;
 vec corner( 0, 0, 0 ) ;
 
+bool havetarget = false ;
 bool havesel = false ;
 bool havesel_end = false ;
 bool havenewcube = false ;
@@ -208,42 +221,6 @@ ivec ray_start_vec ;
 int ray_start_orientation = 0 ;
 
 
-void clear_selection()
-{
-}
-
-
-void set_sel_start()
-{
-    havesel = true ;
-    havesel_end = false ;
-    havenewcube = false ; 
-    sel_start = corner ;
-    sel_end = corner ;
-    sel_counts = vec(1,1,1) ;
-    sel_o = orientation ;
-    sel_size = world.gridsize ;
-    printf("\nselection starting at %d  %d  %d\n", sel_start.x, sel_start.y, sel_start.z ) ; 
-}
-
-
-// sprintf(geom_msgs[geom_msgs_num], "selection counts: %d %d ", sel_counts.x, sel_counts.y) ; geom_msgs_num++ ;
-void set_sel_end()
-{
-    if (!havesel || orientation!=sel_o ) 
-    {
-        set_sel_start() ;
-        return ;
-    }
-    havenewcube = false ; // reset potential set of new cubes
-    havesel_end = true ;
-    sel_end = corner ;
-    sel_size = world.gridsize ;
-    loopi(3)
-    {
-        sel_counts[i] = (( max(sel_start[i], sel_end[i]) - min(sel_start[i], sel_end[i]) ) >> w.gridscale ) + 1 ;
-    }
-}
 
 
 int orientation_indexes[6][3] = 
@@ -289,6 +266,65 @@ float direction_multipliers[6][3] =
 #define Dz(_o) direction_multipliers[_o][2]
 
 
+void clear_selection()
+{
+}
+
+
+void set_sel_start()
+{
+    int NS = world.gridsize ;
+    havesel = true ;
+    havesel_end = false ;
+    havenewcube = false ; 
+    if (havetarget)
+    {
+        sel_start   = ifront ;
+        sel_end     = ifront ;
+        sel_start[orientation>>1] += NS*(orientation%2) ;
+        sel_end[orientation>>1] += NS*(orientation%2) ;
+    }
+    else
+    {
+        sel_start   = corner ;
+        sel_end     = corner ;
+    }
+    sel_counts = vec(1,1,1) ;
+    sel_o = orientation ;
+    sel_size = world.gridsize ;
+    printf("\nselection starting at %d  %d  %d\n", sel_start.x, sel_start.y, sel_start.z ) ; 
+
+    sprintf( geom_msgs[geom_msgs_num], "") ; geom_msgs_num++ ;
+    sprintf( geom_msgs[geom_msgs_num], "NEW SELECTION at %d %d %d",
+        sel_end.x, sel_end.y, sel_end.z ) ; geom_msgs_num++ ;
+    sprintf( geom_msgs[geom_msgs_num], "EXTRUSION DIRECTION is coord %d plus NS*%d", orientation>>1, (int)Dz(orientation)) ; geom_msgs_num++ ;
+    sprintf( geom_msgs[geom_msgs_num], "") ; geom_msgs_num++ ;
+}
+
+
+// sprintf(geom_msgs[geom_msgs_num], "selection counts: %d %d ", sel_counts.x, sel_counts.y) ; geom_msgs_num++ ;
+void set_sel_end()
+{
+    int NS = world.gridsize ;
+    if (!havesel || orientation!=sel_o ) 
+    {
+        set_sel_start() ;
+        return ;
+    }
+    havenewcube = false ; // reset potential set of new cubes
+    havesel_end = true ;
+
+    // Here we say if we're pointing at something, then the place we are targeting 
+    // is obtained from where our ray was last pointing. Otherwise, we say our 
+    // target area will be where the ray touched the edge of the world. 
+    if (havetarget) { sel_end = ifront ; sel_end[orientation>>1] += NS*(orientation%2) ; }
+    else { sel_end = corner ; }
+    sel_size = world.gridsize ;
+    loopi(3)
+    {
+        sel_counts[i] = (( max(sel_start[i], sel_end[i]) - min(sel_start[i], sel_end[i]) ) >> w.gridscale ) + 1 ;
+    }
+}
 // FIXME: this should all be done with ints. 
 // Oriented square centered on a point
 void draw_square(
@@ -323,10 +359,8 @@ void draw_corner_squarei(
     int _o
     )
 {
-    //draw_corner_square() ;
-
     glBegin( GL_LINE_LOOP ) ;
-        glVertex3iv( c.v ) ; c[X(_o)] += size ;  // bottom-right
+        glVertex3iv( c.v ) ; c[X(_o)] += size ;  // bottom-right (could be bottom left but it's symmetrical)
         glVertex3iv( c.v ) ; c[Y(_o)] += size ;  // top-right
         glVertex3iv( c.v ) ; c[X(_o)] -= size ;  // top-left
         glVertex3iv( c.v ) ;
@@ -340,7 +374,6 @@ void draw_corner_square(
     )
 {
     ivec c(_corner) ;
-
     glBegin( GL_LINE_LOOP ) ;
         glVertex3iv( c.v ) ; c[X(_o)] += size ;  // bottom-right
         glVertex3iv( c.v ) ; c[Y(_o)] += size ;  // top-right
@@ -379,14 +412,42 @@ void draw_corner_cube(
     draw_corner_square( _corner, size, 3) ;
 }
 
-void draw_corner_square()
+/*
+    This draws a square which frames a possible extrusion base. 
+
+    What's an extrusion base? It's a place from which new geometry 
+    can be pulled out. Any interior boundary of a world can be 
+    used to do this, as well as any face on a node which is not 
+    coplanar to a world boundary. 
+
+*/
+void draw_highlight()
 {
     glColor3f( 1, 1, 0 ) ;
-    draw_corner_square(
-        corner, 
-        //2<<(world.scale-1), 
-        world.gridsize,
-        orientation
+    int GS = world.gridscale ;
+    int NS = world.gridsize ;
+
+    ivec drawn_corner ;
+    if (havetarget)
+    {
+        drawn_corner = ifront ;
+        loopj(3) { drawn_corner[j] = (drawn_corner[j] >> GS) << GS ; }
+        drawn_corner[orientation>>1] += NS*(orientation%2) ;
+        if (havesel)
+        {
+            drawn_corner[orientation>>1] += Dz(orientation)*NS/40; /* draw_corner_squarei( drawn_corner, //2<<(world.scale-1), world.gridsize, orientation) ;*/
+        }
+        else
+        {
+            drawn_corner[orientation>>1] += Dz(orientation)*NS/100 ; /* draw_corner_squarei( drawn_corner, //2<<(world.scale-1), world.gridsize, orientation) ;*/
+        }
+    } 
+    // from ray hitting world boundary 
+    else { drawn_corner = corner ; }
+    draw_corner_squarei( 
+        drawn_corner, 
+        world.gridsize, 
+        orientation 
         ) ;
 }
 
@@ -394,17 +455,23 @@ void draw_corner_square()
 void draw_sel_start()
 {
     if ( !havesel ) return ;
+    glLineWidth( 5.0 ) ;
     glColor3f( 1, 0, 0 ) ;
-    vec v( sel_start.v ) ;
-    draw_corner_square( v, sel_size, sel_o) ;
+    ivec v( sel_start ) ;
+    v[sel_o>>1] += Dz(sel_o)*1 ;
+    draw_corner_squarei( v, sel_size, sel_o) ;
+    glLineWidth( 1.0 ) ;
 }
 
 void draw_sel_end()
 {
     if ( !havesel_end ) return ;
-    glColor3f( 0, 0, 1 ) ;
-    vec v( sel_end.v ) ;
-    draw_corner_square( v, sel_size, sel_o) ;
+    glLineWidth( 5.0 ) ;
+    glColor3f( 0, 8, 1 ) ;
+    ivec v( sel_end ) ;
+    v[sel_o>>1] += Dz(sel_o)*1 ;
+    draw_corner_squarei( v, sel_size, sel_o) ;
+    glLineWidth( 1.0 ) ;
 }
 
 void draw_ray_start_node()
@@ -427,6 +494,19 @@ void draw_world_box()
     draw_square(center, world.size, 1) ; center[0] -= half ; center[1] -= half ;
     draw_square(center, world.size, 2) ;
     // glEnable ( GL_DEPTH_TEST ) ; 
+}
+
+
+/*
+    Draws a selection highlight atop one of the faces of a node. 
+
+*/
+void draw_selection_face(
+    ivec corner,
+    int size,
+    int orientation
+    )
+{
 }
 
 
@@ -480,6 +560,8 @@ int bounds[3][2] =
           this plane is not ahead of us. Ignore. 
         - t==0: this means that our ray is parallel to the plane and perpendicular 
           to its normal. No intersection; ignore. 
+
+Possible speed optimization: replace double with float? 
 */
 void RayHitPlane( vec& pos, vec ray, plane& pl, float* t )
 {
@@ -487,22 +569,16 @@ void RayHitPlane( vec& pos, vec ray, plane& pl, float* t )
 
     numerator   = - pl.offset - ( pos.dot( pl.v) ) ;
     denominator =        camdir.dot( pl.v )  ;
-
-    if ( denominator != 0 ) 
-    { 
-        *t = ( numerator ) / ( denominator ) ;  
-    }
+    if ( denominator != 0 ) { *t = ( numerator ) / ( denominator ) ;  }
     // if denominator in plane equation is 0, that means vector parallel to plane. 
-    else  
-    { 
-        *t = 0 ; 
-    }
+    else  { *t = 0 ; }
 }
 
 
 /*
     Intersect a ray with a plane, and provide the point where that intersection 
     happens. 
+Possible speed optimization: replace double with float? 
 */
 vec RayHitPlanePos( vec& pos, vec ray, plane& pl, float* t )
 {
@@ -510,16 +586,8 @@ vec RayHitPlanePos( vec& pos, vec ray, plane& pl, float* t )
 
     numerator   = - pl.offset - ( pos.dot( pl.v) ) ;
     denominator =        camdir.dot( pl.v )  ;
-
-    if ( denominator != 0 ) 
-    { 
-        *t = ( numerator ) / ( denominator ) ;  
-    }
-    // if denominator in plane equation is 0, that means vector parallel to plane. 
-    else  
-    { 
-        *t = 0 ; 
-    }
+    if ( denominator != 0 ) { *t = ( numerator ) / ( denominator ) ;  }
+    else  { *t = 0 ; }
     vec hitpos = pos.add(ray.mul(*t)) ;
     return hitpos ;
 }
@@ -538,11 +606,17 @@ vec RayHitPlanePos( vec& pos, vec ray, plane& pl, float* t )
     a world boundary - it should mean we're outside the world and not pointing at 
     the world. 
 
+    FIXME: do we need to use this for anything? 
 */
 int sel_path[20] = {-2} ;
 
 
 /*
+    Inputs to this function: 
+        - camera position (used for ray origin)
+        - camera direction (used for ray direction)
+        - world.gridscale - at what size scale are we currently editing
+
     Outputs of this function: 
 
         - which, if any, world geometry is currently highlighted. 
@@ -566,10 +640,10 @@ void update_editor()
     //int gridscale = world.gridscale ; // maximum size of a selection square is half the world size. Else we wouldn't know! 
     geom_msgs_num2 = 0 ; 
 
+    // Disgusting bit tricks just to make some lines more concise. 
     #define hittingplane (hitplanes>>(3*i))&0x07
 
     vec fcorner ;
-    ivec icorner ;
 
     // TARGET FINDER PHASE 1: near world planes (if we're outside the world). 
     loopi(3)
@@ -692,7 +766,6 @@ void update_editor()
 
     int steps = 0 ;
     int NS = 0 ; // target node size
-    bool havetarget = false ;
 
     //sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
     //sprintf( geom_msgs2[geom_msgs_num2], "numchildren = %d", numchildren) ; geom_msgs_num2++ ;
@@ -714,6 +787,7 @@ void update_editor()
 
     // RAY SHOOTING THROUGH THE WORLD! ZAP!
     int WS = world.size ;
+    havetarget = false ;
     if (have_ray_start_node || camera.inworld(world))
     {
         int Nscale = 0; 
@@ -723,16 +797,17 @@ void update_editor()
         // sprintf( geom_msgs2[geom_msgs_num2], "HAVE TARGET") ; geom_msgs_num2++ ;
         while (!havetarget)
         {
-            if (steps>50) { break ; }                                               // Kill runaway loops
-            loopj(3) {icorner[j] = (int)rayfront[j] ;}                              // place, more or less, icorner at rayfront (imprecision from converting float to int)
-            icorner[i] += (ray[i]>=0?1:-1) ;                                        // Snap to inside of node we're looking at
-            if ((icorner[i]>=WS&&ray[i]>0) || (icorner[i]<=0&&ray[i]<0)) {break ;}  // If this adjustment brings us out of the world - we're done
+            if (steps>50) { break ; }                  // Kill runaway loops
+            loopj(3) {ifront[j] = (int)rayfront[j] ;} // place, more or less, ifront at rayfront (imprecision from converting float to int)
+            ifront[i] += (ray[i]>=0?1:-1) ; // Snap to inside of node we're looking at. This deliberately takes us off node boundaries. 
+            if ((ifront[i]>=WS&&ray[i]>0) || (ifront[i]<=0&&ray[i]<0)) {break ;}  // If this adjustment brings us out of the world - we're done
 
-            Octant* oct = findNode(icorner, &Nscale, &NS) ;                 // Find out what tree node encloses this point
+            Octant* oct = findNode(ifront, &NS, &Nscale) ;                 // Find out what tree node encloses this point
 
+            icorner = ifront ;
             loopj(3) { icorner[j] = (icorner[j] >> Nscale) << Nscale ; }    // Now icorner is right on the node corner. 
             
-            if ( oct->has_geometry() ) { havetarget = true ; break ; }
+            if ( oct->has_geometry() ) { havetarget = true ; break ; }      // Target acquired. 
             vec f = rayfront ; r = 0.f ; d = 0.f ; t = 0.f ; 
 
             // Distances to next plane intersections
@@ -748,7 +823,10 @@ void update_editor()
         }
     } // end if (have_ray_start_node)
 
-
+    int s = world.gridscale ;
+    loopj(3) { ifront[j] = (ifront[j] >> s) << s ; }    // Now icorner is right on the node corner. 
+    //ifront[i] += Dz(orientation)*world.gridsize ;
+//    ifront[i] += Dz(orientation) ;
     // glBegin(GL_LINES) ;
     // draw_corner_cube( fc, NS) ;
     // glEnd() ;
@@ -757,35 +835,26 @@ void update_editor()
         {
             hitplanes |= ( camdir[i]<0 ? 2*i : 2*i+1 ) << (3*i) ;
         }
-    */
     //    loopj(3)
     //    {
     //    }
+        loopi(3)
+        {
+            hitplanes |= ( camdir[i]>0 ? 2*i : 2*i+1 ) << (3*i) ;
+        }
+    */
 
 
-    orientation = hittingplane ;
     hitplanes = ( dir[i]>0 ? 2*i : 2*i+1 ) << (3*i) ;
+    orientation = hittingplane ;
     if (havetarget)
     { 
         sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
-        sprintf( geom_msgs2[geom_msgs_num2], "We have a target. selection corner at: %d %d %d    ORIENTATION=%d", 
-            icorner.x,
-            icorner.y,
-            icorner.z,
-            orientation
-            ) ; geom_msgs_num2++ ;
+        sprintf( geom_msgs2[geom_msgs_num2], "NODE TARGETED. selection corner at: %d %d %d    ORIENTATION=%d", 
+            icorner.x, icorner.y, icorner.z, orientation) ; geom_msgs_num2++ ;
         sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
-        
-        ivec c = icorner ;
-        // render_selection(c, NS) ;
     }
 
-    
-        sprintf( geom_msgs2[geom_msgs_num2], "ICORNER IS at: %d %d %d", 
-            icorner.x,
-            icorner.y,
-            icorner.z
-            ) ; geom_msgs_num2++ ;
         
     ////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////
@@ -869,6 +938,33 @@ void update_editor()
             }
         }
     } // end if (!havetarget)
+
+
+    /*
+        At this point we should have one of the two following: 
+
+            - a target inside the world - geometry or an entity
+            or
+            - a cursor framing a piece of the world boundary. 
+
+        In the case of a boundary-touching cursor, we can extract 
+        geometry from that without problems. 
+
+        In the case of a world target, we need now to compute where 
+        the extrusion base should be located. This is somewhat easy, 
+        but requires taking into account a couple of design choices. 
+        
+        For instance, we need our extrusion base to always have the same
+        orientation as the plane where our ray front enters a node.  This
+        requires special treatment in both the case where the editing gridsize
+        is bigger than the node we're aiming at, and in the case where our
+        gridsize is smaller than the node we're aiming at. 
+
+    */
+
+    if (havetarget)
+    {
+    }
 
 
 //    FIXME make sure you know which corners are which at this point
@@ -1146,27 +1242,62 @@ void delete_subtree(Octant* in_oct)
 
 
 // Finds the smallest node enclosing the supplied integer vector. 
-Octant* findNode(ivec at, int* Nscale, int* out_size) 
+
+/*
+    Function: findNode
+
+    Purpose: 
+        locate a leaf node that encloses a particular point. If the point given
+        is on the border between two nodes, the node returned is the one for
+        which the border is at its minimum boundaries in X, Y or Z. This
+        follows from the fact that a corner vertex always uniquely refers to
+        the node for which that corner is the min X, Y, Z value touching the
+        node. 
+
+    Inputs: 
+        An int vector representing a location of interest. 
+
+    Outputs: 
+        The node which encloses that point. 
+        The scale of the returned node
+        The size of the returned node. 
+
+    Possible speed optimization: 
+
+        Preserve a path of nodes to the point of interest.  If the next point
+        of search is inside any of the ancestors of the current target, then we
+        might be able to find more quickly the parent to start the descent from
+        on the next search. 
+
+*/
+Octant* findNode(ivec at, int* out_size, int* Nscale) // , int* out_size) 
 {
     int CGS = world.scale ;
     int i = 0 ;
     Octant* oct = &world.root ;
 
-    *Nscale = CGS ;
+    if (Nscale != NULL) { *Nscale = CGS ; }
     while (CGS>2)
     {
         if ( oct->children ) 
         {
             i = octastep(at.x,at.y,at.z,CGS) ;
             oct = &oct->children[i] ;
-            *Nscale = CGS ;
+            if (Nscale != NULL) { *Nscale = CGS ; }
         }
         else { break ; }
         CGS-- ;
     }
 
     //if (out_size!=NULL) { *out_size = 2<<CGS ; }
-    *out_size = 2<<CGS ;
+    if (!oct)
+    {
+        *out_size = 0 ;
+    }
+    else
+    {
+        *out_size = 2<<CGS ;
+    }
 
     return oct ;
 }
@@ -1235,7 +1366,7 @@ void extrude( void * _in )
 
     // define a range of cubes that will be created, bounded by 
     // sel_min and sel_max. These will bound the same rectangle 
-    // as sel_start and sel_end, but with easier to compute properties. 
+    // as sel_start and sel_end, but with easier-to-compute properties. 
     loopi(3)
     {
         sel_min[i] = min( sel_end[i], sel_start[i] ) ;
@@ -1290,16 +1421,17 @@ void extrude( void * _in )
 
     */
     // CASE: our cursor is on something within the octree. 
-    if ( sel_path[0] >= 0 )
-    {
-    }
-    // CASE: the cursor is pointing at a world boundary 
-    else if ( sel_path[0] == -1 )
+//    if ( sel_path[0] >= 0 )
+ //   {
+  //  }
+   // // CASE: the cursor is pointing at a world boundary 
+   // else if ( sel_path[0] == -1 )
     {
         // extruding inwards (not extruding)
         if ( in )
         {
             havenewcube = false ;
+            return ; // FIXME: this should result in deletion
         }
         else
         {
@@ -1321,7 +1453,8 @@ void extrude( void * _in )
             // geometry from coordinates where to do so means to decrement our coords. 
             if ( !(O%2) )
             {
-                NC[Z(O)] += wp[O][Z(O)] * (sel_size) * sel_counts[Z(O)] ;
+                //NC[Z(O)] += wp[O][Z(O)] * (sel_size) * sel_counts[Z(O)] ;
+                NC[Z(O)] += wp[O][Z(O)] * (sel_size) ;
             }
             // If the new cube coordinates do not exceed world 
             // limits, then we have a new cube. 
@@ -1390,12 +1523,24 @@ void extrude( void * _in )
             NC = NCstart ;
         }
     }
+
+    int new_z = sel_start[Z(sel_o)]+Dz(O)*GS ;
+    // will another extrusion in this direction take us out of the world? 
+    if (
+        new_z >= 0 &&
+        new_z <= world.size
+       )
+    {
+        sel_start[sel_o>>1] += GS*Dz(O) ;
+        sel_end[sel_o>>1] += GS*Dz(O) ;
+    }
+    sprintf(geom_msgs[geom_msgs_num], "After a geometry update sel_start Z is %d ", sel_start[sel_o>>1]) ; geom_msgs_num++ ;
     // CASE: the cursor is not set on anything; this can happpen if we are outside 
     // world boundaries and pointing the cursor at any part of the world. 
-    else if ( sel_path[0] == -2 )
-    {
-        DEBUGTRACE(("\nCannot extrude when no selection is in view. \n")) ; 
-    }
+//    else if ( sel_path[0] == -2 )
+ //   {
+  //      DEBUGTRACE(("\nCannot extrude when no selection is in view. \n")) ; 
+   // }
     ivec counts(1) ; 
     // min one cube 
 
@@ -1472,6 +1617,7 @@ void extrude( void * _in )
         d-- ;           // We're going up to our parent's depth.
         CN = path[d] ;  // Current node is now the last node we went down from. 
     }
+    // FIX ME HAHA
     sprintf(geom_msgs[geom_msgs_num], "After a geometry update root's lvc count  = %d (from count=%d)", d, world.root.lvc.c, count) ; geom_msgs_num++ ;
 
 //// step: determine which faces of our new cubes are visible 
@@ -1575,31 +1721,50 @@ void extrude( void * _in )
 */
 
 // FIXME! :) this is for TEMPORARY testing purposes only. 
-vec allvertices[10000] ;
-vec allcolors[10000] ;
+#define MAX_VERTS 1000000
+vec allvertices[1000000] ;
+vec allcolors[1000000] ;
 unsigned int allVertsVBO = 0 ;
 unsigned int allColorsVBO = 0 ;
 int numVerts = 0 ;
+
+// Dim colors so that untextured geometry looks like ass
 vec colors[10] = {
-  vec(1.0, 1.0, 1.0) , 
-  vec(0.0, 1.0, 0.0) ,
-  vec(1.0, 0.0, 1.0) , 
-  vec(1.0, 1.0, 0.0) ,
-  vec(1.0, 0.0, 0.0) , 
-  vec(0.5, 0.5, 1.0) ,
-  vec(0.5, 0.5, 0.0) , 
-  vec(0.0, 0.5, 0.8) ,
-  vec(1.0, 0.0, 0.5) , 
-  vec(0.5, 1.0, 0.5)
+  vec(0.3*1.0, 0.3*1.0, 0.3*1.0) , 
+  vec(0.3*0.0, 0.3*1.0, 0.3*0.0) ,
+  vec(0.3*1.0, 0.3*0.0, 0.3*1.0) , 
+  vec(0.3*1.0, 0.3*1.0, 0.3*0.0) ,
+  vec(0.3*1.0, 0.3*0.0, 0.3*0.0) , 
+  vec(0.3*0.5, 0.3*0.5, 0.3*1.0) ,
+  vec(0.3*0.5, 0.3*0.5, 0.3*0.0) , 
+  vec(0.3*0.0, 0.3*0.5, 0.3*0.8) ,
+  vec(0.3*1.0, 0.3*0.0, 0.3*0.5) , 
+  vec(0.3*0.5, 0.3*1.0, 0.3*0.5)
 } ;
 
-void makeSubtreeVBO(Octant* parent, ivec corner, int NS)
+
+/*
+    Inputs: 
+
+        sel_min -> least-valued corner of the selection in XYZ 
+        sel_max -> most-valued corner of the selection in XYZ
+        sel_o -> 
+
+
+        A way to understand what globals are available here is to 
+        know that while geometry is being created (at least during 
+        edit mode), we can be sure that the active selection will 
+        not change. 
+
+
+*/
+void makeSubtreeVBO(Octant* parent, ivec in_corner, int NS)
 {
     Octant* CN = parent ;
     int d = 0 ;
     Octant* path[20] ;
     int32_t idxs[20] ;
-    ivec pos = corner ;
+    ivec pos = in_corner ;
 
     path[0] = CN ;
     loopi(20) {idxs[i] = 0 ;}
@@ -1649,120 +1814,247 @@ void makeSubtreeVBO(Octant* parent, ivec corner, int NS)
         {
             if ( CN->has_geometry() ) // If we have geometry, that has to go into a VBO
             {
-                // sprintf(geom_msgs[geom_msgs_num], "GEOMETRY NODE OF SIZE %d at position %d %d %d", 1<<(SI-d+1), pos.x, pos.y, pos.z) ; geom_msgs_num++ ;
+                /*
+                    When do we skip drawing a face? 
+                        - when an adjacent node is at least as big
+                        - when the face can only be seen from outside world limits (this might change 
+                          if we want to be able to have multiple worlds. 
 
 
-                int NS = 1<<(SI-d+1) ;   // Node size. 
+                    Q. How do we calculate that first one, 'there is an at-least-as-big neighbor covering the face'? 
 
-                int colorNow = numVerts+17 ;
+                    A. 
+                    -> you take this node's corner, and generate with it a point 
+                       that lies just outside the face concerned. 
+                        face i. 
+                        corner[i>>1]+=Dz(i)*(1 + (i%2)*(NS))
+                    -> you find the node located there
+                    -> if that node is solid, and is bigger than this one, then 
+                       we know we're skipping this face. 
 
-                // Triangle 1 ! FIXME: do a more iterative mechanism! 
-                allcolors[numVerts]   = colors[0] ;
-                allvertices[numVerts].x = pos.x ;
-                allvertices[numVerts].y = pos.y ;
-                allvertices[numVerts].z = pos.z ;
+                */
 
-                allcolors[numVerts+1] = colors[0] ;
-                allvertices[numVerts+1].x = pos.x ;
-                allvertices[numVerts+1].y = pos.y ;
-                allvertices[numVerts+1].z = pos.z + NS ;
-                
-                allcolors[numVerts+2] = colors[0] ;
-                allvertices[numVerts+2].x = pos.x ;
-                allvertices[numVerts+2].y = pos.y + NS ;
-                allvertices[numVerts+2].z = pos.z + NS ;
-
-                // Triangle 2 ! 
-                allcolors[numVerts+3] = colors[1] ;
-                allvertices[numVerts+3].x = pos.x ;
-                allvertices[numVerts+3].y = pos.y + NS ;
-                allvertices[numVerts+3].z = pos.z + NS ;
-
-                allcolors[numVerts+4] = colors[1] ;
-                allvertices[numVerts+4].x = pos.x ;
-                allvertices[numVerts+4].y = pos.y + NS ;
-                allvertices[numVerts+4].z = pos.z ;
-
-                allcolors[numVerts+5] = colors[1] ;
-                allvertices[numVerts+5].x = pos.x ;
-                allvertices[numVerts+5].y = pos.y ;
-                allvertices[numVerts+5].z = pos.z ;
-
-                // Triangle 3 ! 
-                allcolors[numVerts+6] = colors[2] ;
-                allvertices[numVerts+6].x = pos.x ;
-                allvertices[numVerts+6].y = pos.y ;
-                allvertices[numVerts+6].z = pos.z + NS ;
-
-                allcolors[numVerts+7] = colors[2] ;
-                allvertices[numVerts+7].x = pos.x ;
-                allvertices[numVerts+7].y = pos.y + NS ;
-                allvertices[numVerts+7].z = pos.z + NS ;
-
-                allcolors[numVerts+8] = colors[2] ;
-                allvertices[numVerts+8].x = pos.x + NS ;
-                allvertices[numVerts+8].y = pos.y ;
-                allvertices[numVerts+8].z = pos.z + NS ;
-
-                // Triangle 4 !
-                allcolors[numVerts+9] = colors[3] ;
-                allvertices[numVerts+9].x = pos.x + NS ;
-                allvertices[numVerts+9].y = pos.y ;
-                allvertices[numVerts+9].z = pos.z + NS ;
-
-                allcolors[numVerts+10] = colors[3] ;
-                allvertices[numVerts+10].x = pos.x ;
-                allvertices[numVerts+10].y = pos.y + NS ;
-                allvertices[numVerts+10].z = pos.z + NS ;
-
-                allcolors[numVerts+11] = colors[3] ;
-                allvertices[numVerts+11].x = pos.x + NS ;
-                allvertices[numVerts+11].y = pos.y + NS ;
-                allvertices[numVerts+11].z = pos.z + NS ;
+                ivec pcorner ;          // probe corner
+                Octant* pnode ;         // probe node
+                int NS = 1<<(SI-d+1) ;  // Node size. 
+                int ns = 0 ;            // neighbor size
 
 
-                numVerts += 12 ;    // 
+//printf("\nHAHA\n") ;
+                for (int face=0;face<6;face++)
+                {
+                    int O = face ;
+                    pcorner = pos ;
+                    
+                    // position probe to inside of any adjacent node
+                    pcorner[face>>1] = pos[face>>1]+=Dz(face)*(1 + (face%2)*(NS)) ; // I swear this does something sensical
+                    pnode = findNode(pcorner, &ns) ;
+                    
+                    pcorner = pos ;
+
+                    printf("\nHAHA   %d  vs  %d\n", ns, NS) ;
+
+                // figure out if neighbors are solid - if so, we don't need a face here
+                //if ( !(findNode(in_corner[sel_o>>1])->has_geometry()) ) // If we don't have a solid neighbor
+
+                // If our node extends beyond what its neighbor can cover of that face
+                if ( !pnode->has_geometry() || ns<NS ) 
+                {
+                    if (numVerts+12>MAX_VERTS)
+                    {
+                        sprintf(geom_msgs[geom_msgs_num], "VERTEX ARRAY FILLED! NO MORE GEOMETRY ALLOWED. ") ; geom_msgs_num++ ;
+                        break ;
+                    }
+                    // sprintf(geom_msgs[geom_msgs_num], "GEOMETRY NODE OF SIZE %d at position %d %d %d", 1<<(SI-d+1), pos.x, pos.y, pos.z) ; geom_msgs_num++ ;
+
+
+
+                    int colorNow = numVerts+17 ;
+                    /*
+                        How triangles are made! Now are you starting to suspect that 
+                        we need (at minimum) to start coding within html-aware programs? 
+                        A  B
+                        *--*
+                        | /|
+                        |/ |
+                        *--*
+                        D  C
+
+                        Compute A, B, C then D. 
+                        Then set vertices to B, A, D and D, C, B. 
+                    */
+                    
+                    //pcorner[face>>1] = pos[face>>1]+=Dz(face)*(1 + (face%2)*(NS)) ; // I swear this does something sensical
+                    int zoffset = Dz(face)*NS*(face%2) ;
+                    pcorner[Z(O)] = zoffset ;
+
+                    printf("\n face %d gives zoffset=%d\n", face, zoffset) ;
+                        // vec A = vec A = 
+                        // vec C = pos[X(O)] + zoffset ;
+                        // vec D = pos[X(O)] + zoffset ;
+                    // Triangle BAD
+                    allcolors[numVerts]   = colors[colorNow%10] ;
+                        allvertices[numVerts][X(O)] = pcorner[X(O)] + Dx(O)*NS ;
+                        allvertices[numVerts][Y(O)] = pcorner[Y(O)] + Dy(O)*NS ;
+                        allvertices[numVerts][Z(O)] = pcorner[Z(O)] ; 
+                    allcolors[numVerts+1]   = colors[colorNow%10] ;
+                        allvertices[numVerts+1][X(O)] = pcorner[X(O)] ;
+                        allvertices[numVerts+1][Y(O)] = pcorner[Y(O)] + Dy(O)*NS ;
+                        allvertices[numVerts+1][Z(O)] = pcorner[Z(O)] ; 
+                    allcolors[numVerts+2]   = colors[colorNow%10] ;
+                        allvertices[numVerts+2][X(O)] = pcorner[X(O)] ;
+                        allvertices[numVerts+2][Y(O)] = pcorner[Y(O)] ;
+                        allvertices[numVerts+2][Z(O)] = pcorner[Z(O)] ; 
+                    
+                    // Triangle DCB
+                    allcolors[numVerts+3]   = colors[colorNow%10] ;
+                        allvertices[numVerts+3][X(O)] = pcorner[X(O)] ;
+                        allvertices[numVerts+3][Y(O)] = pcorner[Y(O)] ;
+                        allvertices[numVerts+3][Z(O)] = pcorner[Z(O)] ; 
+                    allcolors[numVerts+4]   = colors[colorNow%10] ;
+                        allvertices[numVerts+4][X(O)] = pcorner[X(O)] + Dx(O)*NS ;
+                        allvertices[numVerts+4][Y(O)] = pcorner[Y(O)] ;
+                        allvertices[numVerts+4][Z(O)] = pcorner[Z(O)] ; 
+                    allcolors[numVerts+5]   = colors[colorNow%10] ;
+                        allvertices[numVerts+5][X(O)] = pcorner[X(O)] + Dx(O)*NS ;
+                        allvertices[numVerts+5][Y(O)] = pcorner[Y(O)] + Dy(O)*NS ;
+                        allvertices[numVerts+5][Z(O)] = pcorner[Z(O)] ; 
+
+
+                    printf("\nFirst three vertices: %.2f %.2f %.2f   %.2f %.2f %.2f   %.2f %.2f %.2f\n", 
+                        allvertices[0].x, allvertices[0].y, allvertices[0].z,
+                        allvertices[1].x, allvertices[1].y, allvertices[1].z,
+                        allvertices[2].x, allvertices[2].y, allvertices[2].z 
+                    ) ;
+
+
+
+                    numVerts += 6 ;    //  Two new triangles for this face means 6 new vertices
 
 /*
-                sprintf(geom_msgs[geom_msgs_num], "colors first element:  %f %f %f", 
-                    colors[0].x, colors[0].y, colors[0].z) ; geom_msgs_num++ ;
-                sprintf(geom_msgs[geom_msgs_num], "colors second element:  %f %f %f", 
-                    colors[1].x, colors[1].y, colors[1].z) ; geom_msgs_num++ ;
-                sprintf(geom_msgs[geom_msgs_num], "colors third element:  %f %f %f", 
-                    colors[2].x, colors[2].y, colors[2].z) ; geom_msgs_num++ ;
-                sprintf(geom_msgs[geom_msgs_num], "colors fourth element:  %f %f %f", 
-                    colors[3].x, colors[3].y, colors[3].z) ; geom_msgs_num++ ;
+                    // Triangle CBA ! FIXME: do a more iterative mechanism! 
+                    allcolors[numVerts]   = colors[colorNow%10] ;
 
-                sprintf(geom_msgs[geom_msgs_num], "colors first element:  %f %f %f", 
-                    colors[0].x, colors[0].y, colors[0].z) ; geom_msgs_num++ ;
-                sprintf(geom_msgs[geom_msgs_num], "colors second element:  %f %f %f", 
-                    colors[1].x, colors[1].y, colors[1].z) ; geom_msgs_num++ ;
-                sprintf(geom_msgs[geom_msgs_num], "colors third element:  %f %f %f", 
-                    colors[2].x, colors[2].y, colors[2].z) ; geom_msgs_num++ ;
-                sprintf(geom_msgs[geom_msgs_num], "colors fourth element:  %f %f %f", 
-                    colors[3].x, colors[3].y, colors[3].z) ; geom_msgs_num++ ;
+                    allvertices[numVerts].x = pos.x ; allvertices[numVerts].y = pos.y ; allvertices[numVerts].z = pos.z ;
+
+                    allcolors[numVerts+1] = colors[0] ;
+                    allvertices[numVerts+1].x = pos.x ; allvertices[numVerts+1].y = pos.y ; allvertices[numVerts+1].z = pos.z + NS ;
+                    
+                    allcolors[numVerts+2] = colors[0] ;
+                    allvertices[numVerts+2].x = pos.x ; allvertices[numVerts+2].y = pos.y + NS ; allvertices[numVerts+2].z = pos.z + NS ;
+
+                    // Triangle ADC ! 
+                    allcolors[numVerts+3] = colors[1] ;
+                    allvertices[numVerts+3].x = pos.x ; allvertices[numVerts+3].y = pos.y + NS ; allvertices[numVerts+3].z = pos.z + NS ;
+
+                    allcolors[numVerts+4] = colors[1] ;
+                    allvertices[numVerts+4].x = pos.x ; allvertices[numVerts+4].y = pos.y + NS ; allvertices[numVerts+4].z = pos.z ;
+
+                    allcolors[numVerts+5] = colors[1] ;
+                    allvertices[numVerts+5].x = pos.x ; allvertices[numVerts+5].y = pos.y ; allvertices[numVerts+5].z = pos.z ;
+
 */
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
 /*
-                sprintf(geom_msgs[geom_msgs_num], "allcolors first element:  %f %f %f",
-                    allcolors[0].x, allcolors[0].y, allcolors[0].z) ; geom_msgs_num++ ;
-                sprintf(geom_msgs[geom_msgs_num], "allcolors second element:  %f %f %f",
-                    allcolors[1].x, allcolors[1].y, allcolors[1].z) ; geom_msgs_num++ ;
-                sprintf(geom_msgs[geom_msgs_num], "allcolors third element:  %f %f %f",
-                    allcolors[2].x, allcolors[2].y, allcolors[2].z) ; geom_msgs_num++ ;
-                sprintf(geom_msgs[geom_msgs_num], "allcolors fourth element:  %f %f %f",
-                    allcolors[3].x, allcolors[3].y, allcolors[3].z) ; geom_msgs_num++ ;
+                    // Triangle 3 ! 
+                    allcolors[numVerts+6] = colors[2] ;
+                    allvertices[numVerts+6].x = pos.x ; allvertices[numVerts+6].y = pos.y ; allvertices[numVerts+6].z = pos.z + NS ;
+
+                    allcolors[numVerts+7] = colors[2] ;
+                    allvertices[numVerts+7].x = pos.x + NS ; allvertices[numVerts+7].y = pos.y ; allvertices[numVerts+7].z = pos.z + NS ;
+
+                    allcolors[numVerts+8] = colors[2] ;
+                    allvertices[numVerts+8].x = pos.x ; allvertices[numVerts+8].y = pos.y + NS ; allvertices[numVerts+8].z = pos.z + NS ;
+
+                    // Triangle 4 !
+                    allcolors[numVerts+9] = colors[3] ;
+                    allvertices[numVerts+9].x = pos.x + NS ; allvertices[numVerts+9].y = pos.y ; allvertices[numVerts+9].z = pos.z + NS ;
+
+                    allcolors[numVerts+10] = colors[3] ; 
+                    allvertices[numVerts+10].x = pos.x + NS ; allvertices[numVerts+10].y = pos.y + NS ; allvertices[numVerts+10].z = pos.z + NS ;
+
+                    allcolors[numVerts+11] = colors[3] ;
+                    allvertices[numVerts+11].x = pos.x ; allvertices[numVerts+11].y = pos.y + NS ; allvertices[numVerts+11].z = pos.z + NS ;
+
+
+                    // Triangle 5 !
+                    allcolors[numVerts+12] = colors[4] ;
+                    allvertices[numVerts+12].x = pos.x ; allvertices[numVerts+12].y = pos.y + NS ; allvertices[numVerts+12].z = pos.z ;
+
+                    allcolors[numVerts+13] = colors[4] ; 
+                    allvertices[numVerts+13].x = pos.x ; allvertices[numVerts+13].y = pos.y + NS ; allvertices[numVerts+13].z = pos.z + NS ;
+
+                    allcolors[numVerts+14] = colors[4] ;
+                    allvertices[numVerts+14].x = pos.x + NS ; allvertices[numVerts+14].y = pos.y + NS ; allvertices[numVerts+14].z = pos.z + NS ;
+
+                    // Triangle 6 !
+                    allcolors[numVerts+15] = colors[5] ;
+                    allvertices[numVerts+15].x = pos.x ; allvertices[numVerts+15].y = pos.y + NS ; allvertices[numVerts+15].z = pos.z ;
+
+                    allcolors[numVerts+16] = colors[5] ; 
+                    allvertices[numVerts+16].x = pos.x + NS ; allvertices[numVerts+16].y = pos.y + NS ; allvertices[numVerts+16].z = pos.z + NS ;
+
+                    allcolors[numVerts+17] = colors[5] ;
+                    allvertices[numVerts+17].x = pos.x + NS ; allvertices[numVerts+17].y = pos.y + NS ; allvertices[numVerts+17].z = pos.z ;
 */
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
 
-                // loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] += (incr); }
-                // glVertex3iv(pos.v) ; //            pointcount++ ;
-                // loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] -= (incr); }
+                    //numVerts += 18 ;    // 
 
+    /*
+                    sprintf(geom_msgs[geom_msgs_num], "colors first element:  %f %f %f", 
+                        colors[0].x, colors[0].y, colors[0].z) ; geom_msgs_num++ ;
+                    sprintf(geom_msgs[geom_msgs_num], "colors second element:  %f %f %f", 
+                        colors[1].x, colors[1].y, colors[1].z) ; geom_msgs_num++ ;
+                    sprintf(geom_msgs[geom_msgs_num], "colors third element:  %f %f %f", 
+                        colors[2].x, colors[2].y, colors[2].z) ; geom_msgs_num++ ;
+                    sprintf(geom_msgs[geom_msgs_num], "colors fourth element:  %f %f %f", 
+                        colors[3].x, colors[3].y, colors[3].z) ; geom_msgs_num++ ;
+
+                    sprintf(geom_msgs[geom_msgs_num], "colors first element:  %f %f %f", 
+                        colors[0].x, colors[0].y, colors[0].z) ; geom_msgs_num++ ;
+                    sprintf(geom_msgs[geom_msgs_num], "colors second element:  %f %f %f", 
+                        colors[1].x, colors[1].y, colors[1].z) ; geom_msgs_num++ ;
+                    sprintf(geom_msgs[geom_msgs_num], "colors third element:  %f %f %f", 
+                        colors[2].x, colors[2].y, colors[2].z) ; geom_msgs_num++ ;
+                    sprintf(geom_msgs[geom_msgs_num], "colors fourth element:  %f %f %f", 
+                        colors[3].x, colors[3].y, colors[3].z) ; geom_msgs_num++ ;
+    */
+    /*
+                    sprintf(geom_msgs[geom_msgs_num], "allcolors first element:  %f %f %f",
+                        allcolors[0].x, allcolors[0].y, allcolors[0].z) ; geom_msgs_num++ ;
+                    sprintf(geom_msgs[geom_msgs_num], "allcolors second element:  %f %f %f",
+                        allcolors[1].x, allcolors[1].y, allcolors[1].z) ; geom_msgs_num++ ;
+                    sprintf(geom_msgs[geom_msgs_num], "allcolors third element:  %f %f %f",
+                        allcolors[2].x, allcolors[2].y, allcolors[2].z) ; geom_msgs_num++ ;
+                    sprintf(geom_msgs[geom_msgs_num], "allcolors fourth element:  %f %f %f",
+                        allcolors[3].x, allcolors[3].y, allcolors[3].z) ; geom_msgs_num++ ;
+    */
+
+                    // loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] += (incr); }
+                    // glVertex3iv(pos.v) ; //            pointcount++ ;
+                    // loopi(3) { incr = (1<<(SI-d)) ; pos.v[i] -= (incr); }
+
+                } // end if neighbor is not in the way
+
+
+
+                }
             } // end if has geometry 
         }
         // These last lines of the while loop make up the 'going up the tree' action. 
         path[d] = NULL ;
         d-- ;
         CN = path[d] ;
+
+        // reset our corner monitor 
         loopi(3) { incr = (1<<(SI-d)) ; incornot = ((idxs[d]>>i)&1) ; pos.v[i] -= incornot * incr ; }
         if (d<0)
         {
@@ -1869,6 +2161,9 @@ void draw_new_octs()
         // DRAW LIKE AN ALMIGHTY GOD
         // glDrawArrays( GL_TRIANGLES, 0, numVerts/3);    // Draw All Of The Triangles At Once
         // glEnable( GL_DEPTH_TEST ) ;
+        glEnable( GL_CULL_FACE ) ;
+        glCullFace( GL_BACK ) ;
+        glFrontFace( GL_CCW ) ;
         glDrawArrays( GL_TRIANGLES, 0, numVerts);    // Draw All Of The Triangles At Once
         // glBindBuffer(GL_ARRAY_BUFFER, 0);
 

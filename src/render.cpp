@@ -24,6 +24,8 @@ void render_ortho_begin()
     extern int console_scale ;
     glOrtho( 0, engine.console_scale*engine.current_w, 0, engine.console_scale*engine.current_h, -1, 1000 ) ; 
 
+    glCullFace(GL_FRONT) ; // STUPID HAHA FIX ME
+
     glMatrixMode( GL_MODELVIEW ) ; 
 }
 
@@ -117,7 +119,6 @@ void draw_cursor()
 
 extern void draw_world_box() ;
 extern void draw_square() ;
-extern void draw_corner_square() ;
 extern bool hit_world ;
 
 void render_editor()
@@ -161,18 +162,24 @@ void render_editor()
     // around it. 
     draw_world_box() ;
 
-    // draw a little dot
+    // draw a little dot or cross or crosshair. 
     draw_cursor() ;
     
-    draw_corner_square() ;
+extern void draw_highlight() ; // FIXME lol externs everywhere. 
+
+glDisable(GL_DEPTH_FUNC) ;
+    draw_highlight() ;
 
     draw_sel_start() ;
     
     draw_sel_end() ;
+glEnable(GL_DEPTH_FUNC) ;
     
     //draw_newcubes() ;
     draw_new_octs() ;
 
+    // green square that shows where on world boundary ray is entering world, 
+    // if camera is looking at world from outside. 
     extern void draw_ray_start_node() ;
     draw_ray_start_node() ;
 
@@ -246,9 +253,12 @@ extern Console console ;
 
     Start at the top of the screen, defined by Y = engine.current_h
 
+    FIXME: add a translucent rectangle behind console so that it's 
+    visible against most backgrounds. 
 */
 void render_console()
 {
+    glCullFace(GL_FRONT) ;
 
     glMatrixMode( GL_MODELVIEW ) ; 
     glPushMatrix() ; 
@@ -323,10 +333,13 @@ void render_console()
 
         - graphics system stats 
 
+    FIXME: add a translucent rectangle so that text is visible against 
+    most backgrounds. 
 */
 void render_info()
 {
 
+    glCullFace(GL_FRONT) ;
 
     int i = 0 ;
     int j = 0 ;
@@ -335,17 +348,17 @@ void render_info()
     int height = fonts[0]->_height ;
 
     render_ortho_begin() ;
-////////////////////////////////////////////////////////////////////////////////
-//                      MESSAGES FROM INFO SYSTEM
-////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////
+        //                      MESSAGES FROM INFO SYSTEM
+        ////////////////////////////////////////////////////////////////////////////////
         char info_msg[256] ;
         sprintf(info_msg, "height=%d ", height) ;
         prstr( 0, 600.f, 0 + next_line*height,
                    info_msg) ; 
 
-////////////////////////////////////////////////////////////////////////////////
-//                      MESSAGES FROM INPUT SYSTEM
-////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////
+        //                      MESSAGES FROM INPUT SYSTEM
+        ////////////////////////////////////////////////////////////////////////////////
         extern int input_msgs_num ;
         extern char input_msgs[100][256] ;
         extern void update_input_messages() ;
@@ -357,9 +370,9 @@ void render_info()
                    input_msgs[j]) ; j++ ;
         }
 
-////////////////////////////////////////////////////////////////////////////////
-//                      MESSAGES FROM GEOMETRY
-////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////
+        //                      MESSAGES FROM GEOMETRY
+        ////////////////////////////////////////////////////////////////////////////////
         // PER ACTION messages
         extern int geom_msgs_num ;
         extern char geom_msgs[100][256] ;
@@ -386,9 +399,9 @@ void render_info()
 
 
 
-////////////////////////////////////////////////////////////////////////////////
-//                      MESSAGES FROM MAIN
-////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////
+        //                      MESSAGES FROM MAIN
+        ////////////////////////////////////////////////////////////////////////////////
         extern int main_msgs_num ;
         extern char main_msgs[100][256] ;
         // messages from main
