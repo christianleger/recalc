@@ -432,8 +432,18 @@ void handle_key( SDL_Event* event )
                 }
                 break ; 
             }
+            case SDLK_SPACE: // 		= 32,
+            {
+                extern bool onfloor ;
+                extern bool jumping ;
+                if (!engine.editing)
+                if (onfloor)
+                {
+                    jumping = true ;
+                }
+                break ;
+            }
 /*
-            SDLK_SPACE		= 32,
             SDLK_EXCLAIM		= 33,
             SDLK_QUOTEDBL		= 34,
             SDLK_HASH		= 35,
@@ -653,6 +663,8 @@ void handle_key( SDL_Event* event )
             
             case SDLK_F4:
             {   
+                extern bool hhello ;
+                hhello = !hhello ;
                 ///extern bool use_dl ;
                 ///use_dl = !use_dl ;
                 ///if ( use_dl ) printf("\n now using display list ") ; 

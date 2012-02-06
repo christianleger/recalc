@@ -8,7 +8,7 @@
 
 
 
-void render_world( int ) ;
+void render_world( ) ;
 
 void render_editor() ;
 

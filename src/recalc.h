@@ -163,7 +163,7 @@ struct Camera
     vec dir ;
     vec up ;
 
-    float vel ;
+    vec vel ;
 
     bool move ; 
     bool forward ;
@@ -177,7 +177,7 @@ struct Camera
     float pitch ;
     float roll ;
 
-    void initialize() ;
+    void initialize(World current_world) ;
     void mouse_move( float xrel, float yrel ) ;
     void set_forward() ;
     void set_backward() ;

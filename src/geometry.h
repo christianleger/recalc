@@ -78,11 +78,14 @@ struct Geom
 {
     // Texture tex_slot ;
     // vertex ID given by and used with OpenGL for any VBOs used by this Geom's owner. 
-    unsigned int geoVBOid ; 
+    unsigned int vertVBOid ; 
     // texture ID given by and used with OpenGL for any VBOs used by this Geom's owner. 
     unsigned int texVBOid ; 
+    unsigned int colVBOid ; 
 
-
+    vec vertices[256] ;
+    vec colors[256] ;
+    char numverts ;
 /*
 
     Does a geom need anything else than geoVBOid or texVBOid? 

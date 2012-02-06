@@ -510,7 +510,7 @@ read_args(argc, argv);
 
             if ( engine.rendering ) 
             {
-                render_world( sec_progress ) ; 
+                render_world() ; 
             }
 
             if ( engine.editing ) 

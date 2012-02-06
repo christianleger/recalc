@@ -59,15 +59,18 @@ void Engine::initialize()
 // this function serves to go back to default key bindings when we switch out 
 // of a certain control mode, like console, 
 extern void clear_main_commands() ;
-
 extern void (** current_commands)(void *) ;
-
 extern void (* console_commands[320])(void *) ;
+
 void set_commands( void (* new_commands[320])(void *) )
 {
     current_commands = new_commands ;
 }
 
+
+/*
+    Sets console to active when inactive, and vice-versa. 
+*/
 void toggle_console(void *)
 {
     engine.console = !engine.console ;
@@ -81,6 +84,7 @@ void toggle_console(void *)
         clear_main_commands() ;
     }
 }
+
 
 void Engine::toggle_fullscreen()
 {
@@ -120,12 +124,14 @@ void Engine::toggle_fullscreen()
 }
 
 Camera camera ; 
-void Camera::initialize()
+void Camera::initialize(World cur_world)
 {
+    left = false ;
+    right = false ;
     pitch = 0 ; 
     yaw = 0 ; 
     roll = 0 ;
-    pos = vec( 0, 0, 0 ) ;
+    pos = vec( cur_world.size/2, cur_world.size/2,  cur_world.size/2 ) ;
 }
 
 void Camera::mouse_move( float xrel, float yrel )
@@ -210,7 +216,7 @@ void initialize_subsystems()
 	// modules 
     engine.initialize() ;
     console.initialize() ;
-    camera.initialize() ;
+    camera.initialize(world) ;
     area.initialize() ;
     world.initialize() ;
 

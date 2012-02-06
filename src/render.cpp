@@ -40,7 +40,7 @@ void render_ortho_end()
 }
 
 
-void render_world( int sec_progress )
+void render_world( )
 {
     // render_fucking_world_shader() ;
 
@@ -73,6 +73,8 @@ void render_world( int sec_progress )
         glVertex3f( 0,  0, -50 ) ;
     glEnd() ; 
 
+extern void drawworld() ;
+    drawworld() ;
     //glEnable( GL_DEPTH_TEST ) ; 
 }
 
@@ -176,7 +178,7 @@ glDisable(GL_DEPTH_FUNC) ;
 glEnable(GL_DEPTH_FUNC) ;
     
     //draw_newcubes() ;
-    draw_new_octs() ;
+    //draw_new_octs() ;
 
     // green square that shows where on world boundary ray is entering world, 
     // if camera is looking at world from outside. 
@@ -404,7 +406,6 @@ void render_info()
         ////////////////////////////////////////////////////////////////////////////////
         extern int main_msgs_num ;
         extern char main_msgs[100][256] ;
-        // messages from main
         j = 0 ;
         while (j<main_msgs_num)
         {
@@ -412,6 +413,17 @@ void render_info()
             //prstr( 0, 10, engine.current_h - next_line*height, 
             prstr( 0, 10, 400 + next_line*height, 
                      main_msgs[j]) ; j++ ;
+        }
+        ////////////////////////////////////////////////////////////////////////////////
+        //                      MESSAGES FROM PHYSICS
+        ////////////////////////////////////////////////////////////////////////////////
+        extern int phys_msgs_num ;
+        extern char phys_msgs[100][256] ;
+        j = 0 ;
+        while (j<phys_msgs_num)
+        {
+            prstr( 0, 10, 400 + next_line*height, 
+                     phys_msgs[j]) ; j++ ;
         }
 ////////////////////////////////////////////////////////////////////////////////
     render_ortho_end() ;
