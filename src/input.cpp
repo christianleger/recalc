@@ -437,9 +437,16 @@ void handle_key( SDL_Event* event )
                 extern bool onfloor ;
                 extern bool jumping ;
                 if (!engine.editing)
+                {
                 if (onfloor)
                 {
                     jumping = true ;
+                }
+                }
+                else
+                {
+                    extern void clear_selection() ;
+                    clear_selection() ;
                 }
                 break ;
             }
