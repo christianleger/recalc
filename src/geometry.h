@@ -81,11 +81,11 @@ struct Geom
     unsigned int vertVBOid ; 
     // texture ID given by and used with OpenGL for any VBOs used by this Geom's owner. 
     unsigned int texVBOid ; 
-    unsigned int colVBOid ; 
+    unsigned int colorVBOid; 
 
-    vec vertices[256] ;
-    vec colors[256] ;
-    char numverts ;
+    vec vertices[256] ; // maybe 85 triangles
+    vec colors[256] ;   // yep
+    unsigned char numverts ;
 /*
 
     Does a geom need anything else than geoVBOid or texVBOid? 
@@ -115,24 +115,36 @@ struct Octant
     // that do not have geometry; ie, non-leaf nodes. 
     union 
     {
-        struct 
-        {
-            int32_t c ;         // leaf vertex count (should be 3X(number of triangles) minus number of reused vertices)
-            int32_t int2 ;      // unused            
-            int32_t int3 ;      // unused            
-        } lvc ; 
-
         uchar    edges[12] ;                                    // 12 bytes 
         uint32_t edge_check[3] ; // used to check if a node has geometry // 12 bytes
+
+        /*  For non-leaf nodes maybe this shite can be used for something
+        struct
+        {
+            int32_t c ;
+            int32_t c1 ;    // unused
+            int32_t c2 ;    // unused
+        } svc ;             // 'subtree vertex count'. I know what I'm doin. 
+        */
     } ;
 
-    // Slot IDs
-    short tex[6] ;                                              // 12 bytes
+    uint32_t vc ;           // 4 bytes. Vertex count or subtree vertex count in the case of non-leaf nodes. 
+    // Tex slot IDs
+    short tex[6] ;          // 12 bytes
 
+    // the different material types a node can have
+    enum 
+    {
+        EMPTY,  // default for non-leaf nodes. 
+        SOLID,
+        AIR,
+        GLASS
+    } ;
+
+    unsigned char flags ;            // 1 byte
 
     Octant() ;
 
-//#define MAX_INT ((255<<24)|(255<<16)|(255<<8)|(255))
 #define MAX_INT 0xFFFFFFFF
     /*
         Answers whether or not this node has a physical extent. When edge_checks 
@@ -146,8 +158,7 @@ struct Octant
 
     void test_func_def()
     {
-        lvc.c = 0 ;
-        lvc.int2 = 0 ; //lalal
+        vc = 0 ;
     }
 } ;
 

@@ -146,7 +146,7 @@ if (!engine.editing)
     // If we're on the floor - and we attempt to jump - jump! 
     if (jumping && onfloor)
     {
-        printf( "\n FALLSPEED BEING NEGATIVATED \n") ; 
+//        printf( "\n FALLSPEED BEING NEGATIVATED \n") ; 
         //if (jumptime<30)
         {
             fallspeed = 30 ; // falling up!
