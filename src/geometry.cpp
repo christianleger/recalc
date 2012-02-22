@@ -1949,6 +1949,7 @@ void AssignNewVBOs(Octant* tree, ivec in_corner, int scale)
                         continue ;
                     }
                 }
+                CN->geom = NULL ;
             }
             // If we don't have children, then maybe we have geometry.
             else
