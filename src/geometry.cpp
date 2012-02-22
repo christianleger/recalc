@@ -1919,15 +1919,26 @@ void AssignNewVBOs(Octant* tree, ivec in_corner, int scale)
             {
                 // Ok we have children. Either we make a geom here and now, or we keep going down our children. 
                 Octant* CC = &CN->children[0] ;
-                bool useThisNode = true ;
-                loopi(8)
+                bool useThisNode = false ;
+                if (CN->vc<=256)
                 {
-                //    if (CC->vc==CN->vc) { useThisNode = false ; break ; }
-                    CC++ ;
+                    useThisNode = true ;
+                    loopi(8)
+                    {
+                        if (CC->vc==CN->vc) { useThisNode = false ; break ; }
+                        CC++ ;
+                    }
                 }
-                if (useThisNode && 0)
+                if (useThisNode)
                 {
                     printf("\n\tmaking vbo for %d nodes at tree located at %d %d %d. (from depth %d)", CN->vc, pos.x, pos.y, pos.z, d) ; 
+                    if (CN->children)
+                    {
+                        loopi(8)
+                        {
+                            printf("\n child %d: %d verts",i, CN->children[i].vc) ;
+                        }
+                    }
                     makeSubtreeVBO( CN, pos, S-d) ; // FIXME: move this to phase 3 
                 }
                 else if (idxs[d]<8)
@@ -1949,7 +1960,6 @@ void AssignNewVBOs(Octant* tree, ivec in_corner, int scale)
                         continue ;
                     }
                 }
-                CN->geom = NULL ;
             }
             // If we don't have children, then maybe we have geometry.
             else
@@ -2262,6 +2272,15 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
                 d++ ; 
                 path[d] = CN ; 
                 idxs[d] = 0 ; // Start the children at this level. 
+
+
+// still evaluating
+                if (CN->geom==GEOM_NEED_UPDATE)
+                {
+                    CN->geom = NULL ;
+                }
+
+
                 continue ;
             }
         }
