@@ -1302,6 +1302,8 @@ void deletesubtree(Octant* in_oct)
 
     ivec pos( 0, 0, 0 );
 
+    flagSubtreeForUpdate( CN )  ;
+
     // This is a depth-first descent down the tree. Can't delete a node before its children 
     // are gone, after all. 
     while (d>=0)
@@ -1320,10 +1322,6 @@ void deletesubtree(Octant* in_oct)
         }
 //        else
         {
-            if ( CN->geom )
-            {
-                clear_geom( CN ) ; // recycle this node's geom
-            }
         }
         
         path[d] = NULL ;
@@ -1334,12 +1332,14 @@ void deletesubtree(Octant* in_oct)
         if (d>=0) // Of course, don't bother if we've backed up 'past' the start of our node path. 
         {
             CN = path[d] ;
+            if ( CN->geom )
+            {
+                clear_geom( CN ) ; // recycle this node's geom
+            }
             // Delete children. 
             if (CN)
             if (CN->children)
             {
-//FIXME: reclaim any VA sets and GL IDs that might be in this tree. 
-// if (CN->geom) ...
                 delete [] CN->children ;
                 CN->children = NULL ;
                 //printf("\ndeleting 8 children. \n") ; 
@@ -1457,7 +1457,10 @@ void flagSubtreeForUpdate( Octant* parent)
 
         if ( CN->geom != NULL )
         {
-            clear_geom( CN ) ;
+//            if (CN->geom != GEOM_NEED_UPDATE )
+            {
+                clear_geom( CN ) ;
+            }
         }
         // This is the important action in this function
         CN->geom = GEOM_NEED_UPDATE ;
@@ -1843,8 +1846,7 @@ void AssignNewVBOs(Octant* tree, ivec in_corner, int scale)
                     the result needed, and I've gotten so exhausted debugging this particular 
                     aspect of the code that I'm leaving well enough alone for now :-) 
 
-                    If you are a reader different from me, feel free to tell me about an improvement 
-                    you have that works. 
+                    If you have a working alternative, feel free to tell me.
                 */
                 Octant* CC = &CN->children[0] ;
                 bool useThisNode = false ;
@@ -1859,7 +1861,7 @@ void AssignNewVBOs(Octant* tree, ivec in_corner, int scale)
                 }
                 if (useThisNode)
                 {
-printf("\n\tmaking vbo for %d nodes at tree located at %d %d %d. (from depth %d)", CN->vc, pos.x, pos.y, pos.z, d) ; 
+// printf("\n\tmaking vbo for %d nodes at tree located at %d %d %d. (from depth %d)", CN->vc, pos.x, pos.y, pos.z, d) ; 
                     makeSubtreeVBO( CN, pos, S-d) ; // FIXME: move this to phase 3 
                 }
                 else 
@@ -2160,6 +2162,7 @@ static int colorNow = 0 ;
         vertices will describe the geometry. 
 
 */
+extern uint texid ;
 void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
 {
 // printf("\nmakeSubtreeVBO starting with base corner = %d %d %d\n", in_corner.x, in_corner.y, in_corner.z) ;
@@ -2169,6 +2172,8 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
     {
         printf("\n\n\t\t\t------------------------Creating a geom. ------------------------\n\n") ;
         CN->geom = new Geom() ;
+        CN->geom->texVBOid = texid ;
+        printf("\n creating new geom with tex id: %d (and %d)", texid, CN->geom->texVBOid) ;
     }
     else
     {
@@ -2181,6 +2186,7 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
 
     vec* verts = CN->geom->vertices ;
     vec* colors = CN->geom->colors ;
+    vec2* tex = CN->geom->texcoords ;
     int numverts = 0 ;
     int numnodes = 0 ;
 
@@ -2275,7 +2281,7 @@ numnodes ++ ;
                             | /|    |\ |
                             |/ |    | \|
                             *--*    *--*
-                            D  C    D  C
+                            d  c    d  C
 
                             The first one is for when X grows in the positive, the second is for 
                             when X grows in the negative. 
@@ -2288,6 +2294,9 @@ numnodes ++ ;
                         // Faces 0, 3, 4 - where 'X' grows in the negative direction. 
                         if (((face)&1)==((face>>1)&1))
                         {
+///////////////////////////////////////////////////////////////////////////////////////////////////
+                            tex[numverts].x = 0 ;
+                            tex[numverts].y = 0 ;
                             // Triangle ADC
                             //colors[numverts]   = thecolors[colorNow%10] ;
                             colors[numverts]   = thecolors[colorNow] ;
@@ -2295,83 +2304,105 @@ numnodes ++ ;
                             verts[numverts][y] = pcorner[y] + NS ;
                             verts[numverts][z] = pcorner[z] ; 
 
+                            tex[numverts+1].x = 0 ;
+                            tex[numverts+1].y = 1 ;
                             //colors[numverts+1]   = thecolors[colorNow%10] ;
-                            colors[numverts+1]   = thecolors[colorNow] ;
+                            colors[numverts+1]   = thecolors[(colorNow+1)%10] ;
                             verts[numverts+1][x] = pcorner[x] + NS ;
                             verts[numverts+1][y] = pcorner[y] ;
                             verts[numverts+1][z] = pcorner[z] ; 
 
-// printf("\nvertex D at: %d %d %d\n",
-//(int)verts[numverts+1][x],
-//(int)verts[numverts+1][y],
-//(int)verts[numverts+1][z]
-//) ;
-
-                            colors[numverts+2]   = thecolors[colorNow%10] ;
-                            colors[numverts+2]   = thecolors[colorNow] ;
+                            tex[numverts+2].x = 1 ;
+                            tex[numverts+2].y = 1 ;
+                            //colors[numverts+2]   = thecolors[colorNow%10] ;
+                            colors[numverts+2]   = thecolors[(colorNow+2)%10] ;
+                            //colors[numverts+2]   = thecolors[colorNow] ;
                             verts[numverts+2][x] = pcorner[x] ;
                             verts[numverts+2][y] = pcorner[y] ;
                             verts[numverts+2][z] = pcorner[z] ; 
-
+///////////////////////////////////////////////////////////////////////////////////////////////////
                             // Triangle CBA
                             //colors[numverts+3]   = thecolors[colorNow%10] ;
+                            tex[numverts+3].x = 1 ;
+                            tex[numverts+3].y = 1 ;
                             colors[numverts+3]   = thecolors[colorNow] ;
                             verts[numverts+3][x] = pcorner[x] ;
                             verts[numverts+3][y] = pcorner[y] ;
                             verts[numverts+3][z] = pcorner[z] ; 
 
+                            tex[numverts+4].x = 1 ;
+                            tex[numverts+4].y = 0 ;
                             //colors[numverts+4]   = thecolors[colorNow%10] ;
                             colors[numverts+4]   = thecolors[colorNow] ;
                             verts[numverts+4][x] = pcorner[x] ;
                             verts[numverts+4][y] = pcorner[y] + NS ;
                             verts[numverts+4][z] = pcorner[z] ; 
 
+                            tex[numverts+5].x = 0 ;
+                            tex[numverts+5].y = 0 ;
                             //colors[numverts+5]   = thecolors[colorNow%10] ;
-                            colors[numverts+5]   = thecolors[colorNow] ;
+                            colors[numverts+5]   = thecolors[(colorNow+2)%10] ;
+                            //colors[numverts+5]   = thecolors[colorNow] ;
                             verts[numverts+5][x] = pcorner[x] + NS ;
                             verts[numverts+5][y] = pcorner[y] + NS ;
                             verts[numverts+5][z] = pcorner[z] ; 
+///////////////////////////////////////////////////////////////////////////////////////////////////
                         }
                         // Faces 1, 2, 5
                         else 
                         {
+///////////////////////////////////////////////////////////////////////////////////////////////////
                             // Triangle BAD
+                            tex[numverts].x = 0 ;
+                            tex[numverts].y = 0 ;
                             //colors[numverts]   = thecolors[colorNow%10] ;
                             colors[numverts]   = thecolors[colorNow] ;
                             verts[numverts][x] = pcorner[x] + NS ;
                             verts[numverts][y] = pcorner[y] + NS ;
                             verts[numverts][z] = pcorner[z] ; 
 
+                            tex[numverts+1].x = 0 ;
+                            tex[numverts+1].y = 0 ;
                             //colors[numverts+1]   = thecolors[colorNow%10] ;
                             colors[numverts+1]   = thecolors[colorNow] ;
                             verts[numverts+1][x] = pcorner[x] ;
                             verts[numverts+1][y] = pcorner[y] + NS ;
                             verts[numverts+1][z] = pcorner[z] ; 
 
+                            tex[numverts+2].x = 0 ;
+                            tex[numverts+2].y = 0 ;
                             //colors[numverts+2]   = thecolors[colorNow%10] ;
                             colors[numverts+2]   = thecolors[colorNow] ;
                             verts[numverts+2][x] = pcorner[x] ;
                             verts[numverts+2][y] = pcorner[y] ;
                             verts[numverts+2][z] = pcorner[z] ; 
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
                             // Triangle DCB
+                            tex[numverts+3].x = 0 ;
+                            tex[numverts+3].y = 0 ;
                             //colors[numverts+3]   = thecolors[colorNow%10] ;
                             colors[numverts+3]   = thecolors[colorNow] ;
                             verts[numverts+3][x] = pcorner[x] ;
                             verts[numverts+3][y] = pcorner[y] ;
                             verts[numverts+3][z] = pcorner[z] ; 
 
+                            tex[numverts+4].x = 0 ;
+                            tex[numverts+4].y = 0 ;
                             //colors[numverts+4]   = thecolors[colorNow%10] ;
                             colors[numverts+4]   = thecolors[colorNow] ;
                             verts[numverts+4][x] = pcorner[x] + NS ;
                             verts[numverts+4][y] = pcorner[y] ;
                             verts[numverts+4][z] = pcorner[z] ; 
 
+                            tex[numverts+5].x = 0 ;
+                            tex[numverts+5].y = 0 ;
                             //colors[numverts+5]   = thecolors[colorNow%10] ;
                             colors[numverts+5]   = thecolors[colorNow] ;
                             verts[numverts+5][x] = pcorner[x] + NS ;
                             verts[numverts+5][y] = pcorner[y] + NS ;
                             verts[numverts+5][z] = pcorner[z] ; 
+///////////////////////////////////////////////////////////////////////////////////////////////////
                         }
                         numverts += 6 ;    //  Two new triangles for this face means 6 new vertices
                     } // end if (CN->tex[face]>0) (if face is visible)
@@ -2407,6 +2438,11 @@ numnodes ++ ;
     glGenBuffers( 1, &(CN->geom->colorVBOid));                            // Get A Valid Name
     glBindBuffer( GL_ARRAY_BUFFER, (CN->geom->colorVBOid));            // Bind The Buffer
     glBufferData( GL_ARRAY_BUFFER, numverts*sizeof(vec), colors, GL_STATIC_DRAW );
+
+    glDeleteBuffers( 1, &(CN->geom->texVBOid))  ; // clear existing VBO
+    glGenBuffers( 1, &(CN->geom->texVBOid));                            // Get A Valid Name
+    glBindBuffer( GL_ARRAY_BUFFER, (CN->geom->texVBOid));            // Bind The Buffer
+    glBufferData( GL_ARRAY_BUFFER, numverts*sizeof(vec2), tex, GL_STATIC_DRAW );
 
 
     CN->geom->numverts = numverts ;
@@ -2664,18 +2700,23 @@ if (yes==60)
 }
 //            printf("Here is the shit. ") ;
             glEnableClientState( GL_VERTEX_ARRAY );                        // Enable Vertex Arrays
-            glEnableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
+            glEnableClientState( GL_TEXTURE_COORD_ARRAY );                        // Enable Vertex Arrays
 
             glBindBuffer(GL_ARRAY_BUFFER, g->vertVBOid);
             glVertexPointer( 3, GL_FLOAT,  0, (char *) NULL );        // Set The Vertex Pointer To The Vertex Buffer
 
-            glBindBuffer(GL_ARRAY_BUFFER, g->colorVBOid);
-            glColorPointer( 3, GL_FLOAT,  0, (char *) NULL );        // Set The Vertex Pointer To The Vertex Buffer
+//            glBindBuffer(GL_ARRAY_BUFFER, g->colorVBOid);
+ //           glColorPointer( 3, GL_FLOAT,  0, (char *) NULL );        // Set The Vertex Pointer To The Vertex Buffer
+//printf(" g->texVBOid = %d", g->texVBOid) ;
+            glBindBuffer(GL_ARRAY_BUFFER, g->texVBOid);
+            glTexCoordPointer( 2, GL_FLOAT,  0, (char *) NULL );        // Set The Vertex Pointer To The Vertex Buffer
 
             // DRAW LIKE AN ALMIGHTY GOD
             // glDrawArrays( GL_TRIANGLES, 0, numVerts/3);    // Draw All Of The Triangles At Once
             // glEnable( GL_DEPTH_TEST ) ;
             glEnable( GL_CULL_FACE ) ;
+            glEnable( GL_TEXTURE_2D ) ;
+            glBindTexture(GL_TEXTURE_2D, texid ) ;
             glCullFace( GL_BACK ) ;
             glFrontFace( GL_CCW ) ;
             //glFrontFace( GL_CW ) ;
@@ -2687,6 +2728,7 @@ if (yes==60)
             glDisableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
 
             glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glDisable( GL_TEXTURE_2D ) ;
         }
     }
 }

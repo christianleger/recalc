@@ -27,6 +27,7 @@
 #include <GL/glu.h>
 
 #include <SDL.h>
+#include <SDL_image.h>
 
 #include "recalc.h"
 
@@ -38,8 +39,8 @@ SDL_Surface *surface;
 #define SCREEN_WIDTH 2600
 #define SCREEN_HEIGHT 900
 
-int default_screen_width = 900 ; 
-int default_screen_height = 800 ; 
+int default_screen_width = 1200 ; 
+int default_screen_height = 900 ; 
 
 /*-----------------------------------------------------------------*/
 //                  function prototypes 
@@ -63,6 +64,49 @@ void resize_window( int width, int height ) ;
 
 
 void initialize_subsystems() ; 
+
+
+uint texid = 0 ;
+void load_texture() 
+{
+    SDL_Surface* data_image ;
+
+    data_image = IMG_Load("../data/textures/1.jpg") ;
+    if (data_image == NULL)
+    {
+        printf("\nPROBREM LOADING FILE\n");
+        printf("\nThe error is: %s\n", IMG_GetError());
+        Quit(1);
+    }
+
+    char* data ;
+    data = (char *)(data_image->pixels);
+
+//        /* this call is made so we can get some anti-aliasing */
+//        RGBtoRGBA(data_image->w, data_image->h, data, &aux_data);
+
+//    int k = (sizeof(char) * data_image->w * data_image->h * 3);
+    
+    glGenTextures(1,&(texid));
+
+    printf("\nJust created a opengl texture, ID %d", texid);
+
+    glBindTexture(GL_TEXTURE_2D, texid);
+/*printf("\nHAVING LOADING SHIP TEXTURES. value of texture ID: %d", shipTextures[0]);*/
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data_image->w, data_image->h, 0, GL_RGB, GL_UNSIGNED_BYTE, data );
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data_image->w, data_image->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
+    SDL_FreeSurface(data_image);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+
+    // use SDL_image to get a handle on the pixels
+
+    // tell OpenGL to give us an id to refer to this texture. 
+
+    // tell OpenGL that these are the pixels to this texture. 
+
+    // Now we can use this texture everywhere we want! 
+}
 
 
 /*-----------------------------------------------------------------*/
@@ -414,6 +458,7 @@ read_args(argc, argv);
     SDL_ShowCursor(SDL_DISABLE);         
 
     //unsigned int last_frame = SDL_GetTicks() ;
+    load_texture() ;
     
     /* main loop */
 #define FRAME_TIME 5 // 5 gives about 200 fps. Not relevant when in vsync. 

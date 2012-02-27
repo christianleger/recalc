@@ -83,8 +83,9 @@ struct Geom
     unsigned int texVBOid ; 
     unsigned int colorVBOid; 
 
-    vec vertices[256] ; // maybe 85 triangles
-    vec colors[256] ;   // yep
+    vec vertices[256] ;     // maybe 85 triangles
+    vec2 texcoords[256] ;   // maybe 85 triangles
+    vec colors[256] ;       // yep
     unsigned char numverts ;
 /*
 

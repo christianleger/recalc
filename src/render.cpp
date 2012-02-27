@@ -235,6 +235,38 @@ void render_menu()
 //        prstr( 0, 0.f, fonts[0]->_height, "Engage Delta Niner." ) ;
 
 
+
+glColor3f(1,1,1) ;
+
+extern uint texid ;
+glDisable( GL_CULL_FACE ) ;
+    glEnable( GL_TEXTURE_2D ) ;
+glBindTexture(GL_TEXTURE_2D, texid) ;
+    glBegin(GL_QUADS) ;
+/*
+        glTexCoord2f(0,0) ; glVertex3f(0,0,0) ; 
+        glTexCoord2f(0,1) ; glVertex3f(0,100,0) ;
+        glTexCoord2f(1,1) ; glVertex3f(100,100,0) ; 
+        glTexCoord2f(1,0) ; glVertex3f(100,0,0) ;
+
+*/
+            glTexCoord2f( 0.0f, 0.0f );
+            glVertex3f(000.0f, 200.0f, 00.0f);
+
+            glTexCoord2f( 1.0f, 0.0f );
+            glVertex3f(200.0f, 200.0f, 00.0f);
+
+            glTexCoord2f( 1.0f, 1.0f );
+            glVertex3f(200.0f, 000.0f, 00.0f);
+
+            glTexCoord2f( 0.0f, 1.0f );
+            glVertex3f(000.0f, 000.0f, 00.0f);
+
+
+
+    glEnd() ;
+    glDisable( GL_TEXTURE_2D ) ;
+
     glMatrixMode( GL_PROJECTION ) ;
     glPopMatrix() ; 
 
