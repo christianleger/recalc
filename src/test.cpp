@@ -161,6 +161,8 @@ void render_test_001()
 {
     if ( !test_001_initiated )
     {
+        exit(0) ;
+        printf("\n\n\n\n\n") ;
         init_test_001() ;
         test_001_initiated = true ;
     }

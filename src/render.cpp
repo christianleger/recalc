@@ -169,13 +169,14 @@ void render_editor()
     
 extern void draw_highlight() ; // FIXME lol externs everywhere. 
 
-glDisable(GL_DEPTH_FUNC) ;
+glDisable(GL_DEPTH_TEST) ;
     draw_highlight() ;
 
     draw_sel_start() ;
     
     draw_sel_end() ;
-glEnable(GL_DEPTH_FUNC) ;
+glEnable(GL_DEPTH_TEST) ;
+//glGetError(); 
     
     //draw_newcubes() ;
     //draw_new_octs() ;
@@ -185,6 +186,13 @@ glEnable(GL_DEPTH_FUNC) ;
     extern void draw_ray_start_node() ;
     draw_ray_start_node() ;
 
+
+
+int err = glGetError() ; 
+if (err)
+{ 
+    printf("\n\nGL EROR IS %d\n\n", (err)) ; 
+} 
     // glEnable( GL_DEPTH_TEST ) ;
 }
 
@@ -212,7 +220,7 @@ void render_tester()
     glEnd() ; 
 
     extern void render_test_001() ;
-    render_test_001() ;
+    //render_test_001() ;
 
 
 }
@@ -251,16 +259,16 @@ glBindTexture(GL_TEXTURE_2D, texid) ;
 
 */
             glTexCoord2f( 0.0f, 0.0f );
-            glVertex3f(000.0f, 200.0f, 00.0f);
+            glVertex3f(1000.0f, 200.0f, 00.0f);
 
             glTexCoord2f( 1.0f, 0.0f );
-            glVertex3f(200.0f, 200.0f, 00.0f);
+            glVertex3f(1200.0f, 200.0f, 00.0f);
 
             glTexCoord2f( 1.0f, 1.0f );
-            glVertex3f(200.0f, 000.0f, 00.0f);
+            glVertex3f(1200.0f, 000.0f, 00.0f);
 
             glTexCoord2f( 0.0f, 1.0f );
-            glVertex3f(000.0f, 000.0f, 00.0f);
+            glVertex3f(1000.0f, 000.0f, 00.0f);
 
 
 

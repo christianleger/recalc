@@ -284,6 +284,8 @@ void initGL( )
     // glDepthFunc( GL_EQUAL | GL_NOTEQUAL ) ;
     glDepthFunc( GL_LESS ) ;
 
+    glGetError() ;
+
     //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE) ;
 
     return ; 
@@ -558,11 +560,20 @@ read_args(argc, argv);
                 render_world() ; 
             }
 
+            glGetError() ;
+
             if ( engine.editing ) 
             {
                 render_editor() ; 
             }
-
+if(0)
+{
+int err = glGetError() ;
+if (err)
+{
+    printf("\n\nGL EROR IS %d\n\n", (err)) ;
+}
+}
             if ( engine.testing ) 
             {
                 render_tester() ;

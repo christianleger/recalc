@@ -83,10 +83,22 @@ struct Geom
     unsigned int texVBOid ; 
     unsigned int colorVBOid; 
 
+    int frontguard ;
     vec vertices[256] ;     // maybe 85 triangles
-    vec2 texcoords[256] ;   // maybe 85 triangles
     vec colors[256] ;       // yep
+    vec2 texcoords[256] ;   // maybe 85 triangles
     unsigned char numverts ;
+
+    int timeschanged ;
+    int backguard ;
+
+    Geom()
+    {
+        numverts = 0 ;
+        timeschanged = 0 ;
+        frontguard = 55 ;
+        backguard = 55 ;
+    }
 /*
 
     Does a geom need anything else than geoVBOid or texVBOid? 
