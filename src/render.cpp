@@ -172,9 +172,9 @@ extern void draw_highlight() ; // FIXME lol externs everywhere.
 glDisable(GL_DEPTH_TEST) ;
     draw_highlight() ;
 
-    draw_sel_start() ;
-    
-    draw_sel_end() ;
+    draw_selection() ;
+    //draw_sel_start() ;
+    //draw_sel_end() ;
 glEnable(GL_DEPTH_TEST) ;
 //glGetError(); 
     
@@ -435,7 +435,8 @@ void render_info()
         while (j<geom_msgs_num2)
         {
             //prstr( 0, 600.f, engine.current_h - next_line*height, 
-            prstr( 0, 60.f, 0 + next_line*height, 
+            //prstr( engine.current_w-300, 60.f, 0 + next_line*height, 
+            prstr( 0, engine.current_w-600, 0 + (j+3)*height, 
                    geom_msgs2[j]) ; j++ ;
         }
 

@@ -40,7 +40,7 @@ int physics_count = 0 ; // physics frame count
 
 
 
-float basic_velocity = 100 ;
+float basic_velocity = 2500 ;
 
 // FIXME: fix me!!!!!!!!!
 bool hhello = false ;

@@ -96,6 +96,30 @@ void toggle_gridsize_scroll( bool enable = true )
     }
 }
 
+void deform_scroll(void * args)
+{
+    // FIXME: I have no code!
+}
+/*
+    By default, activated by holding down q. 
+
+    When active during edit mode, scrolling up or 
+    down deforms cubes instead of extruding or 
+    deleting them. 
+*/
+void toggle_deform_scroll( bool enable = false ) 
+{
+    if (enable)
+    {
+        mouse_scroll_command = &deform_scroll ;
+    }
+    else
+    {
+        mouse_scroll_command = NULL ;
+        mouse_scroll_command = &extrude ;
+    }
+}
+
 bool commands_initialized = false ;
 
 // from menu.cpp 
@@ -790,6 +814,10 @@ void handle_key( SDL_Event* event )
             //SDLK_o			= 111,
             //SDLK_p			= 112,
             //SDLK_q			= 113,
+            case SDLK_q:
+            {
+                toggle_deform_scroll() ; // releasing q disables cube deformation
+            }
             //SDLK_r			= 114,
             case SDLK_s:
             {
@@ -872,7 +900,11 @@ void handle_key( SDL_Event* event )
             }
             case SDLK_g:
             {
-                toggle_gridsize_scroll( false ) ; // disables gridsize scrolling
+                toggle_gridsize_scroll( false ) ; // releasing g disables gridsize scrolling
+            }
+            case SDLK_q:
+            {
+                toggle_deform_scroll( false ) ; // releasing q disables cube deformation
             }
             default:
             {

@@ -76,6 +76,7 @@ surfaces, and will have a set of shaders that can be used on any surface.
 /////////////////////////////////////////////////////////////////////////////////////////////
 struct Geom
 {
+    int frontguard ;
     // Texture tex_slot ;
     // vertex ID given by and used with OpenGL for any VBOs used by this Geom's owner. 
     unsigned int vertVBOid ; 
@@ -83,21 +84,26 @@ struct Geom
     unsigned int texVBOid ; 
     unsigned int colorVBOid; 
 
-    int frontguard ;
     vec vertices[256] ;     // maybe 85 triangles
     vec colors[256] ;       // yep
     vec2 texcoords[256] ;   // maybe 85 triangles
     unsigned char numverts ;
 
     int timeschanged ;
+
     int backguard ;
+    int checksum ;
 
     Geom()
     {
+        vertVBOid = 0 ;
+        colorVBOid = 0 ;
+        texVBOid = 0 ;
         numverts = 0 ;
         timeschanged = 0 ;
         frontguard = 55 ;
         backguard = 55 ;
+        checksum = 0 ;
     }
 /*
 

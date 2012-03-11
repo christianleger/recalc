@@ -46,6 +46,8 @@
 #include "render.h"
 #include "console.h"
 
+
+#include "Newton.h"
 /*   
  *     INPUTS: the definitions of all our primitive types. 
  *
@@ -320,6 +322,7 @@ void resize_window( int w, int h, int fov) ;
 
 // geometry
 
+void draw_selection() ;
 void draw_sel_start() ;
 void draw_sel_end() ;
 void set_sel_start() ;

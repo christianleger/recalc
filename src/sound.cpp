@@ -13,6 +13,7 @@
 #define MAXVOL MIX_MAX_VOLUME
 
 bool nosound = true;
+//bool nosound = false ;
 char soundvol = 128 ;
 char musicvol = 128 ;
 
@@ -231,7 +232,8 @@ void startmusic(char *name, char *cmd)
         return;
     }
     stopmusic();
-    printf("\nHELLO \n", name) ;
+
+    printf("\nHELLO %s\n", name) ;
     if(soundvol && musicvol && *name)
     {
         //defformatstring(file)("packages/%s", name);
@@ -244,19 +246,26 @@ void startmusic(char *name, char *cmd)
             DELETEA(musicfile);
             DELETEA(musicdonecmd);
             musicfile = newstring(file);
-            // if(cmd[0]) musicdonecmd = newstring(cmd);
-            // Mix_PlayMusic(music, cmd[0] ? 0 : -1);
-            //            Mix_PlayMusic(music, 0 );
+// if(cmd[0]) musicdonecmd = newstring(cmd);
+// Mix_PlayMusic(music, cmd[0] ? 0 : -1);
+Mix_PlayMusic(music, 0 );
+            printf("\nhllllo 1\n") ;
 
             Mix_VolumeMusic(55);
-            if(Mix_PlayMusic(music, 1)==-1) 
+            printf("\nhllllo\n") ;
+
+//            if(Mix_PlayMusic(music, 1)==-1) 
             {
-                printf("Mix_PlayMusic: %s\n", Mix_GetError());
+ //               printf("Mix_PlayMusic: %s\n", Mix_GetError());
                 // well, there's no music, but most games don't break without music...
             }
-        Mix_PlayMusic(music, musicdonecmd ? 0 : -1);
+            printf("\nhllllo\n") ;
+//Mix_PlayMusic(music, musicdonecmd ? 0 : -1);
+//Mix_PlayMusic(music, 1);
             //Mix_VolumeMusic((musicvol*MAXVOL)/255);
             // intret(1); FIXME: THIS IS THE RETURN FOR A CONSOLE COMMAND
+
+            printf("\nhllllo\n") ;
         }
         else
         {
@@ -707,7 +716,7 @@ void resetsound()
     }
     if(music && loadmusic(musicfile))
     {
-        Mix_PlayMusic(music, musicdonecmd ? 0 : -1);
+//        Mix_PlayMusic(music, musicdonecmd ? 0 : -1);
         Mix_PlayMusic(music, musicdonecmd ? 0 : -1);
         Mix_VolumeMusic((musicvol*MAXVOL)/255);
     }

@@ -43,7 +43,7 @@ void Engine::initialize()
     engine.rendering = true ;
     engine.physics = true ;
     engine.paused = false ; 
-    engine.fov = 60 ;
+    engine.fov = 75 ;
 //    engine.gridscale = 10 ;
 //    engine.gridsize = 2<<10 ;
 
