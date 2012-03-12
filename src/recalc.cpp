@@ -10,10 +10,9 @@ void Quit( int returnCode )
     printf("\n QUIT -- CLEANING UP TEXT ... ") ;
     clean_up_text() ;
     printf("\n QUIT -- CLEANING UP TEXT FINISHED. ") ;
-    printf("\n") ;
 
     printf("\n QUIT -- CLEANING UP SOUND ... ") ;
-extern void clear_sound() ;
+    extern void clear_sound() ;
     clear_sound() ;
 //extern void stopsounds() ;
  //   stopsounds() ;
@@ -36,7 +35,7 @@ extern void clear_sound() ;
 Engine engine ; 
 void Engine::initialize()
 {
-    engine.fullscreen = true ;
+//    engine.fullscreen = true ;
     engine.window_active = true ;
     engine.testing = true ; 
     engine.menu = true ; 

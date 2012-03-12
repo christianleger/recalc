@@ -348,10 +348,10 @@ void set_sel_end()
 
 // Oriented square centered on a point
 void draw_square(
-                ivec & center    /* center */,
-                int size,       /* size of box */
-                int _o           /* orientation */
-            )
+    ivec & center    /* center */,
+    int size,       /* size of box */
+    int _o           /* orientation */
+    )
 {
     ivec c(center) ;
     c[X(_o)] -= Dx(_o)*(size>>1) ;
@@ -455,13 +455,11 @@ void draw_highlight()
         drawn_corner = ifront ;
         loopj(3) { drawn_corner[j] = (drawn_corner[j] >> GS) << GS ; }
         drawn_corner[o>>1] += NS*(o%2) ;
-        if (havesel)
-        {
-            drawn_corner[o>>1] += Dz(o)*NS/40; /* draw_corner_squarei( drawn_corner, //2<<(world.scale-1), world.gridsize, o) ;*/
+        if (havesel) { // lifts the highlight off-surface so that the selection highlight isn't rendered at the same spot. 
+            drawn_corner[o>>1] += Dz(o)*NS/40; 
         }
-        else
-        {
-            drawn_corner[o>>1] += Dz(o)*NS/100 ; /* draw_corner_squarei( drawn_corner, //2<<(world.scale-1), world.gridsize, orientation) ;*/
+        else {
+            drawn_corner[o>>1] += Dz(o)*NS/100 ; // no selection - less lift
         }
     } 
     // from ray hitting world boundary 
@@ -476,7 +474,7 @@ void draw_sel_start()
     glLineWidth( 5.0 ) ;
     glColor3f( 1, 0, 0 ) ;
     ivec v( sel_start ) ;
-    v[sel_o>>1] += Dz(sel_o)*1 ;
+    v[sel_o>>1] += Dz(sel_o)*1 ; // lets our square highlight float at the right distance from the cube's corner
     draw_corner_squarei( v, sel_size, sel_o) ;
     glLineWidth( 1.0 ) ;
 }
@@ -488,7 +486,7 @@ void draw_sel_end()
     glLineWidth( 5.0 ) ;
     glColor3f( 0, 1, 1 ) ;
     ivec v( sel_end ) ;
-    v[sel_o>>1] += Dz(sel_o)*1 ;
+    v[sel_o>>1] += Dz(sel_o)*1 ; // lets our square highlight float at the right distance from the cube's corner
     draw_corner_squarei( v, sel_size, sel_o) ;
     glLineWidth( 1.0 ) ;
 }
@@ -501,14 +499,12 @@ void draw_selection()
         abs(sel_start.y - sel_end.y),
         abs(sel_start.z - sel_end.z)
         ) ;
-    ivec start(
+    ivec c( // c == corner
         min(sel_start.x,sel_end.x),
         min(sel_start.y,sel_end.y),
         min(sel_start.z,sel_end.z)
         ) ;
 
-    //draw_corner_squarei( start, sel_size, sel_o) ;
-    ivec c(start) ;
     glColor3f( 1, 1, 1 ) ;
     glBegin( GL_LINE_LOOP ) ;
         glVertex3iv( c.v ) ; c[X(sel_o)] += deltas[X(sel_o)]+sel_size;  // bottom-right (could be bottom left but it's symmetrical)
@@ -1203,8 +1199,6 @@ void deletesubtree(Octant* in_oct)
         on the next search. 
 
 */
-
-
 Octant* findNode(ivec at, int* out_size, int* nScale) // , int* out_size) 
 {
     int CGS = world.scale ;
@@ -1224,7 +1218,6 @@ Octant* findNode(ivec at, int* out_size, int* nScale) // , int* out_size)
         CGS-- ;
     }
 
-    //if (out_size!=NULL) { *out_size = 2<<CGS ; }
     if (out_size!=NULL) 
     if (!oct)
     {
@@ -1240,7 +1233,6 @@ Octant* findNode(ivec at, int* out_size, int* nScale) // , int* out_size)
 
 /*
     Finds the geom, if any, that contains the point
-
 */
 Octant* findGeom(ivec at, int* out_size, int* nscale) //, int* out_size=NULL) ;
 {
@@ -1260,7 +1252,7 @@ Octant* findGeom(ivec at, int* out_size, int* nscale) //, int* out_size=NULL) ;
             }
             else
             {
-            Geom* g = oct->geom ;
+                Geom* g = oct->geom ;
                 sprintf(geom_msgs2[geom_msgs_num2], "GEOM TIME - REAL GEOM (Size %d). Node has vc=%d", CS, oct->vc) ; geom_msgs_num2++ ;
 
                 if (glIsBuffer(oct->geom->texVBOid))
@@ -1275,7 +1267,6 @@ Octant* findGeom(ivec at, int* out_size, int* nscale) //, int* out_size=NULL) ;
                 {
                     sprintf(geom_msgs2[geom_msgs_num2], "colorVBOid is good. %d", (int)(g->vertVBOid)) ; geom_msgs_num2++ ;
                 }
-                
                 sprintf(geom_msgs2[geom_msgs_num2], "GEOM is %d", (int)(oct->geom)) ; geom_msgs_num2++ ;
             }
         }
@@ -1285,7 +1276,7 @@ Octant* findGeom(ivec at, int* out_size, int* nscale) //, int* out_size=NULL) ;
 sprintf(geom_msgs2[geom_msgs_num2], "Node (Scale %d). vc=%d", CS, oct->vc) ; geom_msgs_num2++ ;
             if (oct->geom == GEOM_NEED_UPDATE)
             {
-sprintf(geom_msgs2[geom_msgs_num2], "WHAAAAAAAAAAAAAAAAAt") ; geom_msgs_num2++ ;
+                sprintf(geom_msgs2[geom_msgs_num2], "WHAAAAAAAAAAAAAAAAAt") ; geom_msgs_num2++ ;
             }
             i = octastep(at.x,at.y,at.z,CS) ;
             oct = &oct->children[i] ;
@@ -1297,19 +1288,9 @@ sprintf(geom_msgs2[geom_msgs_num2], "WHAAAAAAAAAAAAAAAAAt") ; geom_msgs_num2++ ;
         if ( oct->has_geometry() )
         {
             sprintf(geom_msgs2[geom_msgs_num2], "LEAF NODE - vc=%d  tex=%d %d %d %d %d %d", oct->vc,
-                oct->tex[0], 
-                oct->tex[1], 
-                oct->tex[2], 
-                oct->tex[3], 
-                oct->tex[4], 
-                oct->tex[5]
-                ) ; geom_msgs_num2++ ;
-            break ; 
+                oct->tex[0], oct->tex[1], oct->tex[2], oct->tex[3], oct->tex[4], oct->tex[5]) ; geom_msgs_num2++ ;
         }
-        else 
-        { 
-            break ; 
-        }
+        break ; 
     }
 
     //if (out_size!=NULL) { *out_size = 2<<CS ; }
@@ -1408,8 +1389,12 @@ void flagPathForUpdate( Octant** path, int _depth)
     int d = _depth ;
     while (d>=0)
     {
-//        printf(" %d...", d) ;
-
+        if (path[d]->geom==GEOM_NEED_UPDATE) 
+        {
+            // If we reach here it means this node has already been marked. No 
+            // need to continue up the tree. 
+            break ;
+        }
         // Since we're marking this path for update it means any geometry is going 
         // to be rebuilt. We therefore recycle any existing geometry on the path. 
         if (path[d]->geom)
@@ -1423,12 +1408,6 @@ void flagPathForUpdate( Octant** path, int _depth)
             clear_geom(path[d]) ;
         }
 
-//        if (path[d]->geom==GEOM_NEED_UPDATE) 
- //       {
-            // If we reach here it means this node has already been marked. No 
-            // need to continue up the tree. 
-  //          break ;
-   //     }
         // Thus, the Octant is flagged regardless of being a leaf node or not. 
         path[d]->geom = GEOM_NEED_UPDATE ;
         d-- ;
@@ -1496,7 +1475,6 @@ void extrude( void * _in )
     int GS = world.gridsize ;
     int WGSc = world.gridscale ;
     int CGS = WS ;                  // current grid scale
-    int i = 0 ;                     // child index
     // vectormap vmap ;                // used to record new nodes and then to construct and update vector arrays
 
     // define a range of cubes that will be created, bounded by 
@@ -1509,8 +1487,8 @@ void extrude( void * _in )
     }
 
 
-    DEBUGTRACE(("\n --------------------------------------------------------------------------\n")) ;
-    DEBUGTRACE(("\n EXTRUDE BEGINS \n")) ;
+//DEBUGTRACE(("\n --------------------------------------------------------------------------\n")) ;
+//DEBUGTRACE(("\n EXTRUDE BEGINS \n")) ;
     // --------------------------------------------
     // PHASE 1: Create tree nodes 
     // --------------------------------------------
@@ -1554,19 +1532,22 @@ void extrude( void * _in )
 
     */
 
-DEBUGTRACE(("\n ********** EXTRUDE - PHASE 1 (node creation) ********** \n")) ;
+//DEBUGTRACE(("\n ********** EXTRUDE - PHASE 1 (node creation) ********** \n")) ;
 
     Octant* path[20] = {NULL} ;
-
-
-
-
     {
         // extruding inwards (deleting)
         if ( in )
         {
             /*
                 Overall process: 
+                    - look for the node being deleted. If we find geometry 
+                      bigger than the node we are attempting to delete, we 
+                      have to replace that node with a subdivision of the 
+                      bigger node, so that the smaller node can be removed. 
+                      Every sub-volume is only divided the number of times 
+                      it must be divided so that the desired deletion can 
+                      be performed. 
                     - Delete geometry from nodes that are inside selected 
                       volume. While deleting, marks all visited parts 
                       of the tree as requiring update. Also mark nodes 
@@ -1579,17 +1560,8 @@ DEBUGTRACE(("\n ********** EXTRUDE - PHASE 1 (node creation) ********** \n")) ;
                       which no longer have any geometry under them. 
             */
 
-
-
-
             havenewcube = false ;
             return ; // FIXME: this should result in deletion
-
-
-
-
-
-
         }
         else
         {
@@ -1644,7 +1616,7 @@ DEBUGTRACE(("\n ********** EXTRUDE - PHASE 1 (node creation) ********** \n")) ;
                 {
                     while (CGS>=WGSc)
                     {
-                        i = octastep(NC.x,NC.y,NC.z,CGS) ;
+                        int i = octastep(NC.x,NC.y,NC.z,CGS) ;
                         if ( !oct->children ) 
                         {
                             new_octants(oct) ;
@@ -1698,102 +1670,30 @@ DEBUGTRACE(("\n ********** EXTRUDE - PHASE 1 (node creation) ********** \n")) ;
             }
             // Reset NC to initial 'first node' of the group. 
             NC = NCstart ;
-        }
+
+            // Move selection highlights to match new additions. 
+            sel_start[sel_o>>1] += GS*Dz(O) ;
+            sel_end  [sel_o>>1] += GS*Dz(O) ;
+        }// end if extruding
     }
 
 
-
-
-
-
-
-
-
-
-// FIXME collect total number of triangles 
-printf("\nafter an extrusion numchildren = %d\n", numchildren) ;
-
-    int new_z = sel_start[Z(sel_o)]+Dz(O)*GS ;
-    // prepare for next extrusion if it doesn't get out of the world 
-    // FIXME: make it so that if it DOES get out of the world, no other 
-    // extrusion attempts is made until the selection changes.
-    if ( new_z >= 0 && new_z <= world.size)
-    {
-        sel_start[sel_o>>1] += GS*Dz(O) ;
-        sel_end  [sel_o>>1] += GS*Dz(O) ;
-    }
-// CASE: the cursor is not set on anything; this can happpen if we are outside 
-// world boundaries and pointing the cursor at any part of the world. 
-//      else if ( sel_path[0] == -2 )
-//      {
-//          DEBUGTRACE(("\nCannot extrude when no selection is in view. \n")) ; 
-//      }
-//      ivec counts(1) ; 
-// min one cube 
+// FIXME monitor total number of triangles 
 
     // --------------------------------------------
-    // PHASE 2: Produce leaf vertex counts (lvc) so 
-    // that in the final phase vertex array sets can be 
-    // assigned to the right nodes. 
+    // PHASE 2: Analyzing the parts of the tree that need update. 
     // --------------------------------------------
+    //DEBUGTRACE(("\n ********** EXTRUDE - PHASE 2 (face visibility marking and lvc processing) ********** \n")) ;
+    //printf("\nANALYSIS BEGINS \n") ;
+    AnalyzeGeometry(&world.root, vec(0,0,0), world.scale) ;
 
-    // Iteration is over all nodes which have their geom==GEOM_NEED_UPDATE. 
-    // zzz
-    // local variables. 
-    int32_t d = 0 ;             // depth
-    Octant* CN = &world.root ;  // current node 
-    Octant* CC = NULL ;         // current child 
+    // --------------------------------------------
+    // PHASE 3: Produce vertex array sets
+    // --------------------------------------------
+    // DEBUGTRACE(("\n ********** EXTRUDE - PHASE 3 (vertex array set creation) ********* \n")) ;
+    //printf("\nVBO CONSTRUCTION BEGINS \n") ;
+    AssignNewVBOs(&world.root, vec(0,0,0),world.scale) ;
 
-    // path
-    // Octant* path[20] = {NULL} ;
-    int32_t idxs[20] ;   // Used to track path indexes. -1 means unused. 
-    loopi(20) {idxs[i] = -1 ;}
-    loopi(20) {path[i]=NULL ;}
-    path[0] = CN ;
-    idxs[0] = 0 ;
-    d = 0 ;
-
-// FIXME:  instead of changing vc when something HAS geometry (which alters its geometry!!!), 
-// we need to instead check: 
-
-
-// --------------------------------------------
-// PHASE 2: Analyzing the parts of the tree that need update. 
-// --------------------------------------------
-//DEBUGTRACE(("\n ********** EXTRUDE - PHASE 2 (face visibility marking and lvc processing) ********** \n")) ;
-
-
-printf("\nANALYSIS BEGINS \n") ;
-AnalyzeGeometry(&world.root, vec(0,0,0), world.scale) ;
-
-// --------------------------------------------
-// PHASE 3: Produce vertex array sets
-// --------------------------------------------
-// DEBUGTRACE(("\n ********** EXTRUDE - PHASE 3 (vertex array set creation) ********* \n")) ;
-printf("\nVBO CONSTRUCTION BEGINS \n") ;
-AssignNewVBOs(&world.root, vec(0,0,0),world.scale) ;
-
-
-
-loopv(worldgeometry)
-{
-    Geom* g = worldgeometry[i] ;
-    if (
-        g->frontguard!=55||
-        g->backguard!=55
-    )
-    {
-        printf("\n\n\n\nOMGGGGGGGGGGGGGGGGGGGGGGGGG\n\n\n\n") ;
-        printf("\n\n\n\nOMGGGGGGGGGGGGGGGGGGGGGGGGG\n\n\n\n") ;
-        printf("\n\n\n\nOMGGGGGGGGGGGGGGGGGGGGGGGGG\n\n\n\n") ;
-        printf("\n\n\n\nOMGGGGGGGGGGGGGGGGGGGGGGGGG\n\n\n\n") ;
-        printf("\n\n\n\nOMGGGGGGGGGGGGGGGGGGGGGGGGG\n\n\n\n") ;
-        printf("\n\n\n\nOMGGGGGGGGGGGGGGGGGGGGGGGGG\n\n\n\n") ;
-        printf("\n\n\n\nOMGGGGGGGGGGGGGGGGGGGGGGGGG\n\n\n\n") ;
-        printf("\n\n\n\nOMGGGGGGGGGGGGGGGGGGGGGGGGG\n\n\n\n") ;
-    }
-        
-}
 } // end extrude 
 
 
@@ -1974,11 +1874,7 @@ void AnalyzeGeometry(Octant* tree, ivec corner, int scale)
                         incr = (1<<(S-d)) ; yesorno = ((idxs[d]>>i)&1) ;
                         pos.v[i] += yesorno * incr ;
                     }
-//printf("\nanalyzing: going down the tree (depth %d) - position = %d %d %d\n", //   S-d, pos.x, pos.y, pos.z //  ) ;
-//printf("\nFrom depth %d looking at child %d\n",d, idxs[d]) ;
                     CN = &CN->children[idxs[d]] ; 
-//if (CN->children) { printf("\n\tThis guy has children \n") ; }
-//if (CN->has_geometry()) { printf("\n\tThis guy has geometry\n") ; }
                     d++ ;
                     path[d] = CN ;
                     idxs[d] = 0 ; // Start the children at this level. 
@@ -2059,30 +1955,11 @@ void AnalyzeGeometry(Octant* tree, ivec corner, int scale)
 
     }  // end while d>=0
 }
-/*
-    Make a VBO from a subtree. 
-
-    It makes the 'parent' parameter Octant the host of a Geom which describes 
-    the geometry under this parent. 
-    
-
-    Parameters: 
-        parent - the node that will be at the top of this Geom. 
-
-        corner - the all-mins corner of the cube containing this volume of space. 
-
-        NS - the scale of the parent
 
 
-*/
 
-// FIXME! :) this is for TEMPORARY testing purposes only. 
+// FIXME! do we need a max? how do we decide what it is? 
 #define MAX_VERTS 1000000
-vec allvertices[1000000] ;
-vec allcolors[1000000] ;
-unsigned int allVertsVBO = 0 ;
-unsigned int allColorsVBO = 0 ;
-int numVerts = 0 ;
 
 // Dim colors so that untextured geometry looks like ass
 float mult = 0.6f ;
@@ -2102,6 +1979,9 @@ vec thecolors[10] = {
 static int colorNow = 0 ;
 
 /*
+    It makes the 'parent' parameter Octant the host of a Geom which describes 
+    the geometry under this parent. 
+    
     Inputs: 
 
         parameters: 
@@ -2199,8 +2079,8 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
         {
             if ( CN->has_geometry() ) // If we have geometry, that has to go into a VBO
             {
+                numnodes ++ ;
 
-numnodes ++ ;
                 ivec pcorner ;          // probe corner
                 Octant* pnode ;         // probe node
                 int NS = 1<<(SI-d+1) ;  // Node size. 
@@ -2489,6 +2369,8 @@ void drawworld()
     glEnable( GL_CULL_FACE ) ;
     glCullFace( GL_BACK ) ;
     glFrontFace( GL_CCW ) ;
+
+    CheckGlErrors() ;
     //---------------------------------------------------------------------
 
     loopv(worldgeometry)
@@ -2516,17 +2398,11 @@ void drawworld()
     glDisableClientState( GL_VERTEX_ARRAY );                    // Disable Vertex Arrays
     glDisableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
     glDisableClientState( GL_TEXTURE_COORD_ARRAY );                        // Enable Vertex Arrays
-CheckGlErrors() ;
-    printf("\nUGLY\n") ;
     // Disable textures. 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    printf("\nUGLY\n") ;
-    CheckGlErrors() ;
-    printf("\nUGLY\n") ;
     glDisable( GL_TEXTURE_2D ) ;
-    printf("\nUGLY\n") ;
+
     CheckGlErrors() ;
-    printf("\nUGLY\n") ;
 }
 
 
@@ -2537,7 +2413,7 @@ void SendGeomToGfx(Geom* g)
 {
     if ( glIsBuffer(g->vertVBOid)  && 
          glIsBuffer(g->colorVBOid) && 
-         glIsBuffer(g->texVBOid)    )
+         glIsBuffer(g->texVBOid)   )
     {
         glBindBuffer( GL_ARRAY_BUFFER, g->vertVBOid) ;  // Bind The Buffer
         glBufferData( GL_ARRAY_BUFFER, g->numverts*sizeof(vec), g->vertices, GL_STATIC_DRAW );

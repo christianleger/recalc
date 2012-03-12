@@ -415,37 +415,25 @@ read_args(argc, argv);
     engine.window_active = true ;
 
     initSDL( &engine ); // this by itself does a lot: it gives us our window and rendering context
-    /* OpenGL SUBSYSTEM */
-    initGL( );
-
-
-    printf(" \n\n resolution defaults: \n %d  %d", 
-        default_screen_width, 
-        default_screen_height
-    ) ; 
-
+    
+    initGL( ); /* OpenGL SUBSYSTEM */
 
     engine.scr_w = default_screen_width ;
     engine.scr_h = default_screen_height ;
-        printf("\n INITIALIZATION: resizing window after SDL init. dimensions are     %d x %d\n", engine.scr_w, engine.scr_h ) ; 
 
-    initialize_subsystems(); 
+    initialize_subsystems(); // Parts of engine - input, geometry, sound
 
     // Any reason this can't be done in the previous subsystem initialization? 
     resize_window( engine.scr_w , engine.scr_h, engine.fov ) ;
-
-    printf("\n engine.scr_w = %d   engine.src_h = %d\n", engine.scr_w, engine.scr_h) ;
-
+    printf("\n INITIALIZATION: resizing window after SDL init. dimensions are     %d x %d\n", engine.scr_w, engine.scr_h ) ; 
 
     // Bookkeeping and timing variables. 
-    bool frame_drawn = true ;
     uint framecount = 0; 
     uint last_millis = 0;
     uint sec_progress = 0 ; 
     int delta = 0 ; 
     int delta_millis = 0 ; 
     int physics_millis = 0 ; 
-    int delay_count = 0 ;
 
     millis = SDL_GetTicks();
     last_millis = millis ; 
@@ -563,14 +551,10 @@ read_args(argc, argv);
         {
             glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
             
-            extern void CheckGlErrors() ;
-            CheckGlErrors() ;
             if ( engine.rendering ) 
             {
                 render_world() ; 
             }
-
-            glGetError() ;
 
             if ( engine.editing ) 
             {
@@ -587,8 +571,7 @@ read_args(argc, argv);
                 render_menu() ; 
             }
             
-            // Various stats. Mostly useful during debugging. Can be used to 
-            // supplement editing as well. 
+            // Various stats for inspecting engine internals.
             if ( engine.info ) 
             {
                 render_info() ; 
@@ -614,13 +597,9 @@ read_args(argc, argv);
                 delta_millis = 0 ;
                 SDL_GL_SwapBuffers(); 
             }
-             SDL_Delay(1) ; 
-            delay_count++ ;
-            // glFlush() ;
-                SDL_GL_SwapBuffers(); 
-            // glFinish() ;
+            SDL_Delay(1) ; 
+            SDL_GL_SwapBuffers(); 
         }
-
         
         // FRAME COUNTING and other 1Hz actions. 
         if ( sec_progress >= 1000 )
@@ -631,15 +610,12 @@ read_args(argc, argv);
                 SDL_GetTicks()/1000, framecount 
                 ) ; main_msgs_num ++ ;
 
-            delay_count = 0 ;
             framecount = 0 ; 
             sec_progress = 0 ; 
         }
     } // end of 'while not done'
 
-
     printf("\n Exiting Recalc normally. ");
-
     /* clean up, exit */
     Quit( 0 );
 
