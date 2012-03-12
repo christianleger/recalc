@@ -99,6 +99,24 @@ void toggle_gridsize_scroll( bool enable = true )
 void deform_scroll(void * args)
 {
     // FIXME: I have no code!
+    if ((*(bool*)args)) // scroll up 
+    {
+        world.gridscale += 1 ;
+        if (world.gridscale>world.scale)
+        {
+            world.gridscale = world.scale ;
+        }
+    }
+    else                // scroll down 
+    {
+        world.gridscale -= 1 ;
+        if (world.gridscale<2)
+        {
+            world.gridscale = 2 ;
+        }
+    }
+    world.gridsize = 1<<(world.gridscale) ;
+    printf("\n world.gridscale = %d \n", world.gridscale ) ;
 }
 /*
     By default, activated by holding down q. 

@@ -56,7 +56,7 @@ ifeq ($(PLATFORM),linux)
 #        -I/usr/include/GL 
 
 #	LIB_LOCATIONS=
-		
+
     LIBS=\
         -lrt \
         -lm \
@@ -74,9 +74,10 @@ endif
 #### WINDOWS PLATFORM
 ################################################################################
 ifeq ($(PLATFORM),windows)
+    $(warning NO NO NO NO NO NO NO)
 #####################           PROGRAMS             ###########################
     CXX=g++
-    CXX_FLAGS= -mwindows
+#    CXX_FLAGS= -mwindows
     ifeq ($(DEBUG),1)
         DEBUG_FLAGS=-g
     else
@@ -86,29 +87,47 @@ ifeq ($(PLATFORM),windows)
 
     OUT_FLAG=-o
     OBJ_FLAG=-c
-    OBJ_EXT=o
+    OBJ_EXT=obj
 
 #####################            LOCATIONS           ###########################
     INCLUDES=\
         -I/usr/include/SDL \
-        -I/usr/include/GL 
-		
-	LIB_LOCATIONS=\
-        -L/usr/lib/nvidia-current
+        -I/usr/include/GL \
+        -I../include \
+        -I../include/GL \
+        -I../include/SDL
+
+    LIB_LOCATIONS=\
+        -L../bin \
+        -L/usr/local/lib
+#        -L/usr/lib/nvidia-current
+#        -L/c/WINDOWS/system32/ \
 #        -L../bin \
 #        -Lc:/Windows/system32 \
 #        -Lc:/MinGW/bin
-		
+
+#-lmingw32  -lSDL -mwindows
+#-lSDL_image -lglu32 -lopengl32
 
     LIBS=\
-        -lm \
-        -lopengl32 \
-        -lglu32 \
         -lmingw32 \
         -lSDLmain \
         -lSDL \
+        -mwindows \
+        -lglew32 \
+        -lglew32mx \
+        -lopengl32 \
+        -lglu32 \
         -lSDL_image \
-        -lSDL_mixer
+        -lSDL_mixer \
+        -llibfreetype-6 \
+        -lm \
+        -lzlib1 \
+
+
+
+
+#        -lSDLmain \
 
 endif
 ################################################################################
@@ -168,8 +187,10 @@ again: clean all
 ################################################################################
 recalc: ../src/recalc.h ../src/main.cpp $(OBJS)
 	$(info )
-	$(CXX) $(CXX_FLAGS) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) $(LIB_LOCATIONS) $(LIBS) \
-    $(OBJS) ../src/main.cpp $(OUT_FLAG) ../bin/recalc
+	$(CXX) $(CXX_FLAGS) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
+    $(OBJS) ../src/main.cpp $(OUT_FLAG) ../bin/recalc \
+    $(LIB_LOCATIONS) $(LIBS) 
+    
 	$(info )
 
 

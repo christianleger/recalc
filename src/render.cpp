@@ -63,7 +63,6 @@ void render_world( )
     //glTranslatef( -camera.pos.x, -camera.pos.y, -(1.8+camera.pos.z) ) ;
     glTranslatef( -camera.pos.x, -camera.pos.y, -(camera.pos.z) ) ;
 
-
     glColor3f( 0, 1, 0) ; 
     glBegin( GL_LINE_STRIP ) ; 
         glVertex3f( 0,  0, -50 ) ;
@@ -72,9 +71,10 @@ void render_world( )
         glVertex3f( 1,  0, -50 ) ;
         glVertex3f( 0,  0, -50 ) ;
     glEnd() ; 
-
+    
 extern void drawworld() ;
     drawworld() ;
+    
     //glEnable( GL_DEPTH_TEST ) ; 
 }
 

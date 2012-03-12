@@ -36,6 +36,7 @@ extern void clear_sound() ;
 Engine engine ; 
 void Engine::initialize()
 {
+    engine.fullscreen = true ;
     engine.window_active = true ;
     engine.testing = true ; 
     engine.menu = true ; 

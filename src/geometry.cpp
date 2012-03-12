@@ -2516,10 +2516,17 @@ void drawworld()
     glDisableClientState( GL_VERTEX_ARRAY );                    // Disable Vertex Arrays
     glDisableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
     glDisableClientState( GL_TEXTURE_COORD_ARRAY );                        // Enable Vertex Arrays
-
+CheckGlErrors() ;
+    printf("\nUGLY\n") ;
     // Disable textures. 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    printf("\nUGLY\n") ;
+    CheckGlErrors() ;
+    printf("\nUGLY\n") ;
     glDisable( GL_TEXTURE_2D ) ;
+    printf("\nUGLY\n") ;
+    CheckGlErrors() ;
+    printf("\nUGLY\n") ;
 }
 
 

@@ -23,13 +23,14 @@
 //#include <time.h>       // used for time measurement function clock_gettime
 #include <stdio.h>
 #include <stdlib.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
+//#include <GL/gl.h>
 
 #include <SDL.h>
 #include <SDL_image.h>
 
 #include "recalc.h"
+
+#include <GL/glu.h>
 
 
 /* all other globals are found in recalc.c */
@@ -99,6 +100,8 @@ void load_texture()
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 
+    
+    printf("\nDONE LOADING A FIRST TEXTURE ! \n") ;
     // use SDL_image to get a handle on the pixels
 
     // tell OpenGL to give us an id to refer to this texture. 
@@ -257,6 +260,10 @@ void initSDL( Engine * engine )
 
 void initGL( )
 {
+#ifdef WIN32
+    glewInit() ;
+#endif
+
     /* Enable smooth shading */
     glShadeModel( GL_SMOOTH );
     /* Set the background black */
@@ -462,6 +469,7 @@ read_args(argc, argv);
     //unsigned int last_frame = SDL_GetTicks() ;
     load_texture() ;
     
+    
     /* main loop */
 #define FRAME_TIME 5 // 5 gives about 200 fps. Not relevant when in vsync. 
     while ( !done )
@@ -554,7 +562,9 @@ read_args(argc, argv);
            )
         {
             glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
+            
+            extern void CheckGlErrors() ;
+            CheckGlErrors() ;
             if ( engine.rendering ) 
             {
                 render_world() ; 
@@ -566,14 +576,7 @@ read_args(argc, argv);
             {
                 render_editor() ; 
             }
-if(0)
-{
-int err = glGetError() ;
-if (err)
-{
-    printf("\n\nGL EROR IS %d\n\n", (err)) ;
-}
-}
+
             if ( engine.testing ) 
             {
                 render_tester() ;
@@ -611,7 +614,7 @@ if (err)
                 delta_millis = 0 ;
                 SDL_GL_SwapBuffers(); 
             }
-            // SDL_Delay(1) ; 
+             SDL_Delay(1) ; 
             delay_count++ ;
             // glFlush() ;
                 SDL_GL_SwapBuffers(); 

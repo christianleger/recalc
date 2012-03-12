@@ -22,16 +22,20 @@
 #include <dirent.h>
 #include <math.h>
 #include <float.h>
+
+#ifdef WIN32
+    #include "windows.h"
+    #include <GL/glew.h>
+    #include <GL/glext.h>
+#endif
+
+
 #include <SDL.h>
 #include <SDL_mixer.h>
 #include <GL/gl.h>
-#include <GL/glext.h>
 
 #include <zlib.h>
 
-#ifdef WIN32
-	#include "windows.h"
-#endif
 
 //--------------------------------------------------------------------------------------------------
 //                  LOCAL INCLUDE FILES 
