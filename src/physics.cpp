@@ -3,6 +3,8 @@
 #include "recalc.h"
 
 
+static NewtonWorld* g_world;
+
 char phys_msgs[100][256] ;
 int phys_msgs_num = 0 ;
 
@@ -337,4 +339,9 @@ void pause_physics()
 {
 }
 
-
+void init_physics()
+{
+   if (g_world) NewtonDestroyAllBodies (g_world);
+   //g_world = NewtonCreate (AllocMemory, FreeMemory);
+   g_world = NewtonCreate() ;
+}

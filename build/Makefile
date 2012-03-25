@@ -52,10 +52,13 @@ ifeq ($(PLATFORM),linux)
     INCLUDES=\
         -I/usr/include/SDL \
         -I/usr/include/nvidia-current/ \
-        -I/usr/include/freetype2
+        -I/usr/include/freetype2 \
+        -I../include
+
 #        -I/usr/include/GL 
 
-#	LIB_LOCATIONS=
+    LIB_LOCATIONS=\
+        -L../bin
 
     LIBS=\
         -lrt \
@@ -66,7 +69,8 @@ ifeq ($(PLATFORM),linux)
         -lSDL \
         -lSDL_image \
         -lSDL_mixer \
-        -lfreetype
+        -lfreetype \
+        -lNewton
 
 endif
 ################################################################################
@@ -123,6 +127,7 @@ ifeq ($(PLATFORM),windows)
         -llibfreetype-6 \
         -lm \
         -lzlib1 \
+        -lnewton
 
 
 

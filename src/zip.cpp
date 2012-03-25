@@ -1,3 +1,10 @@
+/*
+    This file is borrowed from the Sauerbraten project. 
+
+    After being begged by a million or more souls not to reinvent the wheel, 
+    I have to agree at some point, eh? 
+*/
+
 #include "recalc.h"
 
 extern char *path(char *s) ;

@@ -135,7 +135,7 @@ struct Octant
     union 
     {
         uchar    edges[12] ;                                    // 12 bytes 
-        uint32_t edge_check[3] ; // used to check if a node has geometry // 12 bytes
+        uint32_t edgegroups[3] ; // used to check if a node has geometry // 12 bytes
 
         /*  For non-leaf nodes maybe this shite can be used for something
         struct
@@ -172,7 +172,10 @@ struct Octant
         define geometry). 
     */
     bool has_geometry() ;
+    void clear_geometry() ;
     bool has_children() ;
+    void clear_children() ;
+    void clear_geom() ;
     void set_all_edges(int in_value) ;
 
     void test_func_def()

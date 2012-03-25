@@ -223,6 +223,7 @@ void initialize_subsystems()
     // non-class components 
     initialize_text() ;
     initialize_input() ;
+    init_physics() ;
 
     initialize_tests() ;
 

@@ -303,6 +303,7 @@ void initialize_input() ;
 // physics 
 void pause_physics() ; 
 void physics_frame( unsigned int ) ; 
+void init_physics() ;
 
 // render
 
@@ -319,7 +320,7 @@ void handle_key() ;
 void handle_mouse_motion() ;
 void handle_mouse_button( SDL_Event * ev ) ;
 
-#endif
+
 
 // from main: function which resizes the window 
 void resize_window( int w, int h, int fov) ;
@@ -350,3 +351,4 @@ void initialize() ;
     int playsound( vec* loc, int n, int loops, int fade, int chanid, int radius, int expire) ;
 
 
+#endif

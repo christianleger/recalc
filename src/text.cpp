@@ -426,7 +426,6 @@ void textwidth(Font * in_font, char * text, int * width)
 */
 void printstr(Font * ft_font, float x, float y, const char * str)
 {
-
     glPushMatrix();
         glListBase(ft_font->gl_list_base);
         glTranslatef(x, y+16/*+ft_font->_height*/, 0.0f);
@@ -467,7 +466,6 @@ void tryttfstr()
 /*
     prstr: print a string. return, for all interested parties, the on-screen 
     length in pixels of the string that was just printed. 
-
 */
 void prstr(int fidx, float x, float y, const char * str)
 {

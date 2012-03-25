@@ -9,6 +9,15 @@ extern Area area ;
 extern vector<Font*> fonts ;
 
 
+void CheckGlErrors()
+{
+    int err = glGetError() ;
+    if (err)
+    {
+        // FIXME: logging system. 
+        loopi(40) { printf("\n\nGL EROR IS %d\n\n", (err)) ; }
+    }
+}
 
 // Resets matrices to a blank, usable 2D coordinate space measured 
 // in pixels. 
@@ -126,14 +135,6 @@ extern bool hit_world ;
 void render_editor()
 {
     float v1[3] = { 0, 0, 0 } ; 
-   /* 
-    glMatrixMode( GL_MODELVIEW ) ; 
-    glLoadIdentity() ; 
-
-    glRotatef( -camera.pitch/10 , 1, 0, 0 ) ; 
-    glRotatef( -camera.yaw/10 , 0, 1, 0 ) ; 
-    glRotatef( -90 , 1, 0, 0 ) ; 
-    */
 
     extern void update_editor() ;
     update_editor() ;
@@ -149,15 +150,6 @@ void render_editor()
     }
 
 
-/*
-    glBegin( GL_LINE_STRIP ) ; 
-        glVertex3fv( v1 ); v1[0] = area.size ;
-        glVertex3fv( v1 ); v1[1] = area.size ;
-        glVertex3fv( v1 ); v1[0] = 0 ;
-        glVertex3fv( v1 ); v1[1] = 0 ; 
-    glEnd() ; 
-*/
-
     // glDisable( GL_DEPTH_TEST ) ;
     glEnable ( GL_DEPTH_TEST ) ;
     // If we're aiming at the world, then we draw a helpful box 
@@ -169,23 +161,18 @@ void render_editor()
     
 extern void draw_highlight() ; // FIXME lol externs everywhere. 
 
-glDisable(GL_DEPTH_TEST) ;
+//glDisable(GL_DEPTH_TEST) ;
     draw_highlight() ;
 
     draw_selection() ;
     //draw_sel_start() ;
     //draw_sel_end() ;
-glEnable(GL_DEPTH_TEST) ;
-//glGetError(); 
+//glEnable(GL_DEPTH_TEST) ;
     
-    //draw_newcubes() ;
-    //draw_new_octs() ;
-
     // green square that shows where on world boundary ray is entering world, 
     // if camera is looking at world from outside. 
     extern void draw_ray_start_node() ;
     draw_ray_start_node() ;
-
 
 
 int err = glGetError() ; 
@@ -436,7 +423,7 @@ void render_info()
         {
             //prstr( 0, 600.f, engine.current_h - next_line*height, 
             //prstr( engine.current_w-300, 60.f, 0 + next_line*height, 
-            prstr( 0, engine.current_w-600, 0 + (j+3)*height, 
+            prstr( 0, engine.current_w-600, 0 + (j+20)*height, 
                    geom_msgs2[j]) ; j++ ;
         }
 

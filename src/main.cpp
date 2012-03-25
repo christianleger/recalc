@@ -37,11 +37,11 @@
 
 SDL_Surface *surface;
 
-#define SCREEN_WIDTH 2600
-#define SCREEN_HEIGHT 900
+//#define SCREEN_WIDTH 2600
+//#define SCREEN_HEIGHT 900
 
 int default_screen_width = 1200 ; 
-int default_screen_height = 900 ; 
+int default_screen_height = 800 ; 
 
 /*-----------------------------------------------------------------*/
 //                  function prototypes 
@@ -72,7 +72,8 @@ void load_texture()
 {
     SDL_Surface* data_image ;
 
-    data_image = IMG_Load("../data/textures/1.jpg") ;
+    //data_image = IMG_Load("../data/textures/1.jpg") ;
+    data_image = IMG_Load("../data/textures/grid.png") ;
     if (data_image == NULL)
     {
         printf("\nPROBREM LOADING FILE\n");
@@ -98,7 +99,9 @@ void load_texture()
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data_image->w, data_image->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
     SDL_FreeSurface(data_image);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    //glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 
     
     printf("\nDONE LOADING A FIRST TEXTURE ! \n") ;
@@ -214,7 +217,7 @@ void initSDL( Engine * engine )
     engine->videoFlagsFS  = engine->videoFlags; 
     engine->videoFlagsFS |= SDL_FULLSCREEN; 
 
-
+//engine->fullscreen = true ;
     // FIXME: this is convoluted bullshit
     // WINDOW
     if ( engine->fullscreen )
@@ -230,7 +233,6 @@ void initSDL( Engine * engine )
     engine->current_w = engine->scr_w ;
     engine->current_h = engine->scr_h ;
 
-
     // VISUAL
     printf("\nSetting video mode: \n") ; 
     printf("\n %d X %d \n", engine->scr_w, engine->scr_h ) ; 
@@ -238,7 +240,8 @@ void initSDL( Engine * engine )
         engine->current_w, 
         engine->current_h, 
         SCREEN_BPP, 
-        ((engine->fullscreen)   ?  engine->videoFlagsFS : engine->videoFlags)
+        //((engine->fullscreen)   ?  engine->videoFlagsFS : engine->videoFlags)
+        engine->videoFlags
     );
 
     /* Verify there is a surface */
@@ -411,15 +414,15 @@ read_args(argc, argv);
     // WANTED: an 'engine' module which knows what good defaults are and how 
     // to present other options. 
     // cheap, expendable initialization section 
-    engine.fullscreen = false ; 
+//    engine.fullscreen = true ; 
     engine.window_active = true ;
 
     initSDL( &engine ); // this by itself does a lot: it gives us our window and rendering context
     
     initGL( ); /* OpenGL SUBSYSTEM */
 
-    engine.scr_w = default_screen_width ;
-    engine.scr_h = default_screen_height ;
+//    engine.scr_w = default_screen_width ;
+//engine.scr_h = default_screen_height ;
 
     initialize_subsystems(); // Parts of engine - input, geometry, sound
 
