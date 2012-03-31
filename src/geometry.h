@@ -85,6 +85,7 @@ struct Geom
     unsigned int colorVBOid; 
 
     vec vertices[256] ;     // maybe 85 triangles
+//    ivec vertices[256] ;     // maybe 85 triangles
     vec colors[256] ;       // yep
     vec2 texcoords[256] ;   // maybe 85 triangles
     unsigned char numverts ;
@@ -177,6 +178,7 @@ struct Octant
     void clear_children() ;
     void clear_geom() ;
     void set_all_edges(int in_value) ;
+    void clear_all() ;
 
     void test_func_def()
     {

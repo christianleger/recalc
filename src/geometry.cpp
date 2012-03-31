@@ -225,6 +225,22 @@ void new_octants( Octant* oct )
     return ;
 }
 
+void Octant::clear_all()
+{
+    if ( geom )
+    {
+        clear_geom() ; // recycle this node's geom
+    }
+    if (children)
+    {
+        clear_children() ;
+    }
+    if (has_geometry())
+    {
+        clear_geometry() ; numchildren-- ;
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -235,6 +251,7 @@ void new_octants( Octant* oct )
 int orientation = 0 ;
 #define o orientation 
 
+int targetsize ;
 ivec ifront ;   // used to remember the location where a ray hits a node
 ivec icorner ;
 vec corner( 0, 0, 0 ) ;
@@ -929,9 +946,10 @@ sprintf(geom_msgs2[geom_msgs_num2], "RAY LEAVING WORLD") ; geom_msgs_num2++ ;
 
             if ( oct->has_geometry() ) 
             { 
-sprintf(geom_msgs2[geom_msgs_num2], "HAVE TARGET: icorner at %d %d %d", icorner[0], icorner[1], icorner[2]) ; geom_msgs_num2++ ;
                 havetarget = true ; 
                 aim = oct ;
+                targetsize = NS ; 
+sprintf(geom_msgs2[geom_msgs_num2], "HAVE TARGET: icorner at %d %d %d targetsize=%d", icorner[0], icorner[1], icorner[2], targetsize) ; geom_msgs_num2++ ;
                 break ; 
             }      // Target acquired. 
             vec f = rayfront ; r = 0.f ; d = 0.f ; t = 0.f ; 
@@ -1109,9 +1127,10 @@ void Octant::clear_geom()
 /*
     Function: deletesubtree. 
 
-
-    Purpose: to remove all children a node may have, and their 
-    properties. 
+    Purpose: to remove all descendants and their contents a node may have. 
+    
+    It always proceeding depth-first and then upwards by child index to find
+    leaves with no children.
 
     Typical usage: when content needs to be removed from a portion 
     of the tree, it can be removed by using the nodes whose combined 
@@ -1121,21 +1140,14 @@ void Octant::clear_geom()
 void deletesubtree(Octant* in_oct)
 {
     int32_t d = 0 ;             // depth
-    Octant* CN = in_oct ;  // current node 
-    Octant* CC = NULL ;         // current child 
+    Octant* CN = in_oct ;       // current node 
     Octant* path[20] = {NULL} ;
     path[0] = CN ; // This is and always will be the root. 
-    int32_t idxs[20] ;   // idxs[d] tracks which child of node path[d] is being used, if any. 
-    loopi(20) { idxs[i] = 0 ; }
+    int32_t idxs[20] = { 0 } ;   // idxs[d] tracks which child of node path[d] is being used, if any. 
+//    loopi(20) { idxs[i] = 0 ; }
 
-    d = 0 ;     // We start at the root. 
+    d = 0 ; // We start at the root. 
 
-    ivec pos( 0, 0, 0 );
-
-//zzzFlagSubtreeForUpdate( CN )  ;
-
-    // This is a depth-first descent down the tree. Can't delete a node before its children 
-    // are gone, after all. 
     while (d>=0)
     {
         if ( CN->children )
@@ -1151,30 +1163,19 @@ void deletesubtree(Octant* in_oct)
             }
         }
         
-        path[d] = NULL ;
-        d-- ;
-        if (d<0)
-        {
-            break ;
-        }
-        CN = path[d] ;
-        idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
         if (CN)
         {
-            if ( CN->geom )
-            {
-                CN->clear_geom() ; // recycle this node's geom
-            }
-            if (CN->children)
-            {
-                CN->clear_children() ;
-            }
-            if (CN->has_geometry())
-            {
-                CN->clear_geometry() ; numchildren-- ;
-            }
+            CN->clear_all() ;
+            CN->geom = GEOM_NEED_UPDATE ;
         }
-    }   // end while d>=0
+        path[d] = NULL ;
+
+        // Done with last node; go back up the tree. 
+        d-- ;
+        if (d<0) { break ; }
+        CN = path[d] ;
+        idxs[d]++ ; 
+    }
 }
 
 
@@ -1184,7 +1185,9 @@ void deletesubtree(Octant* in_oct)
     Function: FindNode
 
     Purpose: 
-        locate a leaf node that encloses a particular point. If the point given
+        Locate a leaf node that contains the given point. 
+        
+        If the point given
         is on the border between two nodes, the node returned is the one for
         which the border is at its minimum boundaries in X, Y or Z. This
         follows from the fact that a corner vertex always uniquely refers to
@@ -1227,14 +1230,8 @@ Octant* FindNode(ivec at, int* out_size, int* nScale) // , int* out_size)
     }
 
     if (out_size!=NULL) 
-    if (!oct)
-    {
-        *out_size = 0 ;
-    }
-    else
-    {
-        *out_size = 2<<CGS ;
-    }
+    if (!oct) { *out_size = 0 ; }
+    else { *out_size = 2<<CGS ; }
 
     return oct ;
 }
@@ -1253,63 +1250,22 @@ Octant* findGeom(ivec at, int* out_size, int* nscale) //, int* out_size=NULL) ;
     {
         if ( oct->geom )
         {
-            currentgeom = oct->geom ;
-            
-            if (oct->geom == GEOM_NEED_UPDATE)
-            {
+             currentgeom = oct->geom ;
+		        break ; 
+		    }
 
-            }
-            else
-            {
-                Geom* g = oct->geom ;
+		    if ( oct->children ) 
+		    {
+		        i = octastep(at.x,at.y,at.z,CS) ;
+		        oct = &oct->children[i] ;
+		        if (nscale != NULL) { *nscale = CS ; }
+		        CS-- ;
+		    }
+		}
 
-/*FIXME: put this stuff inside an inspection routine. 
-                if (glIsBuffer(oct->geom->texVBOid))
-                {
-                    sprintf(geom_msgs2[geom_msgs_num2], "texVBOid is good.  %d", (int)(g->texVBOid)) ; geom_msgs_num2++ ;
-                }
-                if (glIsBuffer(oct->geom->vertVBOid))
-                {
-                    sprintf(geom_msgs2[geom_msgs_num2], "vertVBOid is good. %d", (int)(g->colorVBOid)) ; geom_msgs_num2++ ;
-                }
-                if (glIsBuffer(oct->geom->colorVBOid))
-                {
-                    sprintf(geom_msgs2[geom_msgs_num2], "colorVBOid is good. %d", (int)(g->vertVBOid)) ; geom_msgs_num2++ ;
-                }
-                sprintf(geom_msgs2[geom_msgs_num2], "GEOM is %d", (int)(oct->geom)) ; geom_msgs_num2++ ;
-*/
-            }
-        }
-
-        if ( oct->children ) 
-        {
-            if (oct->geom == GEOM_NEED_UPDATE)
-            {
-            }
-            i = octastep(at.x,at.y,at.z,CS) ;
-            oct = &oct->children[i] ;
-            if (nscale != NULL) { *nscale = CS ; }
-            CS-- ;
-            continue ;
-        }
-        
-        if ( oct->has_geometry() )
-        {
-        }
-        break ; 
-    }
-
-    //if (out_size!=NULL) { *out_size = 2<<CS ; }
-    if (out_size!=NULL) 
-    if (!oct)
-    {
-        *out_size = 0 ;
-    }
-    else
-    {
-        *out_size = 2<<CS ;
-    }
-
+		if (out_size!=NULL) 
+		if (!oct) { *out_size = 0 ; }
+		else { *out_size = 2<<CS ; }
 
     return oct ;
 }
@@ -1327,14 +1283,14 @@ void FlagSubtreeForUpdate( Octant* parent)
 {
     Octant* CN = parent ;
     Octant* path[20] ;
+    int idxs[20] ;
     loopi(20) { path[i] = NULL ;}
     path[0] = CN ;
-    int idxs[20] ;
     loopi(20) { idxs[i] = 0 ;}
 
     int d = 0 ;
 
-    while (d>=0)
+    while (d>=0) // Here starts the non-recursive descent. 
     {
         if ( CN->children )
         {
@@ -1356,13 +1312,9 @@ void FlagSubtreeForUpdate( Octant* parent)
             }
         }
         CN->geom = GEOM_NEED_UPDATE ;
-
-        path[d] = NULL ;
+//        path[d] = NULL ;
         d-- ;
-        if (d<0)    // Past the root? Then we're done. 
-        {   
-            break ;
-        }
+        if (d<0) { break ; } // Past the root? Then we're done. 
         CN = path[d] ;
         idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
     }   // end while d>=0
@@ -1389,33 +1341,18 @@ void FlagSubtreeForUpdate( Octant* parent)
 */
 void FlagPathForUpdate( Octant** path, int _depth) 
 {
-
-printf("\nflagging path...") ;
-
     int d = _depth ;
-    while (d>=0)
+    while (d>=0) // Question: what events prevent us from stopping the course upwards when we encounter a GEOM_NEED_UPDATE? 
     {
-        if (path[d]->geom==GEOM_NEED_UPDATE) 
-        {
-            // If we reach here it means this node has already been marked. No 
-            // need to continue up the tree. 
-//break ;
-        }
-        // Since we're marking this path for update it means any geometry is going 
-        // to be rebuilt. We therefore recycle any existing geometry on the path. 
         if (path[d]->geom != NULL)
         {
-            // Need to flag all nodes under this one! For update! 
             if (path[d]->geom!=GEOM_NEED_UPDATE)
             {
                 FlagSubtreeForUpdate( path[d] ) ;
                 path[d]->clear_geom() ;
-                printf("\nOne geom cleared.") ;
             }
         }
-        // Thus, the Octant is flagged regardless of being a leaf node or not. 
         path[d]->geom = GEOM_NEED_UPDATE ;
-printf("\nOne node cleared.") ;
         d-- ;
     }
 }
@@ -1454,11 +1391,6 @@ void SubdivideOctant( Octant** path , int depth )
     {
         Octant* CC = &(oct->children[i]) ;
         CC->set_all_edges() ; numchildren++ ;
-        loopj(6)
-        {
-            // Child's faces inherits the parent's faces. 
-            CC->tex[j] = oct->tex[j] ;
-        }
     }
     // 2. Using interpolation to find the mid-face vertices, generate the 5 new 
     // vertices per face needed to specify the faces of the children. 
@@ -1616,14 +1548,14 @@ void extrude( void * _in )
             NC[y] -= 1 ;
             ivec NCstart = NC ;
 
-printf("\n preparing to delete. ") ;
+//printf("\n preparing to delete. ") ;
 
             while ( y_count < sel_counts[y]+1)
             {
-printf("\n Row %d. ", y_count) ;
+//printf("\n Row %d. ", y_count) ;
                 while ( x_count < sel_counts[x]+1)
                 {
-printf("\n Col %d. ", x_count) ;
+//printf("\n Col %d. ", x_count) ;
 
                     bool inside = false ;
                     if ( (x_count>=0 && x_count<sel_counts[x]) &&
@@ -1632,28 +1564,16 @@ printf("\n Col %d. ", x_count) ;
                         inside = true ;
                     }
                     
-                    
                     while (CGS>=WGSc)
                     {
-printf("\n \t depth %d. oct=%d", depth, ((int)oct)) ;
                         // If we're not done going deeper and we hit geometry, we need to subdivide. 
                         if (!oct->children )
                         {
-                            //break ;
-                            // / *
-                            //sprintf(geom_msgs[geom_msgs_num], "Subdivision") ; geom_msgs_num++ ;
-
-                            if (inside)
+                            if (inside && oct->has_geometry() )
                             {
-                                printf("\n subdividing. ") ;
                                 SubdivideOctant( path, depth ) ;
-                                printf("\n done subdividing. \n") ;
                             }
-                            else
-                            {
-                                break ;
-                            }
-                            // * /
+                            else { break ; }
                         }
 
                         int i = octastep(NC.x,NC.y,NC.z,CGS) ;
@@ -1663,23 +1583,21 @@ printf("\n \t depth %d. oct=%d", depth, ((int)oct)) ;
                         CGS-- ;
                     }
                     
-                    if (oct)
+                    //if (oct)
                     if (inside)
                     {
                      //   FlagSubtreeForUpdate(oct) ;
                         if (oct->children){deletesubtree( oct ) ;}
                         if (oct->has_geometry()){oct->clear_geometry() ;}
                     }
-                    printf("\nNow flagging for update. depth=%d", depth) ;
                     FlagPathForUpdate( path, depth) ;
-                    printf("\nFinished flagging. ") ;
                     
-                    // reset position 
+                    // reset node tracker
                     CGS = WS ; 
                     depth = 0 ;
                     oct = &world.root ;
 
-                    // Move to next position for a new node 
+                    // Move to next R^3 position for a new node 
                     NC[x] += GS ;
                     x_count ++ ;
                 } // end while ( x_count < sel_counts[X(O)])
@@ -1689,7 +1607,7 @@ printf("\n \t depth %d. oct=%d", depth, ((int)oct)) ;
                 NC[y] += GS ;
             } // end while ( y_count < sel_counts.y )
             
-printf("\nNext phase in life. . ") ;
+//printf("\nNext phase in life. . ") ;
             
             // Now do a similar process of flagging for update (no tree modifications 
             // after this point) for the surface that is ahead of the deletion area.
@@ -1700,36 +1618,30 @@ printf("\nNext phase in life. . ") ;
             x_count = 0 ;
             y_count = 0 ;
 
-
-printf("\n preparing to flag. ") ;
             while ( y_count < sel_counts[y])
             {
-printf("\n Row %d. ", y_count) ;
                 while ( x_count < sel_counts[x])
                 {
-printf("\n Col %d. ", x_count) ;
                     while (CGS>=WGSc)
                     {
                         if (!oct->children)
                         {
                             break ;
                         }
-printf("\n \t depth %d. oct=%d", depth, ((int)oct)) ;
                         int i = octastep(NC.x,NC.y,NC.z,CGS) ;
                         oct = &oct->children[i] ;
                         depth++ ;
                         path[depth] = oct ;
                         CGS-- ;
                     }
-                    
                     FlagPathForUpdate( path, depth) ;
-                    printf("\n not done yet. ") ;
+
                     CGS = WS ; 
                     depth = 0 ;
                     oct = &world.root ;
+
                     NC[x] += GS ;
                     x_count ++ ;
-                    printf("\n hello. ") ;
                 }
                 x_count = 0 ;
                 y_count ++ ;
@@ -1771,9 +1683,6 @@ printf("\n \t depth %d. oct=%d", depth, ((int)oct)) ;
                         {
                             if (inside) 
                             { 
-                                // FIXME: Subdivide here if need be sucka!! 
-                                // if (we have geometry)
-                                // then subdivide!!
                                 new_octants(oct) ;
                             }
                             else{break ;}
@@ -1834,6 +1743,7 @@ printf("\n \t depth %d. oct=%d", depth, ((int)oct)) ;
                     CGS = WS ; 
                     depth = 0 ;
                     oct = &world.root ; 
+
                     NC[x] += GS ;
                     x_count ++ ;
                 }
@@ -1847,10 +1757,7 @@ printf("\n \t depth %d. oct=%d", depth, ((int)oct)) ;
             sel_end  [sel_o>>1] += GS*Dz(O) ;
             
         }// end if extruding
-printf("\n hello again. ") ;
     }
-
-printf("\n yepppppp") ;
     // Identify pieces that need to be rebuilt
     AnalyzeGeometry(&world.root, vec(0,0,0), world.scale) ;
 
@@ -1945,11 +1852,7 @@ void AnalyzeGeometry(Octant* tree, ivec corner, int scale)
                 {
                     int sum = 0 ;
                     CC = &CN->children[0] ;
-                    loopi(8)
-                    {
-                        sum += CC->vc ;
-                        CC++ ;
-                    }
+                    loopi(8) { sum += CC->vc ; CC++ ; }
                     CN->vc = sum ;
                 }
             }
@@ -1998,11 +1901,9 @@ void AnalyzeGeometry(Octant* tree, ivec corner, int scale)
 
         // These last lines of the while loop make up the 'going up the tree' action. 
         path[d] = NULL ;
-        d-- ;
-        if (d<0)    // Past the root? Then we're done. 
-        {   
-            break ;
-        }
+        d-- ; 
+        // Past the root? Then we're done. 
+        if (d<0) { break ; }
         CN = path[d] ;
 
         loopi(3) {incr = (1<<(S-d)) ; yesorno = ((idxs[d]>>i)&1) ;pos.v[i] -= yesorno * incr ;}
@@ -2059,7 +1960,6 @@ void AssignNewVBOs(Octant* tree, ivec in_corner, int scale)
 
                 if (useThisNode)
                 {
-// printf("\n\tmaking vbo for %d nodes at tree located at %d %d %d. (from depth %d)", CN->vc, pos.x, pos.y, pos.z, d) ; 
                     makeSubtreeVBO( CN, pos, S-d) ; // FIXME: move this to phase 3 
                 }
                 else 
@@ -2080,7 +1980,6 @@ void AssignNewVBOs(Octant* tree, ivec in_corner, int scale)
                 // If we get to here, then it's time to build this. 
                 if ( CN->has_geometry() )
                 {
-//printf("\nMaking vbo for solid node \n") ;
                     makeSubtreeVBO( CN, pos, S-d) ; // FIXME: move this to phase 3 
                 }
             }
@@ -2088,10 +1987,7 @@ void AssignNewVBOs(Octant* tree, ivec in_corner, int scale)
 
         // At this point, we're done with the present node, so we cancel its need for update if it's there. 
         // These last lines of the while loop make up the 'going up the tree' action. 
-        if (CN->geom == GEOM_NEED_UPDATE)
-        {
-            CN->geom = NULL ;
-        }
+        if (CN->geom == GEOM_NEED_UPDATE) { CN->geom = NULL ; }
 
         // back up the tree
         path[d] = NULL ;
@@ -2170,9 +2066,11 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
     ivec pos = in_corner ;
 
     vec* verts = CN->geom->vertices ;
+//    ivec* verts = CN->geom->vertices ;
     vec* colors = CN->geom->colors ;
     vec2* tex = CN->geom->texcoords ;
     int numverts = 0 ;
+    int nv = 0 ;
     int numnodes = 0 ;
 
     path[0] = CN ;
@@ -2233,7 +2131,7 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
                 int NS = 1<<(SI-d+1) ;  // Node size. 
                 int ns = 0 ;            // neighbor size
 
-                int tui=numverts ;
+                int tui=nv ;
                 for (int face=0;face<6;face++)
                 {
                     // If this face is visible, then make some triangles for it. 
@@ -2243,13 +2141,11 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
                         pcorner = pos ; 
                         
                         int zoffset = Dz(face)*NS*(face%2) ;
-                        pcorner[Z(O)] += zoffset ;
-
-
-                        int32_t x = X(O) ; // in vectors, this x is now the index for the coordinate pointed on the x axis. 
-                        int32_t y = Y(O) ;
-                        int32_t z = Z(O) ;
+                        pcorner[Z(O)] += zoffset ; 
                         
+                        // in vectors, this x is now the index for the coordinate pointed on the x axis. 
+                        int32_t x = X(O) ; int32_t y = Y(O) ; int32_t z = Z(O) ; 
+
                         // ASSIGN TRIANGLE VERTICES HERE
                         /*
                             How triangles are made! Now are you starting to suspect that 
@@ -2403,25 +2299,17 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
     
     CN->geom->numverts = numverts ;
 
-    if (!glIsBuffer(CN->geom->vertVBOid))
-    {    
-        glGenBuffers( 1, &(CN->geom->vertVBOid)) ; 
-    }
+    if (!glIsBuffer(CN->geom->vertVBOid)) { glGenBuffers( 1, &(CN->geom->vertVBOid)) ; }
     glBindBuffer( GL_ARRAY_BUFFER, CN->geom->vertVBOid) ;
     glBufferData( GL_ARRAY_BUFFER, numverts*sizeof(vec), verts, GL_STATIC_DRAW );
 
-    if (!glIsBuffer(CN->geom->colorVBOid))
-    {
-        glGenBuffers( 1, &(CN->geom->colorVBOid)) ; 
-    }
+/*
+    if (!glIsBuffer(CN->geom->colorVBOid)) { glGenBuffers( 1, &(CN->geom->colorVBOid)) ; }
     glBindBuffer( GL_ARRAY_BUFFER, (CN->geom->colorVBOid)) ;
     glBufferData( GL_ARRAY_BUFFER, numverts*sizeof(vec), colors, GL_STATIC_DRAW );
+*/
 
-    if (!glIsBuffer(CN->geom->texVBOid))
-    {
-        CN->geom->texVBOid = 0  ;
-        glGenBuffers( 1, &(CN->geom->texVBOid)) ; 
-    }
+    if (!glIsBuffer(CN->geom->texVBOid)) { glGenBuffers( 1, &(CN->geom->texVBOid)) ; }
     glBindBuffer( GL_ARRAY_BUFFER, (CN->geom->texVBOid));            // Bind The Buffer
     glBufferData( GL_ARRAY_BUFFER, numverts*sizeof(vec2), tex, GL_STATIC_DRAW );
 
@@ -2431,12 +2319,55 @@ worldgeometry.add(CN->geom) ;
 
 }
 
+void faceIsCovered(ivec start, int face, int size)
+{
+    Octant* CN = NULL ;
+    /*
+    while (d>=0)
+    {
+        if ( CN->children )
+        {
+            if (idxs[d]<8)
+            {
+                // We're going down to a child, marked relative to its parent by idxs[d]. 
+                loopi(3) {incr = (1<<(SI-d)) ; yesorno = ((idxs[d]>>i)&1) ;pos.v[i] += yesorno * incr ;}
+                CN = &CN->children[idxs[d]] ; 
+                d++ ;
+                path[d] = CN ;
+                idxs[d] = 0 ; // Start the children at this level. 
+                continue ;
+            }
+        }
+        // If we don't have children, then maybe we have geometry.
+        else
+        {
+            if ( CN->has_geometry() )
+            {
+            }
+        }
 
+        // These last lines of the while loop make up the 'going up the tree' action. 
+        path[d] = NULL ;
+        d-- ;
+        if (d<0)    // Past the root? Then we're done. 
+        {   
+            break ;
+        }
+        CN = path[d] ;
+
+        loopi(3) {
+            incr = (1<<(SI-d)) ; yesorno = ((idxs[d]>>i)&1) ;
+            pos.v[i] -= yesorno * incr ;
+        }
+        idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
+    }                   // end while d>=0
+    */
+}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // REPLACE ME AND MOVE ME! 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/* tree traversal below is 54 lines */
+/* tree traversal below is 38 lines */
 
 
 /*
@@ -2478,7 +2409,6 @@ worldgeometry.add(CN->geom) ;
         }
         idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
     }                   // end while d>=0
-    glEnd() ;
 */
 
 
@@ -2499,7 +2429,7 @@ void drawworld()
     glEnable( GL_TEXTURE_2D ) ;
     glBindTexture(GL_TEXTURE_2D, texid ) ;
 
-    glColor3f(.7,.7,.7) ;
+    glColor3f(.4,.4,.4) ;
     glEnableClientState( GL_VERTEX_ARRAY );                       // Enable Vertex Arrays
 //    glEnableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
     glEnableClientState( GL_TEXTURE_COORD_ARRAY );                // Enable Vertex Arrays
@@ -2510,23 +2440,73 @@ void drawworld()
 
     //---------------------------------------------------------------------
 
+glColor3f(1,1,1) ;
     loopv(worldgeometry)
     {
         Geom* g = worldgeometry[i] ;
 
-        if (g->vertVBOid>0 && g->colorVBOid>0 && g->texVBOid)
+        //if (g->vertVBOid>0 && g->colorVBOid>0 && g->texVBOid)
+        if (g->vertVBOid>0 && g->texVBOid)
         {
             glBindBuffer(GL_ARRAY_BUFFER, g->vertVBOid);
+            //glVertexPointer( 3, GL_FLOAT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
             glVertexPointer( 3, GL_FLOAT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
+
+
 //            glBindBuffer(GL_ARRAY_BUFFER, g->colorVBOid);
   //          glColorPointer( 3, GL_FLOAT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
+
+
             glBindBuffer(GL_ARRAY_BUFFER, g->texVBOid);
             glTexCoordPointer( 2, GL_FLOAT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
 
+glDepthFunc( GL_LESS ) ;
             glDrawArrays( GL_TRIANGLES, 0, g->numverts);    // Draw All Of The Triangles At Once
             
         }// end if VBO ID's valid
     }// end looping over worldgeometry
+
+
+//glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+
+
+
+
+// if show triangles 
+if (0)
+{
+
+    glDepthFunc( GL_LEQUAL ) ;
+    // /*
+    glColor3f(0,0,0) ;
+    glLineWidth(3) ;
+    //glDisable( GL_DEPTH_TEST ) ;
+    glPolygonMode( GL_FRONT, GL_LINE ) ;
+        loopv(worldgeometry)
+        {
+            Geom* g = worldgeometry[i] ;
+
+            if (g->vertVBOid>0 && g->colorVBOid>0 && g->texVBOid)
+            {
+
+                glBindBuffer(GL_ARRAY_BUFFER, g->vertVBOid);
+                glVertexPointer( 3, GL_FLOAT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
+                glDrawArrays( GL_TRIANGLES, 0, g->numverts);    // Draw All Of The Triangles At Once
+
+            }// end if VBO ID's valid
+        }// end looping over worldgeometry
+
+
+    glPolygonMode( GL_FRONT, GL_FILL ) ;
+    //glEnable( GL_DEPTH_TEST ) ;
+    glLineWidth(1) ;
+}
+// */
+
+
+
+
 
     glDisableClientState( GL_VERTEX_ARRAY );
 //    glDisableClientState( GL_COLOR_ARRAY );
@@ -2535,6 +2515,52 @@ void drawworld()
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glDisable( GL_TEXTURE_2D ) ;
+
+    int x = X(sel_o) ;
+    int y = Y(sel_o) ;
+    int z = Z(sel_o) ;
+
+    glColor3f(0,0,1) ;
+    glLineWidth(3) ;
+    glBegin( GL_LINES ) ;
+
+    ivec hello = ifront ;
+
+if (0)
+{
+for (int face=0;face<6;face++)
+{
+    ivec pcorner = ifront ;
+    pcorner[face>>1] = ifront[face>>1]+Dz(face)*(100 + (face%2)*(targetsize)) ; 
+
+    hello = pcorner ;
+
+    loopi(3)
+    {
+        hello[i] -= 640 ; glVertex3iv( hello.v ) ; 
+        hello[i] += 1280 ; glVertex3iv( hello.v ) ; 
+        hello[i] -= 640 ; 
+        
+        ivec art = hello ;
+    glColor3f(1,0,0) ;
+        glVertex3iv( art.v ) ; 
+        art[X(face)] += targetsize/2 ;
+        art[Y(face)] += targetsize/2 ;
+        glVertex3iv( art.v ) ; 
+    glColor3f(0,0,1) ;
+    }
+}
+}
+/*
+    hello[1] -= 1280 ; glVertex3iv( hello.v ) ; 
+    hello[1] += 2560 ; glVertex3iv( hello.v ) ; 
+    hello[1] -= 1280 ; 
+    hello[2] -= 1280 ; glVertex3iv( hello.v ) ; 
+    hello[2] += 2560 ; glVertex3iv( hello.v ) ; 
+*/
+
+    glEnd() ;
+    glLineWidth(1) ;
 }
 
 
@@ -2549,8 +2575,12 @@ void SendGeomToGfx(Geom* g)
     {
         glBindBuffer( GL_ARRAY_BUFFER, g->vertVBOid) ;
         glBufferData( GL_ARRAY_BUFFER, g->numverts*sizeof(vec), g->vertices, GL_STATIC_DRAW );
+
+/*
         glBindBuffer( GL_ARRAY_BUFFER, g->colorVBOid) ;
         glBufferData( GL_ARRAY_BUFFER, g->numverts*sizeof(vec), g->colors, GL_STATIC_DRAW );
+*/
+
         glBindBuffer( GL_ARRAY_BUFFER, g->texVBOid) ;
         glBufferData( GL_ARRAY_BUFFER, g->numverts*sizeof(vec2), g->texcoords, GL_STATIC_DRAW );
         glBindBuffer( GL_ARRAY_BUFFER, 0) ;             

@@ -3,6 +3,12 @@
 
 #include "recalc.h"
 
+
+////////////////////////////////////////////////
+// Main switch on this system
+////////////////////////////////////////////////
+bool textenabled = true ;
+
 extern Camera camera ;
 extern Engine engine ;
 extern Area area ;
@@ -367,8 +373,8 @@ void render_console()
 */
 void render_info()
 {
+    if (!textenabled) { return ; }
 
-    glCullFace(GL_FRONT) ;
 
     int i = 0 ;
     int j = 0 ;
@@ -376,6 +382,7 @@ void render_info()
     #define next_line ((i++)+1)     // is that the stupidest thing to do or just effective? 
     int height = fonts[0]->_height ;
 
+//    glCullFace(GL_FRONT) ;
     render_ortho_begin() ;
         ////////////////////////////////////////////////////////////////////////////////
         //                      MESSAGES FROM INFO SYSTEM
