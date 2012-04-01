@@ -306,7 +306,7 @@ void physics_frame( unsigned int ) ;
 void init_physics() ;
 
 // render
-
+void CheckGlError() ;
 
 // text 
 void initialize_text() ; 

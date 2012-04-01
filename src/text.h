@@ -7,13 +7,16 @@
 #include <freetype/ftglyph.h>
 #include <freetype/ftoutln.h>
 #include <freetype/fttrigon.h>
-/*
-*/
 
 /*
+    All dimensions in pixels. 
 */
-struct FontCharacter
+struct Char
 {
+    int32_t c ; // the actual character represented by this. Since unicode support is possible, currently going with int. 
+    char width ;
+    char height ;
+    char glidx ;    // which texture of a 3D texture is this character drawn with
 } ;
 
 

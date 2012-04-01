@@ -4,6 +4,8 @@
 
 //#include <SDL.h>
 #include "recalc.h"
+
+
 #define CONSOLE_V_SIZE 40
 
 // wrap lines? Hopefully not. Hopefully, no lines need to be more than 120 chars in length. 

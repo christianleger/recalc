@@ -33,6 +33,7 @@ void Font::LoadFontFile()
 
 vector<Font *> fonts ;
 int numFonts = 0 ;
+int curfont = 0 ;   // current font
 
 int initialized = 0;
 int yMax = 0; 
@@ -45,10 +46,8 @@ void createFontDisplayList(FT_Face face,
                             char ch, 
                             Font * _font, bool check_phase=false)
 {
-    int i = 0;
-    int j = 0;
+    int i = 0; int j = 0;
     FT_Glyph glyph;
-
 
     FT_BBox bbox;
 
@@ -60,33 +59,15 @@ void createFontDisplayList(FT_Face face,
     FT_Render_Glyph( face->glyph, FT_RENDER_MODE_NORMAL );
     FT_GlyphSlot slot = face->glyph; 
 
-/*
-*/
-    int width =  slot->bitmap.width ;
-    int height = slot->bitmap.rows ;
+    int width ; //=  slot->bitmap.width ;
+    int height ; //= slot->bitmap.rows ;
     int top =    slot->bitmap_top ;
-
-#if 0
-    printf("\n top for %c = %d \n", ch, top ) ; 
-#endif
-
 
     FT_Glyph_To_Bitmap( &glyph, ft_render_mode_normal, 0, 1 );
     FT_BitmapGlyph bitmap_glyph = (FT_BitmapGlyph)glyph;
 
     // This reference will make accessing the bitmap easier
     FT_Bitmap bitmap=bitmap_glyph->bitmap;
-
-/*
-    int width =  bitmap.width ;
-    int height = bitmap.rows ;
-    int top =    bitmap.top ;
-*/
-    if (!check_phase)
-    {
-        height = yMax - yMin; 
-    }
-
 
     if (check_phase)
     {
@@ -116,37 +97,18 @@ void createFontDisplayList(FT_Face face,
         if (_font->_width < _font->width[(int)ch])
         {
             _font->_width = _font->width[(int)ch]; 
-            //printf("\n widest character: %c w=%d", ch, _font->width[(int)ch]);
         }
-        if (_font->_height < bitmap.rows)
+        if (_font->_height < bitmap.rows) // seriously? rows not _font height?
         {
             _font->_height = bitmap.rows; 
-        }
-
-
-        // DON'T KNOW WHAT THIS IS FOR 
-        if (yMax < bbox.yMax)
-        {
-            yMax = bbox.yMax; 
-        }
-        if (yMin > bbox.yMin)
-        {
-            yMin = bbox.yMin; 
-        }
-
-        if (desc>yMin)
-        {
-            desc = yMin; 
-            //printf("\nChanging desc because ymin = %d\n", yMin) ; 
         }
 
         return; 
     }
 
-
     width = next_p2( bitmap.width );
     height = next_p2( bitmap.rows );
-    GLubyte* expanded_data = (GLubyte *)malloc ( sizeof (GLubyte) * 2 * width * height);
+    GLubyte* expanded_data = (GLubyte *)malloc ( sizeof (GLubyte) * 3 * width * height);
     
     for( j=0; j <height;j++) {
         for( i=0; i < width; i++){
@@ -158,84 +120,53 @@ void createFontDisplayList(FT_Face face,
 
     // TEXTURE SETUP 
     glBindTexture( GL_TEXTURE_2D, _font->gl_char_IDs[(int)ch]);
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height,
-          0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, expanded_data );
+    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, expanded_data );
+
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    
     free (expanded_data);
 
+glNewList(_font->gl_list_base+ch,GL_COMPILE);
 
-    glNewList(_font->gl_list_base+ch,GL_COMPILE);
+glBindTexture(GL_TEXTURE_2D,_font->gl_char_IDs[(int)ch]);
 
-        glBindTexture(GL_TEXTURE_2D,_font->gl_char_IDs[(int)ch]);
-
-            if (ch!='j')
-            {
-        glTranslatef(bitmap_glyph->left,0,0);
-            }
-            else
-            {
-        glTranslatef(bitmap_glyph->left/3,0,0);
-            }
+            if (ch!='j') { glTranslatef(bitmap_glyph->left,0,0); }
+            else {         glTranslatef(bitmap_glyph->left/3,0,0); }
 
         glPushMatrix();
-        /*
-            glTranslatef(
-                0,
-                bitmap_glyph->top-bitmap.rows - height, 
-                0
-                );
-                */
-            //glTranslatef(0,bitmap_glyph->top,0);
 
-            float   x=(float)bitmap.width / (float)width,
-                    y=(float)bitmap.rows / (float)height;
+         float   x=(float)bitmap.width / (float)width,
+                 y=(float)bitmap.rows / (float)height;
 
+/*
+printf("\n character: %c", ch) ;
+printf("\n \t width: %d", _font->width[(int)ch]) ;
+printf("\n \t height: %d", _font->height[(int)ch]) ;
+printf("\n \ttop left: %d  %d", 0, -_font->_height + top ) ;
+printf("\n \tbot left: %d  %d", 0, -_font->_height + bbox.yMin);
+printf("\n \tbot right: %d  %d", bitmap.width, -_font->_height + bbox.yMin);
+printf("\n \ttop right: %d  %d", bitmap.width, -_font->_height + top );
+*/
+        glBegin(GL_QUADS);
 
-            // 0 is the on-screen y value where y is positive in screen space.
-            // Texture coordinates, however, here are y +ve downward. 
-            glBegin(GL_QUADS);
-              glTexCoord2d(0,y);    // bottom left of a letter 
-              glVertex2f(
-                0,
-                -_font->_height + bbox.yMin
-                );
+           glTexCoord2d(0,0); 
+           glVertex2f( 0, -_font->_height + top );
               
-              glTexCoord2d(0,0); 
-              glVertex2f(
-                0,
-                -_font->_height + top 
-                );
+           glTexCoord2d(0,y);    // bottom left of a letter 
+           glVertex2f( 0, -_font->_height + bbox.yMin);
               
-              glTexCoord2d(x,0); 
-              glVertex2f(
-                bitmap.width,
-                -_font->_height + top 
-                );
-              
-              glTexCoord2d(x,y);    // bottom right of a letter 
-              glVertex2f(
-                bitmap.width,
-                -_font->_height + bbox.yMin
-                );
+           glTexCoord2d(x,y);    // bottom right of a letter 
+           glVertex2f( bitmap.width, -_font->_height + bbox.yMin);
 
-              /*
-              glTexCoord2d(0,0); glVertex2f(0,bitmap.rows + desc - top );
-              glTexCoord2d(0,y); glVertex2f(0,0 + desc - top );
-              glTexCoord2d(x,y); glVertex2f(bitmap.width,0 + desc - top );
-              glTexCoord2d(x,0); glVertex2f(bitmap.width,bitmap.rows + desc - top );
-              */
-            glEnd();
-            glPopMatrix();
-            if (ch!='j')
-            {
-                glTranslatef(face->glyph->advance.x >> 6 ,0,0);
-            }
-            else
-            {
-                //glTranslatef(1.8f*(face->glyph->advance.x >> 6) ,0,0);
-                glTranslatef((face->glyph->advance.x >> 6) ,0,0);
-            }
+           glTexCoord2d(x,0); 
+           glVertex2f( bitmap.width, -_font->_height + top );
+
+        glEnd();
+        glPopMatrix();
+
+        if (ch!='j') { glTranslatef(face->glyph->advance.x >> 6 ,0,0); }
+        else { glTranslatef((face->glyph->advance.x >> 6) ,0,0); }
 
     glEndList();
 
@@ -428,10 +359,10 @@ void printstr(Font * ft_font, float x, float y, const char * str)
 {
     glPushMatrix();
         glListBase(ft_font->gl_list_base);
-        glTranslatef(x, y+16/*+ft_font->_height*/, 0.0f);
+        //glTranslatef(x, y+16/*+ft_font->_height*/, 0.0f);
+        glTranslatef(x, y+ft_font->_height, 0.0f);
         glCallLists(strlen(str), GL_UNSIGNED_BYTE, str);
     glPopMatrix();
-
     return ; 
 }
 
@@ -444,41 +375,37 @@ void printstr(Font * ft_font, float x, float y, const char * str)
 */
 void printstr_cont(Font * ft_font, float x, float y, char * fmt)
 {
-    /*glDisable(GL_DEPTH_TEST);*/
-
-        glListBase(ft_font->gl_list_base);
-        glTranslatef(x, y, 0.0f);
-        glCallLists(strlen(fmt), GL_UNSIGNED_BYTE, fmt);
+    glListBase(ft_font->gl_list_base);
+    glTranslatef(x, y, 0.0f);
+    glCallLists(strlen(fmt), GL_UNSIGNED_BYTE, fmt);
 
     return;
 }
 
 void tryttfstr()
 {
-    
     if (!initialized)
     {
         initfonts(); 
     }
-
 }
 
-/*
-    prstr: print a string. return, for all interested parties, the on-screen 
-    length in pixels of the string that was just printed. 
-*/
-void prstr(int fidx, float x, float y, const char * str)
+void prstrstart()
 {
     glEnable(GL_TEXTURE_2D);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    /*glBlendFunc(GL_ONE, GL_ZERO);*/
     glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
-
-
-    printstr(fonts[fidx],x, y, str);
+}
+void prstrend()
+{
     glDisable(GL_TEXTURE_2D);
-
-    return ;
+}
+/*
+    prstr: print a string. 
+*/
+void prstr(int fidx, float x, float y, const char * str)
+{
+    printstr(fonts[fidx],x, y, str);
 }
 
 /*

@@ -43,28 +43,26 @@ SDL_Surface *surface;
 int default_screen_width = 1200 ; 
 int default_screen_height = 800 ; 
 
+
+/*---------------------------------------------------*/
+// External functions 
+/*---------------------------------------------------*/
+void CheckGlError() ;
+void initialize_subsystems() ; 
+/*---------------------------------------------------*/
+//                  control variables
+/*---------------------------------------------------*/
+bool testonly = false ;
+bool cancelsound = false ;
 /*-----------------------------------------------------------------*/
 //                  function prototypes 
 /*-----------------------------------------------------------------*/
-
-
 void read_args( int, char** ) ;
-bool testonly = false ;
-bool cancelsound = false ;
-
 void read_configs() ;
-
-
 void initSDL( Engine * engine ) ;
-
-
 void initGL( ); 
-
-
 void resize_window( int width, int height ) ;
-
-
-void initialize_subsystems() ; 
+/*-----------------------------------------------------------------*/
 
 
 uint texid = 0 ;
@@ -84,24 +82,14 @@ void load_texture()
     char* data ;
     data = (char *)(data_image->pixels);
 
-//        /* this call is made so we can get some anti-aliasing */
-//        RGBtoRGBA(data_image->w, data_image->h, data, &aux_data);
-
-//    int k = (sizeof(char) * data_image->w * data_image->h * 3);
-    
     glGenTextures(1,&(texid));
-
     printf("\nJust created a opengl texture, ID %d", texid);
-
     glBindTexture(GL_TEXTURE_2D, texid);
-/*printf("\nHAVING LOADING SHIP TEXTURES. value of texture ID: %d", shipTextures[0]);*/
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data_image->w, data_image->h, 0, GL_RGB, GL_UNSIGNED_BYTE, data );
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data_image->w, data_image->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
     SDL_FreeSurface(data_image);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    //glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+// glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 
     
     printf("\nDONE LOADING A FIRST TEXTURE ! \n") ;
@@ -267,38 +255,29 @@ void initGL( )
     glewInit() ;
 #endif
 
-    /* Enable smooth shading */
     glShadeModel( GL_SMOOTH );
-    /* Set the background black */
     glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-    /* Depth buffer setup */
     glClearDepth( 1.0f );
-    /* Enables Depth Testing */
-    
     
     /* Really Nice Perspective Calculations */
-    glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_SMOOTH );
-    // glHint( GL_TEXTURE_COMPRESSION_HINT, GL_NICEST );
-    glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
-    // glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST );
+    glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST );
     glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
 
     glEnable( GL_DEPTH_TEST );
     glEnable( GL_BLEND );
-    // glDepthFunc( GL_GREATER ) ;
-    // glEnable(GL_CULL_FACE) ;
     glCullFace(GL_CW) ;
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    /* The Type Of Depth Test To Do */
-    // glDepthFunc( GL_EQUAL | GL_NOTEQUAL ) ;
-    glDepthFunc( GL_LESS ) ;
-
-    glGetError() ;
-
-    //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE) ;
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // checked. 
+    glDepthFunc( GL_LESS ) ; // checked. 
 
     return ; 
+    // glHint( GL_TEXTURE_COMPRESSION_HINT, GL_NICEST );
+    // glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
+    // glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST );
+    /* The Type Of Depth Test To Do */
+    // glDepthFunc( GL_EQUAL | GL_NOTEQUAL ) ;
+    // glDepthFunc( GL_GREATER ) ;
+    // glEnable(GL_CULL_FACE) ;
 }
 
 /* reset our viewport after a window resize */
@@ -419,7 +398,11 @@ read_args(argc, argv);
 
     initSDL( &engine ); // this by itself does a lot: it gives us our window and rendering context
     
+printf("\n before initgl") ;
+CheckGlError() ;
     initGL( ); /* OpenGL SUBSYSTEM */
+printf("\n after initgl") ;
+CheckGlError() ;
 
 //    engine.scr_w = default_screen_width ;
 //engine.scr_h = default_screen_height ;
@@ -458,7 +441,12 @@ read_args(argc, argv);
     SDL_ShowCursor(SDL_DISABLE);         
 
     //unsigned int last_frame = SDL_GetTicks() ;
+
+printf("\n before loading texture") ;
+CheckGlError() ;
     load_texture() ;
+printf("\n after loading texture") ;
+CheckGlError() ;
     
     
     /* main loop */
@@ -534,7 +522,8 @@ read_args(argc, argv);
 
         // PHYSICS 
         if (!engine.paused)
-        if ( physics_millis >= PHYSICS_FRAME_TIME )
+        //if ( physics_millis >= PHYSICS_FRAME_TIME )
+        if ( physics_millis >= 1 )
         {
             // Reset counter if frame was run
             if ( engine.physics )
@@ -547,7 +536,7 @@ read_args(argc, argv);
 
 
         if (
-             //  ( delta_millis >= FRAME_TIME) &&
+               ( delta_millis >= FRAME_TIME) &&
                ( engine.window_active ) &&
                ( !engine.paused )
            )
@@ -564,7 +553,7 @@ read_args(argc, argv);
                 render_editor() ; 
             }
 
-            if ( engine.testing ) 
+            if ( engine.testing && 0) 
             {
                 render_tester() ;
             }

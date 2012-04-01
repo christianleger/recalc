@@ -15,13 +15,17 @@ extern Area area ;
 extern vector<Font*> fonts ;
 
 
-void CheckGlErrors()
+void CheckGlError()
 {
     int err = glGetError() ;
     if (err)
     {
         // FIXME: logging system. 
-        loopi(40) { printf("\n\nGL EROR IS %d\n\n", (err)) ; }
+        printf("\n\nGL EROR IS %d\n\n", (err)) ; 
+    }
+    else
+    {
+        printf("\nNo problem. ", (err)) ; 
     }
 }
 
@@ -29,17 +33,14 @@ void CheckGlErrors()
 // in pixels. 
 void render_ortho_begin()
 {
-    // we assume that no function finishes with the matrix mode outside GL_MODELVIEW
+    // we assume the matrix mode is always GL_MODELVIEW
     glPushMatrix() ; 
     glLoadIdentity() ; 
 
     glMatrixMode( GL_PROJECTION ) ;
     glPushMatrix() ; 
     glLoadIdentity() ; 
-    extern int console_scale ;
-    glOrtho( 0, engine.console_scale*engine.current_w, 0, engine.console_scale*engine.current_h, -1, 1000 ) ; 
-
-    glCullFace(GL_FRONT) ; // STUPID HAHA FIX ME
+    glOrtho( 0, engine.current_w, 0, engine.current_h, -1, 1000 ) ; 
 
     glMatrixMode( GL_MODELVIEW ) ; 
 }
@@ -58,11 +59,6 @@ void render_ortho_end()
 void render_world( )
 {
     // render_fucking_world_shader() ;
-
-    // set up blending equations 
-    //glDisable( GL_DEPTH_TEST ) ; 
-
-    //glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
     // shade this fucker muther 
 
     glMatrixMode( GL_MODELVIEW ) ; 
@@ -87,10 +83,8 @@ void render_world( )
         glVertex3f( 0,  0, -50 ) ;
     glEnd() ; 
     
-extern void drawworld() ;
+    extern void drawworld() ;
     drawworld() ;
-    
-    //glEnable( GL_DEPTH_TEST ) ; 
 }
 
 
@@ -115,17 +109,12 @@ void draw_cursor()
     glPointSize( 10.0 ) ;
 
     glBegin( GL_LINES ) ;
-        v1[0] -= 10 ; 
-        glVertex3fv( v1 ); 
-        v1[0] += 20 ; 
-        glVertex3fv( v1 ); 
+        v1[0] -= 10 ; glVertex3fv( v1 ); 
+        v1[0] += 20 ; glVertex3fv( v1 ); 
 
         v1[0] -= 10 ; 
-        v1[1] -= 10 ; 
-        glVertex3fv( v1 ); 
-        v1[1] += 20 ; 
-        glVertex3fv( v1 ); 
-
+        v1[1] -= 10 ; glVertex3fv( v1 ); 
+        v1[1] += 20 ; glVertex3fv( v1 ); 
     glEnd() ;
 
     glPopMatrix() ;
@@ -146,15 +135,11 @@ void render_editor()
     update_editor() ;
 // Before we draw a frame we must find out what we are looking at
    
-    if ( hit_world )
-    {
-        glColor3f( 1, 1, 0) ; 
-    }
+    if ( hit_world ) { glColor3f( 1, 1, 0) ; }
     {
         glColor3f( 0.5, 0.5, 0) ; 
         glColor3f( .75, .75, 0) ; 
     }
-
 
     // glDisable( GL_DEPTH_TEST ) ;
     glEnable ( GL_DEPTH_TEST ) ;
@@ -165,34 +150,21 @@ void render_editor()
     // draw a little dot or cross or crosshair. 
     draw_cursor() ;
     
-extern void draw_highlight() ; // FIXME lol externs everywhere. 
-
-//glDisable(GL_DEPTH_TEST) ;
+    extern void draw_highlight() ; // FIXME lol externs everywhere. 
     draw_highlight() ;
 
     draw_selection() ;
-    //draw_sel_start() ;
-    //draw_sel_end() ;
-//glEnable(GL_DEPTH_TEST) ;
     
     // green square that shows where on world boundary ray is entering world, 
     // if camera is looking at world from outside. 
     extern void draw_ray_start_node() ;
     draw_ray_start_node() ;
 
-
-int err = glGetError() ; 
-if (err)
-{ 
-    printf("\n\nGL EROR IS %d\n\n", (err)) ; 
-} 
-    // glEnable( GL_DEPTH_TEST ) ;
+//    CheckGlError() ;
 }
 
 void render_tester()
 {
-
-
     glEnable( GL_DEPTH_TEST ) ;
 
     float v1[3] = { 0, 50, 20 } ; 
@@ -200,81 +172,89 @@ void render_tester()
     glBegin( GL_LINES ) ; 
 
         glColor3f( 1, 0, 0) ; 
-        glVertex3fv( v1 ) ; 
-        v1[0] = -10 ; 
-        glVertex3fv( v1 ) ; 
-
+                        glVertex3fv( v1 ) ; 
+        v1[0] = -10 ;   glVertex3fv( v1 ) ; 
         glColor3f( 0, 1, 0) ; 
-        v1[0] = -10 ; 
-        glVertex3fv( v1 ) ; 
-        v1[0] = -20 ; 
-        glVertex3fv( v1 ) ; 
+        v1[0] = -10 ;   glVertex3fv( v1 ) ; 
+        v1[0] = -20 ;   glVertex3fv( v1 ) ; 
 
     glEnd() ; 
 
-    extern void render_test_001() ;
+    //extern void render_test_001() ;
     //render_test_001() ;
-
-
 }
 
-
 extern vector<Font*> fonts ;
+void drawchar(int x,int y, char c)
+{
+    glBindTexture(GL_TEXTURE_2D, fonts[0]->gl_char_IDs[(int)(c)]) ;
+
+    glBegin(GL_QUADS) ;
+    glTexCoord2d(0,0);    // bottom left of a letter 
+    //glVertex2f( 0, -_font->_height + top );
+    glVertex2f( x, y+fonts[0]->height[(int)c]);
+
+        //1 
+    glTexCoord2d(0,1);
+    glVertex2f( x, y);
+
+        //2 
+    glTexCoord2d(1,1);    // bottom right of a letter 
+    glVertex2f( x+fonts[0]->width[(int)c], y);
+
+        //3 
+    glTexCoord2d(1,0);
+    glVertex2f( x+fonts[0]->width[(int)c], y+fonts[0]->height[(int)c] );
+    glEnd() ;
+/*
+*/
+    //CheckGlError() ;
+}
 
 void render_menu()
 {
-    glMatrixMode( GL_MODELVIEW ) ; 
-    glPushMatrix() ; 
-    glLoadIdentity() ; 
-
-    glMatrixMode( GL_PROJECTION ) ;
-    glPushMatrix() ; 
+    render_ortho_begin() ;
+    //CheckGlError() ;
 
 
-    glLoadIdentity() ; 
-    glOrtho( 0, engine.current_w, 0, engine.current_h, -1, 1000 ) ; 
-//        prstr( 0, 0.f, fonts[0]->_height, "Engage Delta Niner." ) ;
+    glColor3f(1,1,1) ;
 
+    extern uint texid ;
 
-
-glColor3f(1,1,1) ;
-
-extern uint texid ;
-glDisable( GL_CULL_FACE ) ;
     glEnable( GL_TEXTURE_2D ) ;
-glBindTexture(GL_TEXTURE_2D, texid) ;
+    glBindTexture(GL_TEXTURE_2D, texid) ;
     glBegin(GL_QUADS) ;
-/*
-        glTexCoord2f(0,0) ; glVertex3f(0,0,0) ; 
-        glTexCoord2f(0,1) ; glVertex3f(0,100,0) ;
-        glTexCoord2f(1,1) ; glVertex3f(100,100,0) ; 
-        glTexCoord2f(1,0) ; glVertex3f(100,0,0) ;
 
-*/
-            glTexCoord2f( 0.0f, 0.0f );
-            glVertex3f(1000.0f, 200.0f, 00.0f);
+        glTexCoord2f( 0.0f, 0.0f );
+        glVertex3f(1000.0f, 200.0f, 00.0f);
 
-            glTexCoord2f( 1.0f, 0.0f );
-            glVertex3f(1200.0f, 200.0f, 00.0f);
+        glTexCoord2f( 0.0f, 1.0f );
+        glVertex3f(1000.0f, 000.0f, 00.0f);
 
-            glTexCoord2f( 1.0f, 1.0f );
-            glVertex3f(1200.0f, 000.0f, 00.0f);
+        glTexCoord2f( 1.0f, 1.0f );
+        glVertex3f(1200.0f, 000.0f, 00.0f);
 
-            glTexCoord2f( 0.0f, 1.0f );
-            glVertex3f(1000.0f, 000.0f, 00.0f);
-
-
-
+        glTexCoord2f( 1.0f, 0.0f );
+        glVertex3f(1200.0f, 200.0f, 00.0f);
     glEnd() ;
+
+        drawchar(400,400, 'A') ;
+        drawchar(440,400, 'B') ;
+        drawchar(480,400, 'C') ;
+        drawchar(520,400, 'D') ;
+        drawchar(560,400, 'E') ;
+
+
     glDisable( GL_TEXTURE_2D ) ;
 
-    glMatrixMode( GL_PROJECTION ) ;
-    glPopMatrix() ; 
 
-    glMatrixMode( GL_MODELVIEW ) ; 
-    glPopMatrix() ; 
-/*
-*/
+
+
+
+
+
+    render_ortho_end() ;
+//    CheckGlError() ;
 }
 
 
@@ -293,19 +273,11 @@ extern Console console ;
 */
 void render_console()
 {
-    glCullFace(GL_FRONT) ;
-
-    glMatrixMode( GL_MODELVIEW ) ; 
-    glPushMatrix() ; 
-    glLoadIdentity() ; 
-
-    glMatrixMode( GL_PROJECTION ) ;
-    glPushMatrix() ; 
-
-    glLoadIdentity() ; 
-    glOrtho( 0, engine.current_w, 0, engine.current_h, -1, 1000 ) ; 
-    glMatrixMode( GL_MODELVIEW ) ; 
-
+    render_ortho_begin() ;
+    
+    
+    extern void prstrstart() ;
+    prstrstart() ;
 
 // FIXME: print out from the current line in console buffer and the CONSOLE_V_SIZE-1 
 // next lines. For now, only printing line buffer. 
@@ -315,10 +287,8 @@ void render_console()
     glTranslatef(fonts[0]->width[SDLK_SPACE], engine.current_h-fonts[0]->_height, 0 ) ;
     for (int i=c.top_scr_line;i< CONSOLE_V_SIZE ;i++)
     {
-        // visbile command history above 
+        // visible command history above 
         prstr( 0, 0, - i*fonts[0]->_height, c.lines[i] ) ;
-        
-        // command line buffer here 
     }
     glLoadIdentity() ; 
 
@@ -327,24 +297,17 @@ void render_console()
 
     // Cursor 
     float cursor_pos_x = c.current_line_pix_len ;
-    float v[3] = { 
-                    cursor_pos_x, 
-                    1.5*fonts[0]->_height, 
-                    0 
-                 } ;
+    float v[3] = { cursor_pos_x, 1.5*fonts[0]->_height, 0 } ;
     glBegin( GL_LINES ) ; 
-        glVertex3fv( v ) ;
-        v[0] = cursor_pos_x + fonts[0]->_width;
+        glVertex3fv( v ) ; v[0] = cursor_pos_x + fonts[0]->_width;
         glVertex3fv( v ) ;
     glEnd() ; 
 
+    extern void prstrend() ;
+    prstrend() ;
 
-
-    glMatrixMode( GL_PROJECTION ) ;
-    glPopMatrix() ; 
-
-    glMatrixMode( GL_MODELVIEW ) ; 
-    glPopMatrix() ; 
+    render_ortho_end() ;
+//    CheckGlError() ;
 }
 
 
@@ -382,8 +345,10 @@ void render_info()
     #define next_line ((i++)+1)     // is that the stupidest thing to do or just effective? 
     int height = fonts[0]->_height ;
 
-//    glCullFace(GL_FRONT) ;
     render_ortho_begin() ;
+
+    extern void prstrstart() ;
+    prstrstart() ;
         ////////////////////////////////////////////////////////////////////////////////
         //                      MESSAGES FROM INFO SYSTEM
         ////////////////////////////////////////////////////////////////////////////////
@@ -461,7 +426,10 @@ void render_info()
                      phys_msgs[j]) ; j++ ;
         }
 ////////////////////////////////////////////////////////////////////////////////
+    extern void prstrend() ;
+    prstrend() ;
     render_ortho_end() ;
+//    CheckGlError() ;
 }
 
 

@@ -2461,20 +2461,21 @@ glColor3f(1,1,1) ;
             glTexCoordPointer( 2, GL_FLOAT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
 
 glDepthFunc( GL_LESS ) ;
+
             glDrawArrays( GL_TRIANGLES, 0, g->numverts);    // Draw All Of The Triangles At Once
             
         }// end if VBO ID's valid
     }// end looping over worldgeometry
 
 
-//glBindBuffer(GL_ARRAY_BUFFER, 0);
+glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 
 
 
 
 // if show triangles 
-if (0)
+if (1)
 {
 
     glDepthFunc( GL_LEQUAL ) ;
@@ -2483,11 +2484,14 @@ if (0)
     glLineWidth(3) ;
     //glDisable( GL_DEPTH_TEST ) ;
     glPolygonMode( GL_FRONT, GL_LINE ) ;
+
+
         loopv(worldgeometry)
         {
             Geom* g = worldgeometry[i] ;
 
-            if (g->vertVBOid>0 && g->colorVBOid>0 && g->texVBOid)
+            ///if (g->vertVBOid>0 && g->colorVBOid>0 && g->texVBOid)
+            if (g->vertVBOid>0 && g->texVBOid)
             {
 
                 glBindBuffer(GL_ARRAY_BUFFER, g->vertVBOid);
@@ -2496,6 +2500,7 @@ if (0)
 
             }// end if VBO ID's valid
         }// end looping over worldgeometry
+
 
 
     glPolygonMode( GL_FRONT, GL_FILL ) ;
