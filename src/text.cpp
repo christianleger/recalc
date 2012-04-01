@@ -72,15 +72,9 @@ void createFontDisplayList(FT_Face face,
     if (check_phase)
     {
         // character width 
-        if (ch!='j')
-        {
-            _font->width[(int)ch]  = bitmap_glyph->left + (face->glyph->advance.x >> 6);
-        }
-        else
-        {
-            _font->width[(int)ch]  =  ( bitmap_glyph->left + (face->glyph->advance.x >> 6) );
-            //_font->width[(int)ch]  = 3* ( bitmap_glyph->left + (face->glyph->advance.x >> 6) );
-        }
+       // if (ch!='j') { _font->width[(int)ch]  = bitmap_glyph->left + (face->glyph->advance.x >> 6) ; }
+        //else         
+        { _font->width[(int)ch]  = bitmap_glyph->left + (face->glyph->advance.x >> 6) ; }
 
         if (
             ( ch > SDLK_a && ch < SDLK_z ) 
