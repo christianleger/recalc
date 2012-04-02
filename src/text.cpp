@@ -164,6 +164,7 @@ if ( ( ch >= SDLK_a && ch <= SDLK_z ) || ch==' ' || ( ch >= 'A' && ch <= 'Z' ) )
 _font->bot[(int)ch] = bbox.yMin ;
 _font->tcoords[(int)ch][0][0] = 0 ;
 _font->tcoords[(int)ch][0][1] = 0 ;
+
       glTexCoord2d(0,0); 
       //glVertex2f( 0, -_font->_height + top );
       glVertex2f( 0, top );
@@ -492,7 +493,7 @@ void initialize_text()
         GLenum  type, 
         const GLvoid * pixels
     ) ;
-    */
+*/
 }
 
 void clean_up_text()

@@ -74,7 +74,6 @@ extern void (* current_commands[320])(void *) ;
 /*
     Yo (my) dumbass can't handle something to type into without a 
     backspace. So check this. 
-
 */
 #define c console
 void backspace( void * unused )
@@ -90,9 +89,10 @@ void backspace( void * unused )
     }
     //printf("line_buffer now holds: \n\t%s\n", console.line_buffer ) ; 
 }
+
 /*
     ascii coming in, baby. 
-
+    How shall we deal with unicode? psych!
 */
 bool shifted = false ; 
 void key_in( void * in_key ) 

@@ -185,13 +185,14 @@ void render_tester()
 }
 
 extern vector<Font*> fonts ;
-void drawchar(int x,int y, char c)
+void drawchar(int x,int _y, char c)
 {
     glBindTexture(GL_TEXTURE_2D, fonts[0]->gl_char_IDs[(int)(c)]) ;
 
     glBegin(GL_QUADS) ;
 
-    int bot = fonts[0]->bot[(int)c] ;
+//    int bot = 
+    int y = _y + fonts[0]->bot[(int)c] ;
 
         //0
     glTexCoord2d(0,0);    // bottom left of a letter 
@@ -199,7 +200,7 @@ void drawchar(int x,int y, char c)
     glVertex2f( 
         x, 
         //y+2*fonts[0]->height[(int)c]
-        y+fonts[0]->height[(int)c]+bot
+        y+fonts[0]->height[(int)c]
         );
 
 
@@ -210,7 +211,7 @@ void drawchar(int x,int y, char c)
         );
     glVertex2f( 
         x, 
-        y+bot
+        y
         );
 
 
@@ -222,7 +223,7 @@ void drawchar(int x,int y, char c)
     glVertex2f( 
         //x+2*fonts[0]->width[(int)c], 
         x+fonts[0]->width[(int)c], 
-        y+bot
+        y
         );
 
 
@@ -235,7 +236,7 @@ void drawchar(int x,int y, char c)
         //x+2*fonts[0]->width[(int)c], 
         x+fonts[0]->width[(int)c], 
         //y+2*fonts[0]->height[(int)c]
-        y+fonts[0]->height[(int)c]+bot
+        y+fonts[0]->height[(int)c]
         );
     
     glEnd() ;
