@@ -310,7 +310,7 @@ void CheckGlError() ;
 
 // text 
 void initialize_text() ; 
-void prstr( int font_idx, float x, float y, const char * fmt ) ; 
+void prstr( float x, float y, const char * fmt ) ; 
 int scrstrlen( const char * ) ; 
 void clean_up_text() ;
 

@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////
 // Main switch on this system
 ////////////////////////////////////////////////
-bool textenabled = true ;
+extern bool textenabled ;
 
 extern Camera camera ;
 extern Engine engine ;
@@ -190,21 +190,50 @@ void drawchar(int x,int y, char c)
     glBindTexture(GL_TEXTURE_2D, fonts[0]->gl_char_IDs[(int)(c)]) ;
 
     glBegin(GL_QUADS) ;
+
+
+
+        //0
     glTexCoord2d(0,0);    // bottom left of a letter 
     //glVertex2f( 0, -_font->_height + top );
-    glVertex2f( x, y+fonts[0]->height[(int)c]);
+    glVertex2f( 
+        x, 
+        y+2*fonts[0]->height[(int)c]
+        );
+
 
         //1 
-    glTexCoord2d(0,1);
-    glVertex2f( x, y);
+    glTexCoord2d(
+        0,
+        fonts[0]->tcoords[c][1][1]
+        );
+    glVertex2f( 
+        x, 
+        y
+        );
+
 
         //2 
-    glTexCoord2d(1,1);    // bottom right of a letter 
-    glVertex2f( x+fonts[0]->width[(int)c], y);
+    glTexCoord2d(
+        fonts[0]->tcoords[c][2][0],
+        fonts[0]->tcoords[c][2][1]
+        );    // bottom right of a letter 
+    glVertex2f( 
+        x+2*fonts[0]->width[(int)c], 
+        y
+        );
+
 
         //3 
-    glTexCoord2d(1,0);
-    glVertex2f( x+fonts[0]->width[(int)c], y+fonts[0]->height[(int)c] );
+    glTexCoord2d(
+        fonts[0]->tcoords[c][3][0],
+        0
+        );
+    glVertex2f(
+        x+2*fonts[0]->width[(int)c], 
+        y+2*fonts[0]->height[(int)c]
+        );
+    
     glEnd() ;
 /*
 */
@@ -238,12 +267,28 @@ void render_menu()
         glVertex3f(1200.0f, 200.0f, 00.0f);
     glEnd() ;
 
-        drawchar(400,400, 'A') ;
-        drawchar(440,400, 'B') ;
-        drawchar(480,400, 'C') ;
+int next = 0 ;
+    glColor3f(0,.8,0) ;
+        next = 400 ;
+        drawchar(400,400, 'A') ;    next += 2*fonts[0]->width['A']+3 ;
+        drawchar(next, 400, 'J') ;       next += 2*fonts[0]->width['J']+3 ;
+        drawchar(next, 400, 'C') ;       next += 2*fonts[0]->width['C']+3 ;
+        drawchar(next, 400, 'D') ;       next += 2*fonts[0]->width['D']+3 ;
+        drawchar(next, 400, 'E') ;       next += 2*fonts[0]->width['E']+3 ;
+        drawchar(next, 400, 'a') ;       next += 2*fonts[0]->width['a']+3 ;
+        drawchar(next, 400, 'd') ;       next += 2*fonts[0]->width['d']+3 ;
+        drawchar(next, 400, 'j') ;       next += 2*fonts[0]->width['j']+3 ;
+        drawchar(next, 400, 'a') ;       next += 2*fonts[0]->width['a']+3 ;
+        drawchar(next, 400, 'c') ;       next += 2*fonts[0]->width['c']+3 ;
+        drawchar(next, 400, 'i') ;       next += 2*fonts[0]->width['i']+3 ;
+        drawchar(next, 400, 'n') ;       next += 2*fonts[0]->width['n']+3 ;
+        drawchar(next, 400, 't') ;       next += 2*fonts[0]->width['t']+3 ;
+/*        drawchar(480,400, 'C') ;
         drawchar(520,400, 'D') ;
         drawchar(560,400, 'E') ;
+        drawchar(600,400, 'J') ; */
 
+    glColor3f(.9,.9,.9) ;
 
     glDisable( GL_TEXTURE_2D ) ;
 
@@ -288,12 +333,12 @@ void render_console()
     for (int i=c.top_scr_line;i< CONSOLE_V_SIZE ;i++)
     {
         // visible command history above 
-        prstr( 0, 0, - i*fonts[0]->_height, c.lines[i] ) ;
+        prstr( 0, - i*fonts[0]->_height, c.lines[i] ) ;
     }
     glLoadIdentity() ; 
 
 
-    prstr( 0, 0, 2*fonts[0]->_height, c.line_buffer ) ;
+    prstr( 0, 2*fonts[0]->_height, c.line_buffer ) ;
 
     // Cursor 
     float cursor_pos_x = c.current_line_pix_len ;
@@ -354,8 +399,12 @@ void render_info()
         ////////////////////////////////////////////////////////////////////////////////
         char info_msg[256] ;
         sprintf(info_msg, "height=%d ", height) ;
-        prstr( 0, 600.f, 0 + next_line*height,
+        prstr( 600.f, 0 + next_line*height,
                    info_msg) ; 
+        prstr( 600.f, 0 + next_line*height,
+                   "howdy toons") ; 
+        prstr( 600.f, 0 + next_line*height,
+                   "howdy bloggers") ; 
 
         ////////////////////////////////////////////////////////////////////////////////
         //                      MESSAGES FROM INPUT SYSTEM
@@ -367,7 +416,7 @@ void render_info()
         while (j<input_msgs_num)
         {
             //prstr( 0, 600.f, engine.current_h - next_line*height,
-            prstr( 0, 60.f, 0 + next_line*height,
+            prstr( 60.f, 0 + next_line*height,
                    input_msgs[j]) ; j++ ;
         }
 
@@ -381,7 +430,7 @@ void render_info()
         while (j<geom_msgs_num)
         {
             //prstr( 0, 600.f, engine.current_h - next_line*height, 
-            prstr( 0, 60.f, 0 + next_line*height, 
+            prstr( 60.f, 0 + next_line*height, 
                    geom_msgs[j]) ; j++ ;
         }
 
@@ -395,7 +444,7 @@ void render_info()
         {
             //prstr( 0, 600.f, engine.current_h - next_line*height, 
             //prstr( engine.current_w-300, 60.f, 0 + next_line*height, 
-            prstr( 0, engine.current_w-600, 0 + (j+20)*height, 
+            prstr( engine.current_w-600, 0 + (j+20)*height, 
                    geom_msgs2[j]) ; j++ ;
         }
 
@@ -411,7 +460,7 @@ void render_info()
         {
             //prstr( 0, engine.current_w - scrstrlen(main_msgs[1]), engine.current_h - next_line*height, 
             //prstr( 0, 10, engine.current_h - next_line*height, 
-            prstr( 0, 10, 400 + next_line*height, 
+            prstr( 10, 400 + next_line*height, 
                      main_msgs[j]) ; j++ ;
         }
         ////////////////////////////////////////////////////////////////////////////////
@@ -422,7 +471,7 @@ void render_info()
         j = 0 ;
         while (j<phys_msgs_num)
         {
-            prstr( 0, 10, 400 + next_line*height, 
+            prstr( 10, 400 + next_line*height, 
                      phys_msgs[j]) ; j++ ;
         }
 ////////////////////////////////////////////////////////////////////////////////
