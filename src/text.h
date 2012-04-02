@@ -20,6 +20,7 @@ struct Char
 } ;
 
 
+#define CHAR_COUNT 128
 struct Font
 {
     // have you had opportunity to learn about this 
@@ -40,9 +41,11 @@ struct Font
     int _height ;   // the height that a general line of this font would have
     int _width ;    // the max amount of space a character of this type would need 
 
-    char height[128] ;
-    char width[128] ;
-    float tcoords[128][4][2] ; // tex coords, x and y for 4 vertices, going counter-clockwise from top left. 
+    char height[CHAR_COUNT] ;
+    char width[CHAR_COUNT] ;
+    char bot[CHAR_COUNT] ;
+    float tcoords[CHAR_COUNT][4][2] ; // tex coords, x and y for 4 vertices, going counter-clockwise from top left. 
+
 
     // this function loads as a bitmap a font image. 
     // the bitmap is kept in memory, while glID's

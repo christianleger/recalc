@@ -191,14 +191,15 @@ void drawchar(int x,int y, char c)
 
     glBegin(GL_QUADS) ;
 
-
+    int bot = fonts[0]->bot[(int)c] ;
 
         //0
     glTexCoord2d(0,0);    // bottom left of a letter 
     //glVertex2f( 0, -_font->_height + top );
     glVertex2f( 
         x, 
-        y+2*fonts[0]->height[(int)c]
+        //y+2*fonts[0]->height[(int)c]
+        y+fonts[0]->height[(int)c]+bot
         );
 
 
@@ -209,7 +210,7 @@ void drawchar(int x,int y, char c)
         );
     glVertex2f( 
         x, 
-        y
+        y+bot
         );
 
 
@@ -219,8 +220,9 @@ void drawchar(int x,int y, char c)
         fonts[0]->tcoords[c][2][1]
         );    // bottom right of a letter 
     glVertex2f( 
-        x+2*fonts[0]->width[(int)c], 
-        y
+        //x+2*fonts[0]->width[(int)c], 
+        x+fonts[0]->width[(int)c], 
+        y+bot
         );
 
 
@@ -230,8 +232,10 @@ void drawchar(int x,int y, char c)
         0
         );
     glVertex2f(
-        x+2*fonts[0]->width[(int)c], 
-        y+2*fonts[0]->height[(int)c]
+        //x+2*fonts[0]->width[(int)c], 
+        x+fonts[0]->width[(int)c], 
+        //y+2*fonts[0]->height[(int)c]
+        y+fonts[0]->height[(int)c]+bot
         );
     
     glEnd() ;
@@ -270,19 +274,23 @@ void render_menu()
 int next = 0 ;
     glColor3f(0,.8,0) ;
         next = 400 ;
-        drawchar(400,400, 'A') ;    next += 2*fonts[0]->width['A']+3 ;
-        drawchar(next, 400, 'J') ;       next += 2*fonts[0]->width['J']+3 ;
-        drawchar(next, 400, 'C') ;       next += 2*fonts[0]->width['C']+3 ;
-        drawchar(next, 400, 'D') ;       next += 2*fonts[0]->width['D']+3 ;
-        drawchar(next, 400, 'E') ;       next += 2*fonts[0]->width['E']+3 ;
-        drawchar(next, 400, 'a') ;       next += 2*fonts[0]->width['a']+3 ;
-        drawchar(next, 400, 'd') ;       next += 2*fonts[0]->width['d']+3 ;
-        drawchar(next, 400, 'j') ;       next += 2*fonts[0]->width['j']+3 ;
-        drawchar(next, 400, 'a') ;       next += 2*fonts[0]->width['a']+3 ;
-        drawchar(next, 400, 'c') ;       next += 2*fonts[0]->width['c']+3 ;
-        drawchar(next, 400, 'i') ;       next += 2*fonts[0]->width['i']+3 ;
-        drawchar(next, 400, 'n') ;       next += 2*fonts[0]->width['n']+3 ;
-        drawchar(next, 400, 't') ;       next += 2*fonts[0]->width['t']+3 ;
+        drawchar(400,400, 'A') ;    next += fonts[0]->width['A']+3 ;
+        drawchar(next, 400, 'J') ;       next += fonts[0]->width['J']+3 ;
+        drawchar(next, 400, 'C') ;       next += fonts[0]->width['C']+3 ;
+        drawchar(next, 400, 'D') ;       next += fonts[0]->width['D']+3 ;
+        drawchar(next, 400, 'E') ;       next += fonts[0]->width['E']+3 ;
+        drawchar(next, 400, 'a') ;       next += fonts[0]->width['a']+3 ;
+        drawchar(next, 400, 'd') ;       next += fonts[0]->width['d']+3 ;
+        drawchar(next, 400, 'j') ;       next += fonts[0]->width['j']+3 ;
+        drawchar(next, 400, 'a') ;       next += fonts[0]->width['a']+3 ;
+        drawchar(next, 400, 'c') ;       next += fonts[0]->width['c']+3 ;
+        drawchar(next, 400, 'i') ;       next += fonts[0]->width['i']+3 ;
+        drawchar(next, 400, 'n') ;       next += fonts[0]->width['n']+3 ;
+        drawchar(next, 400, 't') ;       next += fonts[0]->width['t']+3 ;
+        drawchar(next, 400, 't') ;       next += fonts[0]->width['t']+3 ;
+        drawchar(next, 400, 'g') ;       next += fonts[0]->width['g']+3 ;
+        drawchar(next, 400, 'q') ;       next += fonts[0]->width['q']+3 ;
+        drawchar(next, 400, 't') ;       next += fonts[0]->width['t']+3 ;
 /*        drawchar(480,400, 'C') ;
         drawchar(520,400, 'D') ;
         drawchar(560,400, 'E') ;
@@ -292,6 +300,10 @@ int next = 0 ;
 
     glDisable( GL_TEXTURE_2D ) ;
 
+    glBegin( GL_LINES ) ;
+        glVertex3f(400,400,0) ;
+        glVertex3f(500,400,0) ;
+    glEnd() ;
 
 
 
@@ -333,7 +345,7 @@ void render_console()
     for (int i=c.top_scr_line;i< CONSOLE_V_SIZE ;i++)
     {
         // visible command history above 
-        prstr( 0, - i*fonts[0]->_height, c.lines[i] ) ;
+        prstr( 0, - (i+1)*fonts[0]->_height, c.lines[i] ) ;
     }
     glLoadIdentity() ; 
 

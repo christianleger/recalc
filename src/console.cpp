@@ -120,7 +120,16 @@ void key_in( void * in_key )
 
     if (c.current_char<CONSOLE_LINE_LENGTH+1)
     {
+    if (key=='b')
+    {
+        c.line_buffer[ c.current_char ] = 129 ;
+    }
+    else
+    {
         c.line_buffer[ c.current_char ] = key - upper_case ;
+    }
+
+
         c.line_buffer[ c.current_char + 1 ] = '\0';
         c.current_char++ ;
         c.current_line_pix_len += fonts[0]->width[ key - upper_case ] ; // FIXME: this length should just be computed when console is drawn 

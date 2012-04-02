@@ -2440,7 +2440,7 @@ void drawworld()
 
     //---------------------------------------------------------------------
 
-glColor3f(1,1,1) ;
+glColor3f(.6,.6,.6) ;
     loopv(worldgeometry)
     {
         Geom* g = worldgeometry[i] ;
@@ -2475,7 +2475,7 @@ glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 
 // if show triangles 
-if (1)
+if (1 && 0)
 {
 
     glDepthFunc( GL_LEQUAL ) ;

@@ -52,7 +52,7 @@ GLuint mainfontID = 0 ;
 
 void createFontDisplayList(
     FT_Face face,
-    char ch, 
+    int ch, 
     Font * _font, bool check_phase=false
     )
 {
@@ -62,6 +62,13 @@ void createFontDisplayList(
     FT_BBox bbox;
 
     FT_Load_Glyph( face, FT_Get_Char_Index( face, ch ), FT_LOAD_DEFAULT );
+
+
+    if (ch>128)
+    {
+        ch = 129 ;
+    }
+
 
     FT_Get_Glyph( face->glyph, &glyph );
     FT_Glyph_Get_CBox( glyph, FT_GLYPH_BBOX_PIXELS, &bbox ); 
@@ -147,10 +154,14 @@ printf("\n \tbot left: %d  %d", 0, -_font->_height + bbox.yMin);
 printf("\n \tbot right: %d  %d", bitmap.width, -_font->_height + bbox.yMin);
 printf("\n \ttop right: %d  %d", bitmap.width, -_font->_height + top );
 */
-
+if ( ( ch >= SDLK_a && ch <= SDLK_z ) || ch==' ' || ( ch >= 'A' && ch <= 'Z' ) )
+{
+    printf("\n letter %c: top=%d    bottom=%d", ch, top, (int)bbox.yMin) ;
+}
 
     glBegin(GL_QUADS);
 
+_font->bot[(int)ch] = bbox.yMin ;
 _font->tcoords[(int)ch][0][0] = 0 ;
 _font->tcoords[(int)ch][0][1] = 0 ;
       glTexCoord2d(0,0); 
@@ -236,7 +247,7 @@ void initializeFonts(
     /*FT_Set_Char_Size( face, 4096,4096, 18, 18);*/
 
     _font->gl_list_base = glGenLists(128);
-    glGenTextures(128, _font->gl_char_IDs);
+    glGenTextures(129, _font->gl_char_IDs);
 
     _font->_width = 0 ;
     _font->_height = 0 ;
@@ -255,6 +266,8 @@ void initializeFonts(
     printf("\n height of font: %d\n", _font->_height);
 
     //_font->width[' '] = _font->; 
+
+        createFontDisplayList(face, 0x2210, _font, false);
 
     if (face) 
     {
@@ -276,13 +289,18 @@ void initializeFonts(
     return;
 }
 
+/*
+    Here we determine font name, font file, on-screen size.
+*/
 void initfonts()
 {
     initialized = 1; 
 
     fonts.add( new Font("default font") ) ;
     numFonts++ ;
-    initializeFonts((fonts[0]), "../data/fonts/unifont.ttf", 32);
+    initializeFonts((fonts[0]), "../data/fonts/unifont.ttf", 16);
+    //initializeFonts((fonts[0]), "../data/fonts/unifont.ttf", 32);
+    //initializeFonts((fonts[0]), "../data/fonts/electrb.ttf", 16);
 
     // 
     //initializeFonts((fonts[0]), "../data/fonts/JuraBook.ttf", 16);  
@@ -297,7 +315,6 @@ void initfonts()
 
     //initializeFonts((fonts[0]), "../data/fonts/LiberationMono-Bold.ttf", 16);
     //initializeFonts((fonts[0]), "../data/fonts/SM.TTF", 16);
-    //initializeFonts((fonts[0]), "../data/fonts/electrb.ttf", 16);
 
 
     //initializeFonts((fonts[0]), "../data/fonts/JuraBook.ttf", 16);  
