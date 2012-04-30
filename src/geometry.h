@@ -84,10 +84,11 @@ struct Geom
     unsigned int texVBOid ; 
     unsigned int colorVBOid; 
 
-    vec vertices[256] ;     // maybe 85 triangles
-//    ivec vertices[256] ;     // maybe 85 triangles
+    //ivec vertices[256] ;     // maybe 85 triangles
+//    vec vertices[256] ;     // maybe 85 triangles
+    ivec vertices[256] ;     // maybe 85 triangles
     vec colors[256] ;       // yep
-    vec2 texcoords[256] ;   // maybe 85 triangles
+    vec texcoords[256] ;   // maybe 85 triangles
     unsigned char numverts ;
 
     int timeschanged ;
@@ -137,20 +138,10 @@ struct Octant
     {
         uchar    edges[12] ;                                    // 12 bytes 
         uint32_t edgegroups[3] ; // used to check if a node has geometry // 12 bytes
-
-        /*  For non-leaf nodes maybe this shite can be used for something
-        struct
-        {
-            int32_t c ;
-            int32_t c1 ;    // unused
-            int32_t c2 ;    // unused
-        } svc ;             // 'subtree vertex count'. I know what I'm doin. 
-        */
     } ;
 
     uint32_t vc ;           // 4 bytes. Vertex count or subtree vertex count in the case of non-leaf nodes. 
-    // Tex slot IDs
-    short tex[6] ;          // 12 bytes
+    short tex[6] ;          // 12 bytes     // Tex slot IDs
 
     // the different material types a node can have
     enum 

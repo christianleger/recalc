@@ -60,53 +60,221 @@ bool cancelsound = false ;
 void read_args( int, char** ) ;
 void read_configs() ;
 void initSDL( Engine * engine ) ;
-void initGL( ); 
+void initGL( ) ; 
 void resize_window( int width, int height ) ;
 /*-----------------------------------------------------------------*/
 
 
+extern Engine engine ;
 uint texid = 0 ;
+GLuint surfacetex = 0 ;
 void load_texture() 
 {
     SDL_Surface* data_image ;
+    char* data ;
 
-    //data_image = IMG_Load("../data/textures/1.jpg") ;
-    data_image = IMG_Load("../data/textures/grid.png") ;
+    // 3D texture holds all surface textures
+    data_image = IMG_Load("../data/textures/grid2.png") ;
+
+    glGenTextures(1, &surfacetex);
+
+    glBindTexture(GL_TEXTURE_3D, surfacetex);
+/*
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP) ;
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+*/
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, data_image->w, data_image->h, 3, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+/*
+*/
+    glEnable( GL_TEXTURE_3D ) ;
+    glDisable( GL_TEXTURE_3D ) ;
+
+
+//---------------------------------------------------------------------------------    
+    // LOAD AN IMAGE
+    glEnable( GL_TEXTURE_2D ) ;
     if (data_image == NULL)
     {
-        printf("\nPROBREM LOADING FILE\n");
-        printf("\nThe error is: %s\n", IMG_GetError());
-        Quit(1);
+        printf("\nPROBREM LOADING FILE\n") ;
+        printf("\nThe error is: %s\n", IMG_GetError()) ;
+        Quit(1) ;
     }
+    data = (char *)(data_image->pixels) ;
+   
+    // ASSIGN IMAGE TO GRAPHICS SYSTEM 
+    glGenTextures(1,&(texid)) ;
+    engine.addtex(texid) ;
+    printf("\nJust created a opengl texture, ID %d", texid) ;
+    glBindTexture(GL_TEXTURE_2D, texid) ;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data_image->w, data_image->h, 0, GL_RGB, GL_UNSIGNED_BYTE, data ) ;
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_LINEAR ) ;
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST) ;
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT) ;
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT) ;
+    glGenerateMipmap(GL_TEXTURE_2D) ;
+    glDisable( GL_TEXTURE_2D ) ;
 
-    char* data ;
-    data = (char *)(data_image->pixels);
+    // Record image in 3D texture
+    glEnable( GL_TEXTURE_3D ) ;
+    glBindTexture(GL_TEXTURE_3D, surfacetex);
+    glTexSubImage3D( 
+        GL_TEXTURE_3D, 0,                   // 3D texture, full-resolution (no mipmap)
+        0,0,0,                              // offsets 
+        data_image->w, data_image->h, 1,    // dimensions for each component
+        GL_RGB, GL_UNSIGNED_BYTE,           // pixel format
+        data                                // the data
+        );
+    glDisable( GL_TEXTURE_3D ) ;
 
-    glGenTextures(1,&(texid));
-    printf("\nJust created a opengl texture, ID %d", texid);
-    glBindTexture(GL_TEXTURE_2D, texid);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data_image->w, data_image->h, 0, GL_RGB, GL_UNSIGNED_BYTE, data );
-    SDL_FreeSurface(data_image);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-// glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+    SDL_FreeSurface(data_image) ;
 
+#if 1
+//---------------------------------------------------------------------------------    
+    // LOAD AN IMAGE
+    glEnable( GL_TEXTURE_2D ) ;
+    data_image = IMG_Load("../data/textures/morphbrick.jpg") ;
+    if (data_image == NULL)
+    {
+        printf("\nPROBREM LOADING FILE\n") ;
+        printf("\nThe error is: %s\n", IMG_GetError()) ;
+        Quit(1) ;
+    }
+    data = (char *)(data_image->pixels) ;
     
-    printf("\nDONE LOADING A FIRST TEXTURE ! \n") ;
-    // use SDL_image to get a handle on the pixels
+    
+    // ASSIGN IMAGE TO GRAPHICS SYSTEM 
+    glGenTextures(1,&(texid)) ;
+    engine.addtex(texid) ;
+    printf("\nJust created a opengl texture, ID %d", texid) ;
+    glBindTexture(GL_TEXTURE_2D, texid) ;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data_image->w, data_image->h, 0, GL_RGB, GL_UNSIGNED_BYTE, data ) ;
+    //glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST) ;
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST) ;
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT) ;
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT) ;
+    //glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR) ;
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST ) ;
+    glGenerateMipmap(GL_TEXTURE_2D) ;
+    glDisable( GL_TEXTURE_2D ) ;
 
-    // tell OpenGL to give us an id to refer to this texture. 
+    glEnable( GL_TEXTURE_3D ) ;
+    glBindTexture(GL_TEXTURE_3D, surfacetex);
+    glTexSubImage3D( 
+        GL_TEXTURE_3D, 0,                   // 3D texture, full-resolution (no mipmap)
+        0,0,1,                              // offsets 
+        data_image->w, data_image->h, 1,    // dimensions for each component
+        GL_RGB, GL_UNSIGNED_BYTE,           // pixel format
+        data                                // the data
+        );
+    glDisable( GL_TEXTURE_3D ) ;
 
-    // tell OpenGL that these are the pixels to this texture. 
+    SDL_FreeSurface(data_image) ;
 
-    // Now we can use this texture everywhere we want! 
+#endif
+//---------------------------------------------------------------------------------    
+    // LOAD AN IMAGE
+
+#if 1
+    glEnable( GL_TEXTURE_2D ) ;
+    data_image = IMG_Load("../data/textures/planets.jpg") ;
+    if (data_image == NULL)
+    {
+        printf("\nPROBREM LOADING FILE\n") ;
+        printf("\nThe error is: %s\n", IMG_GetError()) ;
+        Quit(1) ;
+    }
+    data = (char *)(data_image->pixels) ;
+    
+    
+    // ASSIGN IMAGE TO GRAPHICS SYSTEM 
+    glGenTextures(1,&(texid)) ;
+    engine.addtex(texid) ;
+    printf("\nJust created a opengl texture, ID %d", texid) ;
+    glBindTexture(GL_TEXTURE_2D, texid) ;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, data_image->w, data_image->h, 0, GL_RGB, GL_UNSIGNED_BYTE, data ) ;
+    //glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST) ;
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT) ;
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT) ;
+    //glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR) ;
+    //glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_NEAREST ) ;
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST) ;
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST) ;
+    glGenerateMipmap(GL_TEXTURE_2D) ;
+    glDisable( GL_TEXTURE_2D ) ;
+
+    glEnable( GL_TEXTURE_3D ) ;
+    glBindTexture(GL_TEXTURE_3D, surfacetex);
+    glTexSubImage3D( 
+        GL_TEXTURE_3D, 0,                   // 3D texture, full-resolution (no mipmap)
+        0,0,2,                              // offsets 
+        data_image->w, data_image->h, 1,    // dimensions for each component
+        GL_RGB, GL_UNSIGNED_BYTE,           // pixel format
+        data                                // the data
+        );
+    glDisable( GL_TEXTURE_3D ) ;
+
+
+    SDL_FreeSurface(data_image) ;
+
+#endif
+
+
+
+
+/*
+void glTexImage3D(  GLenum      target,
+    GLint   level,
+    GLint   internalFormat,
+    GLsizei     width,
+    GLsizei     height,
+    GLsizei     depth,
+    GLint       border,
+    GLenum      format,
+    GLenum      type,
+    const GLvoid *      data);
+
+void glTexSubImage3D(   GLenum      target,
+    GLint   level,
+    GLint   xoffset,
+    GLint   yoffset,
+    GLint   zoffset,
+    GLsizei     width,
+    GLsizei     height,
+    GLsizei     depth,
+    GLenum      format,
+    GLenum      type,
+    const GLvoid *      data);
+
+*/
+
+/*
+glTexSubImage3D( 
+    GL_TEXTURE_3D, 0,                   // 3D texture, full-resolution (no mipmap)
+    0,0,0,                              // offsets 
+    data_image->w, data_image->h, 1,    // dimensions for each component
+    GL_RGB, GL_UNSIGNED_BYTE,           // pixel format
+    data                                // the data
+    );
+*/
+
+
+//SDL_FreeSurface(data_image) ;
+
+
+printf("\nDONE LOADING TEXTURES. \n") ;
 }
-
 
 /*-----------------------------------------------------------------*/
 //                  function definitions 
 /*-----------------------------------------------------------------*/
-
 
 void read_args( int argc, char** argv )
 {
@@ -161,16 +329,16 @@ void initSDL( Engine * engine )
     /* prepare SDL */
     if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO ) < 0 )
     {
-        fprintf( stderr, "Video initialize failed: %s\n", SDL_GetError( ) );
-        Quit( 1 );
+        fprintf( stderr, "Video initialize failed: %s\n", SDL_GetError( ) ) ;
+        Quit( 1 ) ;
     }
     
-    engine->videoInfo = SDL_GetVideoInfo( );
+    engine->videoInfo = SDL_GetVideoInfo( ) ;
 
     if ( !engine->videoInfo )
     {
-        fprintf( stderr, "Video query failed: %s\n", SDL_GetError( ) );
-        Quit( 1 );
+        fprintf( stderr, "Video query failed: %s\n", SDL_GetError( ) ) ;
+        Quit( 1 ) ;
     }
 
     /* record desktop resolution for later use in fullscreen */
@@ -199,7 +367,7 @@ void initSDL( Engine * engine )
         engine->videoFlags |= SDL_HWACCEL;
 
     /* Sets up OpenGL double buffering */
-    SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+    SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 ) ;
     
     /* get a SDL surface */
     engine->videoFlagsFS  = engine->videoFlags; 
@@ -230,17 +398,17 @@ void initSDL( Engine * engine )
         SCREEN_BPP, 
         //((engine->fullscreen)   ?  engine->videoFlagsFS : engine->videoFlags)
         engine->videoFlags
-    );
+    ) ;
 
     /* Verify there is a surface */
     if ( !engine->surface )
     {
-        fprintf( stderr,  "Video mode set failed: %s\n", SDL_GetError( ) );
-        Quit( 1 );
+        fprintf( stderr,  "Video mode set failed: %s\n", SDL_GetError( ) ) ;
+        Quit( 1 ) ;
     }
     else
     {
-        fprintf( stderr,  "GREAT SUCCESS FOR THE COMPUTER GENERATING A SURFACE: %s\n", SDL_GetError( ) );
+        fprintf( stderr,  "GREAT SUCCESS FOR THE COMPUTER GENERATING A SURFACE: %s\n", SDL_GetError( ) ) ;
         //"Messages given by SDL_GetError: %s\n", 
     }
 
@@ -255,25 +423,26 @@ void initGL( )
     glewInit() ;
 #endif
 
-    glShadeModel( GL_SMOOTH );
-    glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-    glClearDepth( 1.0f );
+    glShadeModel( GL_SMOOTH ) ;
+    glClearColor( 0.0f, 0.0f, 0.0f, 0.0f ) ;
+    glClearDepth( 1.0f ) ;
     
     /* Really Nice Perspective Calculations */
-    glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST );
-    glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
+    //glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST ) ;
+    glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST ) ;
+    glHint( GL_POINT_SMOOTH_HINT, GL_NICEST ) ;
 
-    glEnable( GL_DEPTH_TEST );
-    glEnable( GL_BLEND );
-    glCullFace(GL_CW) ;
+    glEnable( GL_DEPTH_TEST ) ;
+    glEnable( GL_BLEND ) ;
+//FIXME: re-enable    glCullFace(GL_CW) ;
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // checked. 
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) ; // checked. 
     glDepthFunc( GL_LESS ) ; // checked. 
 
     return ; 
-    // glHint( GL_TEXTURE_COMPRESSION_HINT, GL_NICEST );
-    // glHint( GL_LINE_SMOOTH_HINT, GL_NICEST );
-    // glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST );
+    // glHint( GL_TEXTURE_COMPRESSION_HINT, GL_NICEST ) ;
+    // glHint( GL_LINE_SMOOTH_HINT, GL_NICEST ) ;
+    // glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST ) ;
     /* The Type Of Depth Test To Do */
     // glDepthFunc( GL_EQUAL | GL_NOTEQUAL ) ;
     // glDepthFunc( GL_GREATER ) ;
@@ -292,32 +461,25 @@ void resize_window( int width, int height, int fov )
     if ( height == 0 ){   height = 1;  }
 
     ratio = ( GLfloat )width / ( GLfloat )height;
-  
 
     printf( "\n attemping to resize window with fov %d \n", fov ) ; 
-    if (fov==-1)
-    {
-        angle = 60 ; // default somewhat fish-eye perspective 
-    }
-    else 
-    {
-        angle = fov ;
-    }
+    if (fov==-1) { angle = 60 ; }
+    else { angle = fov ; }
 
     /* viewport. */
-    glViewport( 0, 0, ( GLsizei )width, ( GLsizei )height );
+    glViewport( 0, 0, ( GLsizei )width, ( GLsizei )height ) ;
 
     /* By default, large viewing volume. Culling in software. */
-    glMatrixMode( GL_PROJECTION );
-    glLoadIdentity( );
+    glMatrixMode( GL_PROJECTION ) ;
+    glLoadIdentity( ) ;
 
-    ////gluPerspective( (GLfloat)angle, ratio, 0.01f, 10000000.0f );
-    gluPerspective( (GLfloat)angle, ratio, 10.0f, 300000.0f );
-    //gluPerspective( 60.0f, ratio, 0.01f, 50000.0f );
+    ////gluPerspective( (GLfloat)angle, ratio, 0.01f, 10000000.0f ) ;
+    gluPerspective( (GLfloat)angle, ratio, 10.0f, 300000.0f ) ;
+    //gluPerspective( 60.0f, ratio, 0.01f, 50000.0f ) ;
 
     /* default matrix to manipulate is modelview */
-    glMatrixMode( GL_MODELVIEW );
-    glLoadIdentity( );
+    glMatrixMode( GL_MODELVIEW ) ;
+    glLoadIdentity( ) ;
 
     return ;
 }
@@ -369,7 +531,7 @@ printf("\nREGISTERED SOUND = %d\n", thesound) ;
 // soundoff() ;
 justplay(thesound) ;
 
-read_args(argc, argv); 
+read_args(argc, argv) ; 
 
     // Testing code. This can run stuff just to evaluate the characteristics of some 
     // code without having to load and run everything. 
@@ -396,18 +558,18 @@ read_args(argc, argv);
 //    engine.fullscreen = true ; 
     engine.window_active = true ;
 
-    initSDL( &engine ); // this by itself does a lot: it gives us our window and rendering context
+    initSDL( &engine ) ; // this by itself does a lot: it gives us our window and rendering context
     
 printf("\n before initgl") ;
 CheckGlError() ;
-    initGL( ); /* OpenGL SUBSYSTEM */
+    initGL( ) ; /* OpenGL SUBSYSTEM */
 printf("\n after initgl") ;
 CheckGlError() ;
 
 //    engine.scr_w = default_screen_width ;
 //engine.scr_h = default_screen_height ;
 
-    initialize_subsystems(); // Parts of engine - input, geometry, sound
+    initialize_subsystems() ; // Parts of engine - input, geometry, sound
 
     // Any reason this can't be done in the previous subsystem initialization? 
     resize_window( engine.scr_w , engine.scr_h, engine.fov ) ;
@@ -421,7 +583,7 @@ CheckGlError() ;
     int delta_millis = 0 ; 
     int physics_millis = 0 ; 
 
-    millis = SDL_GetTicks();
+    millis = SDL_GetTicks() ;
     last_millis = millis ; 
 
 
@@ -433,12 +595,12 @@ CheckGlError() ;
 
 // If we grab input while debugging, we can't access the debugger when a breakpoint hits! 
 #ifndef DEBUG
-    SDL_WM_GrabInput(SDL_GRAB_ON);
+    SDL_WM_GrabInput(SDL_GRAB_ON) ;
 #else
 //#error WE HAVE DEBUG!
 #endif
 
-    SDL_ShowCursor(SDL_DISABLE);         
+    SDL_ShowCursor(SDL_DISABLE) ;         
 
     //unsigned int last_frame = SDL_GetTicks() ;
 
@@ -453,7 +615,7 @@ CheckGlError() ;
 #define FRAME_TIME 5 // 5 gives about 200 fps. Not relevant when in vsync. 
     while ( !done )
     {
-        millis = SDL_GetTicks();
+        millis = SDL_GetTicks() ;
         delta = millis - last_millis ;
         if ( delta >= 1 ) // approximately 200 fps, unless vsync is enabled. 
         {
@@ -511,7 +673,7 @@ CheckGlError() ;
                     // returns current_commands to whatever last_commands holds
                     extern void reset_commands() ;
                     reset_commands() ; 
-                    SDL_GL_SwapBuffers(); 
+                    SDL_GL_SwapBuffers() ; 
                     break ; 
                 }
                 default:
@@ -541,7 +703,7 @@ CheckGlError() ;
                ( !engine.paused )
            )
         {
-            glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+            glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) ;
             
             if ( engine.rendering ) 
             {
@@ -577,7 +739,7 @@ CheckGlError() ;
             // frame counting 
             sec_progress += delta_millis ;
 
-            SDL_GL_SwapBuffers(); 
+            SDL_GL_SwapBuffers() ; 
             framecount++; 
 
             delta_millis = 0 ;
@@ -587,10 +749,10 @@ CheckGlError() ;
             if ( !engine.window_active )
             {
                 delta_millis = 0 ;
-                SDL_GL_SwapBuffers(); 
+                SDL_GL_SwapBuffers() ; 
             }
             SDL_Delay(1) ; 
-            SDL_GL_SwapBuffers(); 
+            SDL_GL_SwapBuffers() ; 
         }
         
         // FRAME COUNTING and other 1Hz actions. 
@@ -607,25 +769,25 @@ CheckGlError() ;
         }
     } // end of 'while not done'
 
-    printf("\n Exiting Recalc normally. ");
+    printf("\n Exiting Recalc normally. ") ;
     /* clean up, exit */
-    Quit( 0 );
+    Quit( 0 ) ;
 
     /* this should not execute */
-    return( 0 );
+    return( 0 ) ;
 }
 
 
 // BELOW are miscellaneous conveniences and curiosities.
 
 /*
-SDL_WarpMouse(0,0);         
-SDL_WM_GrabInput(SDL_GRAB_ON);
+SDL_WarpMouse(0,0) ;         
+SDL_WM_GrabInput(SDL_GRAB_ON) ;
 SDL_WM_ToggleFullScreen( surface ) ;
 */
 void testee(char * arg)
 {
-    printf("\nfunction called: %s ", arg);
+    printf("\nfunction called: %s ", arg) ;
 }
 void test_command()
 {
@@ -633,7 +795,7 @@ void test_command()
 
     _c.function = testee; 
 
-    _c.function((char*)"pleasure");
+    _c.function((char*)"pleasure") ;
 
     return;
 }

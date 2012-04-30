@@ -47,7 +47,10 @@ int check_phase_done = 0;
 
 //Font mainfont ;
 // luminance-alpha bitmaps of 16 by 16. 256 of them. 
-char mainfontpix[2*16*16*256] ;
+//static GLubyte image [iDepth][iHeight][iWidth][4];
+//static GLubyte mainfontpix[256][16][16][2] ;
+//static GLubyte mainfontpix[256*16*16*2] ;
+static GLubyte mainfontpix[128*16*16*2] ;
 GLuint mainfontID = 0 ;
 
 void createFontDisplayList(
@@ -63,11 +66,7 @@ void createFontDisplayList(
 
     FT_Load_Glyph( face, FT_Get_Char_Index( face, ch ), FT_LOAD_DEFAULT );
 
-
-    if (ch>128)
-    {
-        ch = 129 ;
-    }
+    if (ch>128) { ch = 129 ;return ; }
 
 
     FT_Get_Glyph( face->glyph, &glyph );
@@ -89,6 +88,7 @@ void createFontDisplayList(
     if (check_phase)
     {
         _font->width[(int)ch]  = bitmap_glyph->left + (face->glyph->advance.x >> 6) ; 
+        //_font->width[(int)ch]  = bitmap.width ;
 
         if ( ( ch > SDLK_a && ch < SDLK_z ) || ch==' ')
         {
@@ -105,46 +105,44 @@ void createFontDisplayList(
         return; 
     }
 
-    width = next_p2( bitmap.width );
-    height = next_p2( bitmap.rows );
-    GLubyte* expanded_data = (GLubyte *)malloc ( sizeof (GLubyte) * 3 * width * height);
-    
-    for( j=0; j <height;j++) {
-        for( i=0; i < width; i++){
-            expanded_data[2*(i+j*width)]= expanded_data[2*(i+j*width)+1] =
+    width = 16; // next_p2( bitmap.width );
+    height = 16; // next_p2( bitmap.rows );
+    GLubyte* expanded_data = (GLubyte *)malloc ( sizeof (GLubyte) * 2 * width * height);
+   
+
+
+   //////////////////////////////////////////////////////////
+   // GROK AND THEN MITOSE
+   //////////////////////////////////////////////////////////
+    //for( j=0; j <height;j++) {
+     //   for( i=0; i < width; i++){
+    for( j=0; j <16;j++) {
+        for( i=0; i <16; i++){
+            expanded_data[2*(i+j*width)]= 
+            expanded_data[2*(i+j*width)+1] =
+                (i>=bitmap.width || j>=bitmap.rows) ?
+                0 : bitmap.buffer[i + bitmap.width*j] ;
+
+            //mainfontpix[ch][j][i][0]  +2*(i+j*width)] = 
+            mainfontpix[ch*(2*(16*16))+2*(i+j*width)] = 
+            mainfontpix[ch*(2*(16*16))+2*(i+j*width)+1] = 
+            //mainfontpix[ch][j][i][0] = 
+            //mainfontpix[ch][j][i][1] = 
+//mainfontpix[ch*(16*16*2)  +2*(i+j*width)+1] = 128 ; // (i%2==0)?(128):(0) ;
+//mainfontpix[ch*(16*16*2)  +2*(i+j*width)+1] = 
+            // 128 ;
                 (i>=bitmap.width || j>=bitmap.rows) ?
                 0 : bitmap.buffer[i + bitmap.width*j];
         }
     }
+    CheckGlError() ;
 
-    // TEXTURE SETUP 
-    glBindTexture( GL_TEXTURE_2D, _font->gl_char_IDs[(int)ch]);
-    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, expanded_data );
 
-/*
-    glBindTexture( GL_TEXTURE_3D, mainfontID );
-    glTexSubImage3D( GL_TEXTURE_3D,0,0,0, 0,16,16,ch,GL_LUMINANCE_ALPHA,GL_UNSIGNED_BYTE,&mainfontpix[ch]) ;
-    glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-*/
-
-    glBindTexture( GL_TEXTURE_2D, _font->gl_char_IDs[(int)ch]);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-    
     free (expanded_data);
-
-glNewList(_font->gl_list_base+ch,GL_COMPILE);
-
-glBindTexture(GL_TEXTURE_2D,_font->gl_char_IDs[(int)ch]);
-
-     if (ch!='j') { glTranslatef(bitmap_glyph->left,0,0); }
-     else {         glTranslatef(bitmap_glyph->left/3,0,0); }
 
      float   x=(float)bitmap.width / (float)width,
              y=(float)bitmap.rows / (float)height;
 
-glPushMatrix() ;
 /*
 printf("\n character: %c", ch) ;
 printf("\n \t width: %d", _font->width[(int)ch]) ;
@@ -154,47 +152,21 @@ printf("\n \tbot left: %d  %d", 0, -_font->_height + bbox.yMin);
 printf("\n \tbot right: %d  %d", bitmap.width, -_font->_height + bbox.yMin);
 printf("\n \ttop right: %d  %d", bitmap.width, -_font->_height + top );
 */
-if ( ( ch >= SDLK_a && ch <= SDLK_z ) || ch==' ' || ( ch >= 'A' && ch <= 'Z' ) )
-{
-    printf("\n letter %c: top=%d    bottom=%d", ch, top, (int)bbox.yMin) ;
-}
-
-    glBegin(GL_QUADS);
 
 _font->bot[(int)ch] = bbox.yMin ;
+_font->width[(int)ch] = bitmap.width ;
+
 _font->tcoords[(int)ch][0][0] = 0 ;
 _font->tcoords[(int)ch][0][1] = 0 ;
-
-      glTexCoord2d(0,0); 
-      //glVertex2f( 0, -_font->_height + top );
-      glVertex2f( 0, top );
               
 _font->tcoords[(int)ch][1][0] = 0 ;
 _font->tcoords[(int)ch][1][1] = y ;
-      glTexCoord2d(0,y);    // bottom left of a letter 
-      //glVertex2f( 0, -_font->_height + bbox.yMin);
-      glVertex2f( 0, bbox.yMin);
               
 _font->tcoords[(int)ch][2][0] = x ;
 _font->tcoords[(int)ch][2][1] = y ;
-      glTexCoord2d(x,y);    // bottom right of a letter 
-      //glVertex2f( bitmap.width, -_font->_height + bbox.yMin);
-      glVertex2f( bitmap.width, bbox.yMin);
 
 _font->tcoords[(int)ch][3][0] = x ;
 _font->tcoords[(int)ch][3][1] = 0 ;
-_font->width[(int)ch] = bitmap.width ;
-      glTexCoord2d(x,0); 
-      //glVertex2f( bitmap.width, -_font->_height + top );
-      glVertex2f( bitmap.width, top );
-
-    glEnd();
-glPushMatrix() ;
-
-    if (ch!='j') { glTranslatef(face->glyph->advance.x >> 6 ,0,0); }
-    else { glTranslatef((face->glyph->advance.x >> 6) ,0,0); }
-
-    glEndList();
 
     return;
 }
@@ -217,10 +189,7 @@ void initializeFonts(
 
 
     FT_Library library;
-    if (FT_Init_FreeType( &library )!=0)
-    {
-        printf("\nProbrem roading fleetype liblaly\n");
-    }
+    if (FT_Init_FreeType( &library )!=0) { printf("\nProbrem roading fleetype liblaly\n"); }
     if (error = FT_New_Face( library , font_name, 0, &face )!=0)
     {
         printf("\nUnable to complete font loading request. ");
@@ -233,12 +202,7 @@ void initializeFonts(
         }
         return; 
     }
-    else
-    {
-        printf("\nFont init working . ");
-    }
-    
-
+    printf("\nFont init working . ");
 
     /*FT_Set_Char_Size( face, height << 6, height << 6, 18, 18);*/
     //FT_Set_Char_Size( face, 0, height*64, 300, 300);
@@ -266,9 +230,9 @@ void initializeFonts(
     printf("\n widest character width: %d\n", _font->_width);
     printf("\n height of font: %d\n", _font->_height);
 
-    //_font->width[' '] = _font->; 
+    _font->width[' '] = 8 ;
 
-        createFontDisplayList(face, 0x2210, _font, false);
+//        createFontDisplayList(face, 0x2210, _font, false);
 
     if (face) 
     {
@@ -331,7 +295,6 @@ void initfonts()
     */
     return; 
 }
-//COMMAND(initfonts, "");
 
 
 void clearFonts()
@@ -368,7 +331,8 @@ void textwidth(Font * in_font, char * text, int * width)
     return; 
 }
 
-/*  FUNCTION: printstr
+
+/*  FUNCTION: prstr
 
     DESCRIPTION: to draw text on the screen, positioned at 
     the current OpenGL context. 
@@ -380,16 +344,45 @@ void textwidth(Font * in_font, char * text, int * width)
         str - the message to display 
 
 */
-void printstr(Font * ft_font, float x, float y, const char * str)
+static float _1_128th = 1.f/128.f ;
+void prstr(float _x, float _y, const char * str)
 {
-    glPushMatrix();
-        glListBase(ft_font->gl_list_base);
-        //glTranslatef(x, y+16/*+ft_font->_height*/, 0.0f);
-        glTranslatef(x, y+ft_font->_height, 0.0f);
-        glCallLists(strlen(str), GL_UNSIGNED_BYTE, str);
-    glPopMatrix();
+    int x = _x ;
+    int y = _y ;
+    int len = strlen(str) ;
+
+glBegin( GL_QUADS ) ;
+    for (int i=0;i<len;i++)
+    {
+        int c = (int)str[i] ;
+        int w = fonts[0]->width[c] ;
+        int h = fonts[0]->height[c] ;
+        y = _y + fonts[0]->bot[c] ;
+        // draw char
+
+            //0
+        glTexCoord3d( 0, 0, (float)c*_1_128th);
+        glVertex3f( x, y+h, 0) ;
+
+            //1 
+        glTexCoord3d( fonts[0]->tcoords[(int)c][1][0], fonts[0]->tcoords[(int)c][1][1], (float)c*_1_128th) ;
+        glVertex3f( x, y, 0);
+
+            //2 // bottom right of a letter 
+        glTexCoord3d( fonts[0]->tcoords[(int)c][2][0], fonts[0]->tcoords[(int)c][2][1], (float)c*_1_128th) ;
+        glVertex3f( x+w, y, 0);
+
+            //3 
+        glTexCoord3d( fonts[0]->tcoords[(int)c][3][0], fonts[0]->tcoords[(int)c][3][1], (float)c*_1_128th) ;
+        glVertex3f( x+w, y+h, 0);
+
+        // advance positions
+        x += w+2 ;
+    }
+glEnd() ;
     return ; 
 }
+
 
 /*  FUNCTION: printstr_cont
 
@@ -398,11 +391,21 @@ void printstr(Font * ft_font, float x, float y, const char * str)
     one thing on a line. 
 
 */
-void printstr_cont(Font * ft_font, float x, float y, char * fmt)
+void printstr_cont(float x, float y, char * fmt)
 {
+
+/*
     glListBase(ft_font->gl_list_base);
     glTranslatef(x, y, 0.0f);
     glCallLists(strlen(fmt), GL_UNSIGNED_BYTE, fmt);
+*/
+/*
+    FIXME
+    int len = strlen(fmt) ;
+    for (int i=0;i<len;i++) 
+    {
+    }
+*/
 
     return;
 }
@@ -417,23 +420,25 @@ void tryttfstr()
 
 void prstrstart()
 {
-    glEnable(GL_TEXTURE_2D);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glHint( GL_POINT_SMOOTH_HINT, GL_NICEST );
+    
+    glEnable(GL_TEXTURE_3D);
+    glBindTexture(GL_TEXTURE_3D, mainfontID) ;
+
 }
 void prstrend()
 {
-    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_TEXTURE_3D);
 }
 
 /*
     prstr: print a string using currently enabled font. 
-*/
 void prstr(float x, float y, const char * str)
 {
-    //printstr(fonts[fidx],x, y, str);
-    printstr(fonts[0],x, y, str);
+    printstr(x, y, str);
 }
+*/
 
 /*
     scrstrlen
@@ -459,25 +464,46 @@ int scrstrlen(const char * str)
     return len ;
 }
 
-void initialize_text()
+void init_text()
 {
-    glGenTextures(1, &mainfontID ) ;
+//    glEnable( GL_TEXTURE_3D ) ;
+//    glDisable( GL_TEXTURE_3D ) ;
 
     printf("\nMAKE ME WORK::: TEXT AND FONTS !!!\n") ; 
     
+//    glEnable( GL_TEXTURE_2D ) ;
     initfonts() ; 
+//    glDisable( GL_TEXTURE_2D ) ;
+    
+//    glEnable( GL_TEXTURE_3D ) ;
 
-    printf("\n Here is what scrstrlen says about   a    b   c    d     e   f    g       and 'heybob how are you' "    ) ; 
-    printf("\n %d    %d     %d    %d   %d    %d   %d    %d      ",
-        scrstrlen("a"),
-        scrstrlen("b"),
-        scrstrlen("c"),
-        scrstrlen("d"),
-        scrstrlen("e"),
-        scrstrlen("f"),
-        scrstrlen("g"),
-        scrstrlen("heybob how are you")
-        ) ; 
+
+
+    //#define iDepth 128
+    #define iDepth 128
+    #define iWidth 16
+    #define iHeight 16
+
+    static GLubyte image [iDepth][iHeight][iWidth][2];
+
+//glClearColor(0.0, 0.0, 0.0, 0.0);
+//glShadeModel(GL_FLAT);
+//glEnable(GL_DEPTH_TEST);
+//    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glGenTextures(1, &mainfontID);
+    glBindTexture(GL_TEXTURE_3D, mainfontID);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, iWidth, iHeight, iDepth, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, mainfontpix);
+
+
+//extern void CheckGlError() ;
+CheckGlError() ;
+
 
 
 /*

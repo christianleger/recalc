@@ -2,6 +2,7 @@
 
 #include "recalc.h"
 
+#include "physics.h" 
 
 static NewtonWorld* g_world;
 
@@ -11,6 +12,7 @@ int phys_msgs_num = 0 ;
 // from recalc.cpp
 extern Camera camera ;
 extern Engine engine ;
+extern World world ;
 //FIXME: camera DIR should replace camdir? 
 
 //vec camdir ;
@@ -21,6 +23,11 @@ extern int mouse_deltay ;
 
 float distance_travelled = 0.f ;
 int physics_count = 0 ; // physics frame count 
+
+
+
+void renderentity(Entity* e) ;
+
 /*
     physics_count ++ ; 
     if ( physics_count == 900 )
@@ -34,150 +41,79 @@ int physics_count = 0 ; // physics frame count
 
 
 
-
-
-
-
-
-
-
-
 float basic_velocity = 2500 ;
 
 // FIXME: fix me!!!!!!!!!
 bool hhello = false ;
 bool jumping = false ;
 bool onfloor = false ;
+bool updatephysics = false ;
 
 void physics_frame( unsigned int time_delta )
 {
+
+    // Calculate the time slice for which this next physics frame is being run
+
     float dist_delta ;
     float time_mul = 0 ;
     phys_msgs_num = 0 ;
 
-    // time_mul = (float)time_delta / (float)PHYSICS_FRAME_TIME ;
     time_mul = (float)time_delta / (float)1000 ;
-    //time_mul = 1.0f ;
 
 
-    /*
-        For every dynamic entity, move it by the amount that the time slice 
-        and its current velocity and position allow. 
-    */
+    // Have newton compute one frame for 1/60th of a second. 
 
-//zzzz
-   sprintf(phys_msgs[phys_msgs_num], "HELLO FROM PHYSICS ") ;  phys_msgs_num++ ;
-
-
-
-float advance = 0.f ;
-float t = 0.f ;
-static float fallspeed = 0 ;
-while (advance<t)
+if (updatephysics)
 {
-/*
-    if ray from feet to direction of velocity times time slice hits something, 
-    then advance the amount that brings us to that collision, and then see if there's 
-    any advance left. 
+//    printf("\n updating Newton world. ") ;
+    NewtonUpdate (g_world, (1.0f / 60));
+//    NewtonUpdate (g_world, ( 60));
+}
+
+
+    sprintf(phys_msgs[phys_msgs_num], "HELLO FROM PHYSICS ") ;  phys_msgs_num++ ;
+    sprintf(phys_msgs[phys_msgs_num], "time_mul=%f", time_mul) ;  phys_msgs_num++ ;
+
+    float t = 0.f ;
+    static float fallspeed = 0 ;
 
     vec loc ;
-    RayHitWorld(pos, ray, &loc, t) ; // t is the multiplier on the ray that specifies how far to check the ray
+    vec norm ; 
+    float speed = 0.0f ; // magnitude of velocity
 
-    When we collide with a piece of the world, we reduce our velocity by the component that 
-    would take us through an obstacle, because that isn't happening. 
+    vec newpos = camera.pos ;
+    vec dir = camera.dir ;
+    vec vel(0) ; // = camera.vel ; 
 
+    // Determine amount of impulse on our velocity
+    // Speed is calculated here to be how much we will travel is there are no obstacles. 
+    speed = time_mul * basic_velocity * ( camera.forward ? 1 : -1 ) ; 
 
-    every step: 
-
-        if the way collides with something, 
-
-        subtract ray's projection on that something's normal
-
-        resume advance until t is <=0. 
-*/
-}
-
-
-
-vec loc ;
-vec norm ; 
-float speed = 0.0f ; // magnitude of velocity
-extern float RayHitWorld(vec pos, vec ray, float max_t, vec* loc, vec* normal) ;
-float the_t = -10.f ;
-vec newpos = camera.pos ;
-vec dir = camera.dir ;
-vec vel(0) ; // = camera.vel ; 
-
-
-// Determine amount of impulse on our velocity
-// Speed is calculated here to be how much we will travel is there are no obstacles. 
-speed = time_mul * basic_velocity * ( camera.forward ? 1 : -1 ) ; 
-
-
-   //sprintf(phys_msgs[phys_msgs_num], "time_mul = %f", time_mul) ;  phys_msgs_num++ ;
-   //sprintf(phys_msgs[phys_msgs_num], "FALLSPEED = %d", fallspeed) ;  phys_msgs_num++ ;
-   //sprintf(phys_msgs[phys_msgs_num], "FALLSPEED = %f", fallspeed) ;  phys_msgs_num++ ;
-
-    // Bound time*speed (amount to travel) by any obstacle in front of us
     if (camera.forward || camera.backward )
     {
-        // t = RayHitWorld(camera.pos, dir, speed, &loc, &norm) ; 
-        if (!engine.editing)
-        {
-            speed = RayHitWorld(camera.pos, dir, speed, &loc, &norm) ; 
-        }
-
         // In fps mode, only update x and y velocity
-        loopi(2)
-        {
-            vel[i] = speed * dir[i] ; 
-        }
-        if (engine.editing)// If we're editing, then we can fly
-        {
-            vel.z = speed * dir.z ;
-        }
-
+        vel.x = speed * dir.x ; 
+        vel.y = speed * dir.y ; 
+        if (engine.editing) { vel.z = speed * dir.z ; }
     }
-    else { speed = 0 ; }
 
-
-if (!engine.editing)
-{
-    // gravity? adjusted 'by ear'
-    fallspeed += -90.8*time_mul ;
-    // If we're on the floor - and we attempt to jump - jump! 
-    if (jumping && onfloor)
+    // Z velocity
+    if (!engine.editing)
     {
-//        printf( "\n FALLSPEED BEING NEGATIVATED \n") ; 
-        //if (jumptime<30)
+        // gravity? adjusted 'by ear'
+        fallspeed += -90.8*time_mul ;
+        // If we're on the floor - and we attempt to jump - jump! 
+        if (jumping && onfloor)
         {
-            fallspeed = 30 ; // falling up!
-            jumping = false ;
-         //   jumptime++ ;
+            {
+                fallspeed = 30 ; // falling up!
+                jumping = false ;
+             //   jumptime++ ;
+            }
         }
         vel.z = fallspeed ;
+    }
 
-        //else
-        //{   
-         //   jumping = false ;
-          //  jumptime = 0 ;
-        //}
-    }
-    else
-    // Unless we're in the air
-    if (!onfloor)
-    {
-        //vel.z = fallspeed ;
-    }
-    vel.z = fallspeed ;
-   //     printf( "\n FALLSPEED = %.2f \n", fallspeed) ; 
-}
-else
-{
-}
-//vel.x = 0 ;
-//vel.y = 0 ;
-//vel.z = 0 ;
     // Side movement 
     if ( ( camera.left ) || ( camera.right ) )
     {
@@ -185,138 +121,55 @@ else
         ///vel = time_mul * basic_velocity * -1 ; // * FIXME: change this to a vector and velocity-based movement mechanism * /
         vel.x += sidespeed * sin ( 2*M_PI*(camera.yaw+900)/3600 ) ; 
         vel.y -= sidespeed * cos ( 2*M_PI*(camera.yaw+900)/3600 ) ; 
-        //newpos.x += sidespeed * sin ( 2*M_PI*(camera.yaw+900)/3600 ) ; 
-        //newpos.y -= sidespeed * cos ( 2*M_PI*(camera.yaw+900)/3600 ) ; 
     }
 
+    // FIXME: you go through walls when you update these without checking if there is an obstacle first! 
+    // At least, you go through walls when you're going fast. And you don't check for obstacles. 
     newpos.x += vel.x ; 
     newpos.y += vel.y ; 
     newpos.z += vel.z ; 
 
-   //if ((the_t=RayHitWorld(camera.pos, dir, vel, &loc, &norm))>0)
+    extern Octant* FindNode(ivec at, int* out_size=NULL, int* nscale=NULL) ;
+    ivec posi(camera.pos) ;
+    ivec newposi(newpos) ;
+    Octant* newnode = FindNode(newposi) ;
 
-//newpos.z += - 9.8 * time_mul ; 
-//newpos.z += - 9.8 ; 
-/*
-    After movement, we can update camera position, followed by adjustments if 
-    we're too close to world geometry. 
-*/
-{
-/*
-    Octant* newnode = findNode(newposi) ;
-    if (newnode)
-    if (!(newnode->has_geometry())) 
-    {
-         camera.pos = newpos ;
-         Octant* currentNode = findNode(posi) ;
-         float disp = 100.0 ;
-         Octant* nNode = NULL ;
-         loopi(3)
-         {
-            newposi[i]+=100 ; 
-            nNode = findNode(newposi) ;
-            if (nNode->has_geometry()) { camera.pos[i] -= disp ; }
-            newposi[i]-=200 ; 
-            nNode = findNode(newposi) ;
-            if (nNode->has_geometry()) { camera.pos[i] += disp ; }
-            else if (i==2)
-            {
-               //newpos.z -= 9.8 ; 
-            }
-            newposi[i]+=1 ;  // back to 'newposi' from before this loop
-         }
-        //camera.pos = newpos ;
-    }
-    else { sprintf(phys_msgs[phys_msgs_num], "WHOOPS FUCKER") ;  phys_msgs_num++ ; }
-*/
-}
+
+//speed = 0 ;
+
 
 if (!engine.editing)
 {
-t = RayHitWorld(newpos, vec(0,0,-1), 500, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
-if (t<120)
-{
-    fallspeed = 0 ;
-    onfloor = true ;
-    if (t<100) 
-    { //newpos.z += loc.z + 100.f ;
-        newpos.z += 100.f-t ; 
+    extern float RayHitWorld(vec pos, vec ray, float max_t, vec* loc, vec* normal) ;
+    t = RayHitWorld(newpos, vec(1,0,0), speed, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
+    if (t<speed) { newpos.x -= speed-t ; }
+
+    t = RayHitWorld(newpos, vec(-1,0,0), speed, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
+    if (t<speed) { newpos.x += speed-t ; }
+
+    t = RayHitWorld(newpos, vec(0,1,0), speed, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
+    if (t<speed) { newpos.y -= speed-t ; }
+
+    t = RayHitWorld(newpos, vec(0,-1,0), speed, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
+    if (t<speed) { newpos.y += speed-t ; }
+
+    t = RayHitWorld(newpos, vec(0,0,-1), 120, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
+    if (t<120)
+    {
+        fallspeed = 0 ;
+        onfloor = true ;
+        if (t<100) { newpos.z += 100.f-t ; }
     }
-}
-else
-{
-    onfloor = false ;
-}
+    else { onfloor = false ; }
 
-t = RayHitWorld(newpos, vec(1,0,0), 100, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
-if (t<30) { newpos.x -= 30.f-t ; }
-t = RayHitWorld(newpos, vec(-1,0,0), 100, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
-if (t<30) { newpos.x += 30.f-t ; }
 
-t = RayHitWorld(newpos, vec(0,1,0), 100, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
-if (t<30) { newpos.y -= 30.f-t ; }
-t = RayHitWorld(newpos, vec(0,-1,0), 100, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
-if (t<30) { newpos.y += 30.f-t ; }
-}
+}   // end if not editing
 
 camera.pos = newpos ;
-//camera.vel = vel ;
-    sprintf(phys_msgs[phys_msgs_num], "position = %.2f %.2f %.2f", 
-        newpos.x, 
-        newpos.y, 
-        newpos.z 
-        ) ;  phys_msgs_num++ ;
-/*
-t = RayHitWorld(newpos, vec(0,0,-1), 100, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
-if (t<100)
-{
-    //newpos.z += loc.z + 100.f ;
-    newpos.z += 100.f-t ;
-}
-*/
-    /*
-        Here we adjust our position, in case we're too close to world geometry. 
-        Even if we didn't enter geometry yet, getting too close can lead to 
-        floating-point artifacts where moving too close to a plane, towards 
-        the plane, leads to us being inside without us wanting to. 
-    extern Octant* findNode(ivec at, int* out_size=NULL, int* nscale=NULL) ;
-    ivec newposi(newpos) ;
-    ivec posi(camera.pos) ;
-    int ns ; // node size
-    int disp = 0 ;
-    Octant* nNode = NULL ;
-    loopi(3)
-    {
-        newposi[i]+=10 ; 
-        nNode = findNode(newposi, &ns) ;
-        if (nNode->has_geometry()) 
-        { 
-            // So reduce newposi by the amount we figure will put us at a 
-            // reasonable distance from the node in question. 
-            disp = newposi[i] % ns ;
-            //camera.pos[i] -= ( disp + 1 ) ; 
-            newpos[i] -= ( disp + 1 ) ; 
-        }
 
-        newposi[i]-=20 ; 
-        nNode = findNode(newposi, &ns) ;
-        if (nNode->has_geometry()) 
-        { 
-            disp = ns - (newposi[i] % ns) ;
-            //camera.pos[i] += ( disp + 1 ) ; 
-            newpos[i] += ( disp + 1 ) ; 
-        }
-        else if (i==2)
-        {
-            //newpos.z -= 9.8 ; 
-        }
-        newposi[i]+=10 ;  // back to 'newposi' from before this loop
-    }
-    */
+sprintf(phys_msgs[phys_msgs_num], "position = %.2f %.2f %.2f", newpos.x, newpos.y, newpos.z ) ;  phys_msgs_num++ ;
 
-
-
-}
+}   // end physics_frame
 
 /*
     Basics: 
@@ -330,18 +183,500 @@ if (t<100)
         current position and the position it's trying to move to. 
         If any geometry 
 */
-void move_entity(/* Entity * e*/)
-{
 
+vector<Entity*> entities ;
+void move_ent(Entity * e)
+{
+}
+
+void move_entities()
+{
+    loopv(entities)
+    {
+        move_ent(entities[i]) ;
+    }
 }
 
 void pause_physics()
 {
 }
 
+
+struct nVector
+{
+    float x ;
+    float y ;
+    float z ;
+    float w ;
+
+    nVector():x(0),y(0),z(0),w(0)
+    {
+    }
+
+    nVector(float in_x, float in_y, float in_z): 
+        x(in_x), y(in_y), z(in_z), w(0)
+    {
+    }
+    nVector(float in_x, float in_y, float in_z, float in_w): 
+        x(in_x), y(in_y), z(in_z), w(in_w)
+    {
+//        printf("\n vector init: %f %f %f %f", x, y, z, w) ;
+    }
+
+/*
+    nVector(float in_x, float in_y, float in_z, float in_w)
+    {
+        nVector(in_x, in_y, in_z) ;
+        w = in_w ;
+    }
+*/
+    float& operator[](int i)
+    {
+        return (&x)[i] ;
+    }
+} ;
+
+struct nMatrix
+{
+    nMatrix(): 
+        a(1,0,0,0), 
+        b(0,1,0,0), 
+        c(0,0,1,0), 
+      pos(0,0,0,1)
+    {
+    }
+
+    nVector& operator[](int i)
+    {
+        return (&a)[i] ;
+    }
+
+    nVector a ;
+    nVector b ;
+    nVector c ;
+    nVector pos ;
+} ;
+
+
+void NullForceCallback(
+    const NewtonBody* body, 
+    float timestep, 
+    int threadIndex
+    )
+{
+}
+
+bool resetphysics = false ;
+/*
+    Newton will call this on every NewtonBody that we have registered. 
+*/
+void ApplyForceCallback(
+    const NewtonBody* body, 
+    float timestep, 
+    int threadIndex
+    )
+{
+
+
+    float Ixx;
+    float Iyy;
+    float Izz;
+    float mass;
+ 
+    // for this tutorial the only external force in the Gravity
+    NewtonBodyGetMassMatrix (body, &mass, &Ixx, &Iyy, &Izz);
+ 
+    nVector gravityForce(0.0f, - mass * 9.8*64, 0.0f) ; // *64 because world meters are 64 units
+
+    NewtonBodySetForce(body, &gravityForce[0]);
+}
+
+
+/*
+    Newton will call this on every NewtonBody that needs to be moved. 
+*/
+void SetTransformCallback(
+    const NewtonBody* body, 
+    const float* matrix, 
+    int threadIndex
+    )
+{
+    Entity* ent;
+    ent = (Entity*) NewtonBodyGetUserData(body) ;
+
+    loopv(entities) { if (ent==entities[i]) { printf("\n Entity %d: ", i ) ; } }
+
+
+    // Get the position from the matrix
+    nVector posit (matrix[12], matrix[13], matrix[14]);
+    
+    printf("pos=%f %f %f ",
+        ent->pos[0], ent->pos[1], ent->pos[2]
+        ) ;
+    printf("\nrot=%f %f %f ",
+        matrix[0], matrix[1], matrix[2]
+        ) ;
+
+if (ent==entities[1]) return ;
+
+/*
+    if (resetphysics)
+    {
+    float t[3] = {0.0f,0.0f,0.0f} ;
+        printf("\n physics reset! ") ;
+        nMatrix m ;
+        m.pos = nVector(200,4000,0,1) ;
+        nVector v(0,0,0,1) ;
+        NewtonBodySetMatrix (body, &m[0][0]);
+        NewtonBodySetVelocity(body, &v[0]);
+        NewtonBodySetOmega(body, &v[0]);
+        NewtonBodySetTorque(body,&t[0]) ;
+        resetphysics = false ;
+    }
+*/
+
+
+    ent->pos[0] = posit[0] ; 
+    ent->pos[1] = posit[2] ; 
+    ent->pos[2] = posit[1] ;
+
+    //printf("pos=%f %f %f   nPos=%f %f %f", ent->pos[0], ent->pos[1], ent->pos[2], posit[0], posit[1], posit[2]) ;
+    nVector min ;
+    nVector max ;
+    NewtonBodyGetAABB(body, &min[0], &max[0]) ;
+//        min[0], min[2], min[1], 
+ //       max[0], max[2], max[1]
+}
+
+void CollideCallback(NewtonUserMeshCollisionCollideDesc* collideDescData)
+{
+    //printf("\n helllllo collision! ") ;
+}
+
+
+int materialID ;
+
+int AABBOverlapProcess(
+    const NewtonMaterial* material, 
+    const NewtonBody* body0, 
+    const NewtonBody* body1, 
+    int threadIndex
+    ) 
+{
+//printf("\n YO COLLISION") ;
+    return 1 ;
+}
+
+void ContactCallback(
+    const NewtonJoint* contactJoint, dFloat timestep, int threadIndex
+    )
+{
+    printf("\n Contact callback. "
+        //NewtonMaterialGetContactNormalSpeed(materialID) 
+        ) ;
+
+
+
+
+
+    NewtonBody* const body = NewtonJointGetBody0(contactJoint);
+    for (void* contact = NewtonContactJointGetFirstContact (contactJoint); contact; contact = NewtonContactJointGetNextContact (contactJoint, contact)) {
+        float speed;
+        nVector point;
+        nVector normal;
+        nVector dir0;
+        nVector dir1;
+        nVector force;
+        NewtonMaterial* material;
+
+        material = NewtonContactGetMaterial (contact);
+
+        NewtonMaterialGetContactForce (material, body, &force.x);
+        NewtonMaterialGetContactPositionAndNormal (material, body, &point.x, &normal.x);
+        NewtonMaterialGetContactTangentDirections (material, body, &dir0.x, &dir1.x);
+        speed = NewtonMaterialGetContactNormalSpeed(material);
+
+
+        //speed = NewtonMaterialGetContactNormalSpeed(material);
+        // play sound base of the contact speed.
+        //
+    }
+
+}
+
+void printmatrix(nMatrix& m)
+{
+    printf("\n Matrix contents: --------------------------------------") ;
+    loopi(4) 
+    {
+        printf("\n ") ;
+        loopj(4) printf(" %f ", m[i][j]) ;
+    }
+}
+
+
+NewtonBody* body1 ;
+NewtonBody* body2 ;
+
+
+/*
+    Box Body characteristics: 
+
+        - box dimensions
+
+        - offset of center of mass from box origin
+
+        - mass
+
+        - inertia matrix (identity) 
+
+        - position
+
+
+
+*/
+void AddBody(float x,float y,float z, int entID)
+{
+float mass = 1000 ;
+NewtonCollision* shape ;
+NewtonBody* body ;
+
+nMatrix boxOrigin ;
+nVector minBox ;
+nVector maxBox ;
+nVector origin ;
+nVector inertia ;
+materialID = NewtonMaterialGetDefaultGroupID(g_world) ;
+
+    Entity* e = entities[entID] ;
+
+    boxOrigin.pos = nVector(0,0,0,1) ;
+
+    shape = NewtonCreateBox (g_world, 600, 1200, 600, 0, &boxOrigin[0][0]);
+    NewtonCollisionCalculateAABB( shape, &boxOrigin[0][0], &minBox[0], &maxBox[0]) ;
+    printf("\n collision shape result: \n min=%f %f %f \n max=%f %f %f", minBox[0], minBox[2], minBox[1], maxBox[0], maxBox[2], maxBox[1]) ;
+    body = NewtonCreateBody (g_world, shape, &boxOrigin[0][0]);
+   
+    NewtonBodySetUserData(body, e) ; 
+    e->pos = vec(x,y,z) ;
+    boxOrigin.pos = nVector(e->pos.x, e->pos.z, e->pos.y, 1) ;
+    NewtonBodySetMatrix (body, &boxOrigin[0][0]);
+    NewtonBodySetLinearDamping(body, 0) ;
+    NewtonConvexCollisionCalculateInertialMatrix (shape, &inertia[0], &origin[0]);
+    NewtonBodySetMassMatrix (body, mass, mass*inertia.x, mass*inertia.y, mass*inertia.z);
+    origin[1] -= 600 ;
+    NewtonBodySetCentreOfMass (body, &origin[0]);
+   
+    if (entID==0)
+    {
+    body1 = body ;
+        NewtonBodySetForceAndTorqueCallback (body, ApplyForceCallback);
+    NewtonBodySetMassMatrix (body, mass, mass*inertia.x, mass*inertia.y, mass*inertia.z);
+    }
+    else
+    {
+    mass = 0 ; // immovable static object
+    body2 = body ;
+        NewtonBodySetForceAndTorqueCallback (body, NullForceCallback);
+    NewtonBodySetMassMatrix (body, mass, mass*inertia.x, mass*inertia.y, mass*inertia.z);
+    }
+
+    NewtonBodySetTransformCallback (body, SetTransformCallback);
+    NewtonBodySetMaterialGroupID(body, materialID) ;
+
+
+}
+
 void init_physics()
 {
-   if (g_world) NewtonDestroyAllBodies (g_world);
-   //g_world = NewtonCreate (AllocMemory, FreeMemory);
-   g_world = NewtonCreate() ;
+    //g_world = NewtonCreate (AllocMemory, FreeMemory);
+    nVector worldMin(-1000,-1000,-1000) ;
+    nVector worldMax(world.size,world.size,world.size) ;
+    
+    if (g_world) NewtonDestroyAllBodies (g_world);
+    g_world = NewtonCreate() ;
+    NewtonSetWorldSize (g_world, &worldMin[0], &worldMax[0]);
+
+    NewtonSetSolverModel(g_world, 2) ;
+
+//int materialID = NewtonMaterialCreateGroupID(g_world) ;
+int materialID = NewtonMaterialGetDefaultGroupID(g_world) ;
+
+float mass = 10 ;
+NewtonCollision* shape ;
+NewtonBody* body ;
+
+nMatrix boxOrigin ;
+nVector minBox ;
+nVector maxBox ;
+nVector origin ;
+nVector inertia ;
+
+//-----------------------------------------------------------
+// Body 1
+//-----------------------------------------------------------
+printf("\n\n--------------------Body 1--------------------") ;
+
+entities.add(new Entity()) ;
+AddBody(800,800,8000,0) ;
+
+
+//--------------------------------------------------------
+// Body 2
+//--------------------------------------------------------
+printf("\n\n--------------------Body 2--------------------") ;
+
+//AddBody(0,0,3500) ;
+entities.add(new Entity()) ;
+AddBody(600,800,2000,1) ;
+
+
+//--------------------------------------------------------
+//FIXME: figure out if this should be called    NewtonReleaseCollision (g_world, shape);
+
+    NewtonMaterialSetCollisionCallback (
+        g_world, 
+        materialID, 
+        materialID, 
+        NULL,               // void* userData,
+        AABBOverlapProcess, // NewtonOnAABBOverlap aabbOverlap, 
+        ContactCallback   
+        );
+   
+    // Set up Newton callbacks
+    // Give Newton information about bodies (will be made dynamic once 
+    // prototypes a functional. )
 }
+
+
+/*
+
+
+Empty space so I can read coder higher than the baseline of my monitor. Don't like it? 
+Maybe you should have thought of that before you gave your money to the people who 
+killed Star Trek. Explanation available. 
+
+
+*/
+
+/*
+    Here is the sequence of handling moving, colliding objects using Newton. 
+
+    Assumptions: for any given set of objects, there is one world active, one world 
+    that contains them. 
+
+    - the world is a static, immovable object relative to the other objects
+    - all other objects can be moved
+    - as a design choice for simplicity and performance, all small and medium 
+      objects can be boxes 
+
+    
+
+------------------------------
+    Information for Newton
+------------------------------
+    Setting world dimensions: 
+        - world dimensions
+        -> NewtonSetWorldSize
+
+How do we set an object's matrix: 
+        
+        -> NewtonBodySetMatrix ( NewtonBody* b, Matrix* m)
+
+            - NewtonBody is defined by Newton
+            - Matrix has columns front, up, right, pos. 
+              Thus, to get the position from the matrix, we can 
+              get the last four elements. 
+
+    Tell Newton a body's dimensions: 
+        - the mass
+        - the sizes
+        -> NewtonCollisionCalculateAABB
+
+    Setting a force-and-torque callback: 
+        - a force-and-torque callback
+
+    Setting a transform callback: 
+        - a transform callback
+
+    Tell Newton to advance the simulation by a frame: 
+
+        - call NewtonUpdate. 
+          This function will: 
+            - apply forces to all objects (using our callback)
+            - internally: will compute collisions and changes 
+              in direction
+            - apply transforms based on new velocities and size 
+              of time step. 
+
+------------------------------
+    Information for us
+------------------------------
+    How do we get our data from Newton: 
+        -> NewtonBodyGetMatrix
+*/
+
+
+
+/*
+    Draw six faces that indicate the entity's AABB. 
+*/
+void renderentity(Entity* e)
+{
+//    e-> pos = vec(32000,32000,4000) ;
+    vec p = e->pos ;
+
+    p[0] += 300 ;
+    glBegin( GL_QUADS ) ;
+
+        glVertex3fv(p.v) ; p[0] -= 600 ;
+        glVertex3fv(p.v) ; p[2] += 1200 ;
+        glVertex3fv(p.v) ; p[0] += 600 ;
+        glVertex3fv(p.v) ; 
+
+        glVertex3fv(p.v) ; p[1] -= 600 ;
+        glVertex3fv(p.v) ; p[2] -= 1200 ;
+        glVertex3fv(p.v) ; p[1] += 600 ;
+        glVertex3fv(p.v) ; 
+
+        glVertex3fv(p.v) ; p[1] -= 600 ;
+        glVertex3fv(p.v) ; p[0] -= 600 ;
+        glVertex3fv(p.v) ; p[1] += 600 ;
+        glVertex3fv(p.v) ; 
+        
+        glVertex3fv(p.v) ; p[1] -= 600 ;
+        glVertex3fv(p.v) ; p[2] += 1200 ;
+        glVertex3fv(p.v) ; p[1] += 600 ;
+        glVertex3fv(p.v) ; 
+
+    glEnd() ;
+}
+
+void renderentities() 
+{
+    loopv(entities) 
+    {
+        renderentity(entities[i]) ;
+    }
+}
+
+void reset_physics() 
+{
+resetphysics = true ;
+    nMatrix m ;
+    nVector v(0,0,0,1) ;
+
+    entities[0]->pos = vec(200,6000,4000) ;
+    m.pos = nVector(200,4000,6000,1) ;
+    NewtonBodySetMatrix (body1, &m[0][0]);
+    NewtonBodySetVelocity(body1, &v[0]);
+    NewtonBodySetOmega(body1, &v[0]);
+
+    entities[1]->pos = vec(0,6000,2000) ;
+    m.pos = nVector(0,2000,6000,1) ;
+    NewtonBodySetMatrix (body2, &m[0][0]);
+    NewtonBodySetVelocity(body2, &v[0]);
+    NewtonBodySetOmega(body2, &v[0]);
+}
+
+

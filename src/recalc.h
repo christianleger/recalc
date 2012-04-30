@@ -119,6 +119,19 @@ struct Engine
 
     float console_scale ;
 
+
+
+    // belgh texture management is so much fun
+    int tex ;       // currently active texture id
+    int numtex ;    // number of available textures
+    vector<int> texids ;
+    void addtex(int _glid)
+    {
+        numtex++ ;
+        texids.add(_glid) ;
+        printf("\n added a texture id %d. numtex=%d and tex=%d", _glid, numtex, tex) ;
+    }
+
     void initialize() ; 
 
     void pause_physics() ; 
@@ -139,8 +152,6 @@ struct Engine
     const SDL_VideoInfo* videoInfo;
     int videoFlags;
     int videoFlagsFS; // videoFlags with fullscreen 
-
-
 } ;
 
 
@@ -206,7 +217,6 @@ void initialize() ;
 
 typedef struct _dir_navigator
 {
-
     int a;
     int fileIndex;                   /* -1 means not valid */
     char current_path[4096];         /* the so-called 'base' name of a full-pathed file name */
@@ -263,6 +273,7 @@ typedef struct _list_node
 typedef ListNode CElementNode; 
 typedef ListNode MB_node; 
 
+
 /*
     This defines a rectangular button. 
 
@@ -296,10 +307,6 @@ typedef struct _screen_area
 } ScreenArea; 
 
 
-// inputs 
-void initialize_input() ;
-
-
 // physics 
 void pause_physics() ; 
 void physics_frame( unsigned int ) ; 
@@ -309,18 +316,16 @@ void init_physics() ;
 void CheckGlError() ;
 
 // text 
-void initialize_text() ; 
+void init_text() ; 
 void prstr( float x, float y, const char * fmt ) ; 
 int scrstrlen( const char * ) ; 
 void clean_up_text() ;
 
 // input 
-void initialize_input() ; 
+void init_input() ; 
 void handle_key() ;
 void handle_mouse_motion() ;
 void handle_mouse_button( SDL_Event * ev ) ;
-
-
 
 // from main: function which resizes the window 
 void resize_window( int w, int h, int fov) ;
@@ -339,16 +344,16 @@ void initialize() ;
 
 // sound
 
-    // sound status
-    void soundoff() ;
-    void soundon() ;
+// sound status
+void soundoff() ;
+void soundon() ;
 
-    // sound commands
-    void startsound() ; // initialize sound subsystem
+// sound commands
+void startsound() ; // initialize sound subsystem
     
-    int justplay(int thesound) ; // a dysfunctional little puppy that insists a piece of audio be played. 
+int justplay(int thesound) ; // a dysfunctional little puppy that insists a piece of audio be played. 
 
-    int playsound( vec* loc, int n, int loops, int fade, int chanid, int radius, int expire) ;
+int playsound( vec* loc, int n, int loops, int fade, int chanid, int radius, int expire) ;
 
 
 #endif

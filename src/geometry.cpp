@@ -72,6 +72,7 @@
 #include "recalc.h"
 
 extern Camera camera ;
+extern Engine engine ;
 
 //------------------------------------------------------------------------
 //                  GLOBAL VARIABLES
@@ -111,8 +112,8 @@ char geom_msgs2[100][256] ;
 //------------------------------------------------------------------------
 //                  GEOMETRY SUPPORT FUNCTIONS  (octree, memory, etc.)
 //------------------------------------------------------------------------
-Octant* FindNode(ivec at, int* out_size=NULL, int* nscale=NULL) ; 
-Octant* findGeom(ivec at, int* out_size=NULL, int* nscale=NULL) ; 
+Octant* FindNode(ivec at, int* out_size, int* nscale) ; 
+Octant* findGeom(ivec at, int* out_size, int* nscale) ; 
 
 int numchildren = 0 ;
 
@@ -180,6 +181,7 @@ Octant::Octant()
     set_all_edges(0) ;
     vc = 0 ;
     flags = EMPTY ;
+    loopi(6) tex[i] = -1 ;
 }
 
 bool Octant::has_geometry() 
@@ -277,28 +279,7 @@ int ray_start_orientation = 0 ;
 
 Geom* currentgeom = NULL ;
 
-int orientation_indexes[6][3] = 
-{
-    {1,2,0}, 
-    {1,2,0}, 
-    {0,2,1}, 
-    {0,2,1}, 
-    {0,1,2}, 
-    {0,1,2} 
-} ; 
-
-
-float direction_multipliers[6][3] = 
-{
-    {-1, 1, -1}, 
-    { 1, 1,  1}, 
-    { 1, 1, -1}, 
-    {-1, 1,  1}, 
-    {-1, 1, -1},    // +ve Y is 'up', -ve X is 'right'
-    { 1, 1,  1}
-} ; 
-
-
+// About the next two arrays and groups of defines: 
 // This stuff makes us able to pretend that any axis-aligned plane is just 
 // the plain old XY plane, with X increasing to the right and Y increasing upwards. 
 /*
@@ -311,9 +292,29 @@ float direction_multipliers[6][3] =
     4 -  z-ve
     5 -  z+ve
 */
+int orientation_indexes[6][3] = 
+{
+    {1,2,0}, 
+    {1,2,0}, 
+    {0,2,1}, 
+    {0,2,1}, 
+    {0,1,2}, 
+    {0,1,2} 
+} ; 
 #define X(_o) orientation_indexes[_o][0]
 #define Y(_o) orientation_indexes[_o][1]
 #define Z(_o) orientation_indexes[_o][2]
+
+
+float direction_multipliers[6][3] = 
+{
+    {-1, 1, -1}, 
+    { 1, 1,  1}, 
+    { 1, 1, -1}, 
+    {-1, 1,  1}, 
+    {-1, 1, -1},    // +ve Y is 'up', -ve X is 'right'
+    { 1, 1,  1}
+} ; 
 #define Dx(_o) direction_multipliers[_o][0]
 #define Dy(_o) direction_multipliers[_o][1]
 #define Dz(_o) direction_multipliers[_o][2]
@@ -650,7 +651,6 @@ void RayHitPlane( vec& pos, vec ray, plane& pl, float* t )
     else  { *t = 0 ; }
 }
 
-
 /*
     Intersect a ray with a plane, and provide the point where that intersection 
     happens. 
@@ -698,18 +698,19 @@ float RayHitWorld(vec pos, vec ray, float max_t, vec* loc, vec* normal)
     int NS = 0;     // tracks the size of a node 
     int i = 0 ; // Which axis dominates the ray's movement into the next node
 
-vec ds = vec(0) ; // tracks distances from ray front to next node planes
+    vec ds = vec(0) ; // tracks distances from ray front to next node planes
 
-vec dir = ray ;     // preserve this direction with length 1
-vec f = pos ;       // ray front, f
-// FIXME: why do I add ray to f at the start? This probably leads to the bugs I was having! 
+    vec dir = ray ;     // preserve this direction with length 1
+    vec f = pos ;       // ray front, f
+    // FIXME: why do I add ray to f at the start? This probably leads to the bugs I was having! 
 
-//f.add(ray) ;        // f is now at ray front
+//    f.add(ray) ;        // f is now at ray front
 
-ivec ifr ;          // int vector to track which node a ray front is in. ifr == 'int front'
-ivec ic ;           // int vector to track the corner of the node we're in. ic == 'int corner'
+    ivec ifr ;          // int vector to track which node a ray front is in. ifr == 'int front'
+    ivec ic ;           // int vector to track the corner of the node we're in. ic == 'int corner'
 
-float r = 0.f ; float d = 0.f ; float t = 0.f ; 
+    float r = 0.f ; // rate
+    float d = 0.f ; float t = 0.f ; 
 
     while (!havetarget)
     {
@@ -725,24 +726,29 @@ float r = 0.f ; float d = 0.f ; float t = 0.f ;
             ifr[i] += (ray[i]>=0?1:-1) ;    // snap 'int ray front' to inside of next node. 
             if ((ifr[i]>=WS&&ray[i]>0) || (ifr[i]<=0&&ray[i]<0)) // exit world
             {
-                t=0.f ; break ;
+                //t=0.f ; 
+                break ;
             }  // If this adjustment brings us out of the world - we're done
         } ; 
         Octant* oct = FindNode(ifr, &NS, &Nscale) ; // Find out what tree node encloses this point
-        ic = ifr ;
         if ( oct->has_geometry() )                  // Target acquired. 
         { 
             *loc = f ;
             return t ; 
         }
+        ic = ifr ;
         loopj(3) { ic[j] = (ic[j] >> Nscale) << Nscale ; }    // Now ic is right on the node corner. 
         // Distances to next plane intersections
         loopj(3) { ds[j] = (ray[j]>=0?(float(ic[j]+NS)-f[j]):(f[j]-float(ic[j]))) ; }
 
         // Which plane are we going to hit next, given our position and the ray orientation? 
-        if (fabs(ray.x*ds.y) > fabs(ray.y*ds.x)) { r = ray.x ; d = ds.x ; i = 0 ; }
-        else { r = ray.y ; d = ds.y ; i = 1 ; }
-        if ((fabs(ray.z*d) > fabs(r*ds.z))) { r = ray.z ; d = ds.z ; i = 2 ; }
+        if (fabs(ray.x*ds.y) > fabs(ray.y*ds.x)) 
+        { r = ray.x ; d = ds.x ; i = 0 ; }
+        else 
+        { r = ray.y ; d = ds.y ; i = 1 ; }
+        if ((fabs(ray.z*d) > fabs(r*ds.z))) 
+        { r = ray.z ; d = ds.z ; i = 2 ; }
+
         t += fabs(d/r) ;        // divisions are minimized 
         if (t>max_t)            // not hitting anything - use initial multiplier
         {
@@ -862,12 +868,8 @@ void update_editor()
 
 
 
-    // TARGET FINDER PHASE 2: Compute the first node our ray starts tracking 
+// TARGET FINDER PHASE 2: in-world content. 
 
-    //sprintf(geom_msgs[geom_msgs_num], "update_editor: point at %d %d %d", ) ; geom_msgs_num++ ;
-
-
-    // TARGET FINDER PHASE 2: in-world content. 
     /*  When this block begins, we know that 'oct' is a non-null node which contains 
         either the camera or the ray front where it hits the world from the outside. 
 
@@ -1147,7 +1149,6 @@ void deletesubtree(Octant* in_oct)
 //    loopi(20) { idxs[i] = 0 ; }
 
     d = 0 ; // We start at the root. 
-
     while (d>=0)
     {
         if ( CN->children )
@@ -1210,7 +1211,7 @@ void deletesubtree(Octant* in_oct)
         on the next search. 
 
 */
-Octant* FindNode(ivec at, int* out_size, int* nScale) // , int* out_size) 
+Octant* FindNode(ivec at, int* out_size=NULL, int* nScale=NULL) // , int* out_size) 
 {
     int CGS = world.scale ;
     int i = 0 ;
@@ -1252,20 +1253,20 @@ Octant* findGeom(ivec at, int* out_size, int* nscale) //, int* out_size=NULL) ;
         {
              currentgeom = oct->geom ;
 		        break ; 
-		    }
+        }
 
-		    if ( oct->children ) 
-		    {
-		        i = octastep(at.x,at.y,at.z,CS) ;
-		        oct = &oct->children[i] ;
-		        if (nscale != NULL) { *nscale = CS ; }
-		        CS-- ;
-		    }
+        if ( oct->children ) 
+		{
+		    i = octastep(at.x,at.y,at.z,CS) ;
+		    oct = &oct->children[i] ;
+		    if (nscale != NULL) { *nscale = CS ; }
+		    CS-- ;
 		}
+    }
 
-		if (out_size!=NULL) 
-		if (!oct) { *out_size = 0 ; }
-		else { *out_size = 2<<CS ; }
+    if (out_size!=NULL) 
+    if (!oct) { *out_size = 0 ; }
+    else { *out_size = 2<<CS ; }
 
     return oct ;
 }
@@ -1290,15 +1291,14 @@ void FlagSubtreeForUpdate( Octant* parent)
 
     int d = 0 ;
 
-    while (d>=0) // Here starts the non-recursive descent. 
+    while (d>=0) // Here starts iterative traversal
     {
         if ( CN->children )
         {
             if (idxs[d]<8)
             {
                 CN = &CN->children[idxs[d]] ; 
-                d++ ;
-                path[d] = CN ;
+                d++ ; path[d] = CN ;
                 idxs[d] = 0 ; // Start the children at this level. 
                 continue ;
             }
@@ -1312,10 +1312,9 @@ void FlagSubtreeForUpdate( Octant* parent)
             }
         }
         CN->geom = GEOM_NEED_UPDATE ;
-//        path[d] = NULL ;
         d-- ;
-        if (d<0) { break ; } // Past the root? Then we're done. 
-        CN = path[d] ;
+        if (d<0) { break ; }    // Past the root? Then we're done. 
+        CN = path[d] ;          // else go up tree
         idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
     }   // end while d>=0
 }
@@ -1875,24 +1874,35 @@ void AnalyzeGeometry(Octant* tree, ivec corner, int scale)
                         pcorner = pos ;
                         /* We position the probe vector (pcorner) to the inside of the node adjacent in the direction of the current face.  Then we retrieve from the tree the node at that location.  Once we have 'anode', or the node adjacent to the current face, we know whether it is solid, and whether it is bigger than us.  */
                         pcorner[face>>1] = pos[face>>1]+Dz(face)*(1 + (face%2)*(NS)) ; 
-                        if (pcorner.x>world.size|| pcorner.x<0||
-                            pcorner.y>world.size|| pcorner.y<0||
-                            pcorner.z>world.size|| pcorner.z<0)
+                        if (pcorner.x>world.size||pcorner.x<0||
+                            pcorner.y>world.size||pcorner.y<0||
+                            pcorner.z>world.size||pcorner.z<0)
                         {
-                            CN->tex[face] = 0 ;
+                            CN->tex[face] = -1 ;
                             continue ;
                         }
                         anode = FindNode(pcorner, &ns) ;
                         pcorner = pos ;
                         /* When do we skip drawing a face?  - when an adjacent node is at least as big - when the face can only be seen from outside world limits (this might change if we want to be able to have multiple worlds.  Q. How do we calculate that first one, 'there is an at-least-as-big neighbor covering the face'?  A.  -> you take this node's corner, and generate with it a point that lies just outside the face concerned.  face i.  corner[i>>1]+=Dz(i)*(1 + (i%2)*(NS)) -> you find the node located there -> if that node is solid, and is bigger than this one, then we know we're skipping this face.  If our node extends beyond what its neighbor can cover of that face */
-                        
-                        CN->tex[face] = 0 ; // setting this to 'null' in case we don't want to see this face. 
+                       
                         if ( !anode->has_geometry() || ns<NS ) 
                         {
+                            // FIXME: add a check for whether a face is covered even though it is covered by 
+                            // smaller nodes. 
+
                             // texture slot assignment: Current texture or default==1
-                            CN->tex[face] = 1 ;
+ //                           printf("\n assigning %d as current face tex. ", engine.texids[engine.tex]) ;
+//   CN->tex[face] = engine.texids[engine.tex] ;
+                            if (CN->tex[face] == -1)  // setting this to 'null' in case we don't want to see this face. 
+                            {
+                                CN->tex[face] = engine.tex ;
+                            }
                             CN->vc += 6 ;
                         }   // end if neighbor is not in the way of this face
+                        else
+                        {
+                            CN->tex[face] = -1 ;
+                        }
                     }       // end for (int face=0;face<6;face++)
 //--------------------------------------------------------------------------------------
                 }           // end if ( CN->has_geometry() )
@@ -2010,8 +2020,9 @@ void AssignNewVBOs(Octant* tree, ivec in_corner, int scale)
 #define MAX_VERTS 1000000
 
 // Dim colors so that untextured geometry looks like ass
-float mult = 0.6f ;
-vec thecolors[10] = {
+//float mult = 0.6f ;
+float mult = 1 ;
+vec colors[10] = {
   vec(mult*1.0, mult*1.0, mult*1.0) , 
   vec(mult*0.0, mult*1.0, mult*0.0) ,
   vec(mult*1.0, mult*0.0, mult*1.0) , 
@@ -2065,10 +2076,12 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
     int32_t idxs[20] ;
     ivec pos = in_corner ;
 
-    vec* verts = CN->geom->vertices ;
-//    ivec* verts = CN->geom->vertices ;
+//    vec* verts = CN->geom->vertices ;
+    ivec* verts = CN->geom->vertices ;
     vec* colors = CN->geom->colors ;
-    vec2* tex = CN->geom->texcoords ;
+    vec* tex = CN->geom->texcoords ;
+
+    int t = 0 ;
     int numverts = 0 ;
     int nv = 0 ;
     int numnodes = 0 ;
@@ -2091,8 +2104,8 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
         triangle: 3 vecs = 9*size of float. 
         100 verts can make 98 triangles at most, but 33 at least. 
     */
-                colorNow++ ;
-                colorNow = colorNow % 10 ;
+    colorNow++ ;
+    colorNow = colorNow % 10 ;
     while (d>=0)
     {
         if ( CN->children )
@@ -2131,197 +2144,152 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
                 int NS = 1<<(SI-d+1) ;  // Node size. 
                 int ns = 0 ;            // neighbor size
 
-                int tui=nv ;
+                // A cube is defined by 8 vertices. 
+                // The faces of the cube are defined by which of these vertices
+                // they are constructed with, and here we have the indexes that 
+                // refer to these vertices. 
+                static int faceindexes[] =
+                {
+                    0, 1, 2, 3, // face 0 CCW from origin
+                    4, 5, 6, 7, // face 1 CCW from face bottom-left
+                    7, 6, 1, 0, // face 2
+                    3, 2, 5, 4, // face 3
+                    //3, 4, 7, 0, // face 4
+                    0, 3, 4, 7, // face 4
+                    6, 5, 2, 1, // face 5
+                } ;
+                #define fi faceindexes
+                static ivec corners[8] ;
+                //FIXME: only compute corners if at least one face needs to be drawn
+                //FIXME: when edge computations are properly implemented, set corner values to 
+                // reflect edge sizes. (this will allow non-cube geometry - yippee!)
+                
+               
+                for (int face=0;face<6;face++)
+                {
+                    if (CN->tex[face]>=0)
+                    {
+                        pcorner = pos ; 
+                        corners[0] = pcorner ; 
+                        corners[1] = pcorner ; corners[1][2] += NS ;
+                        corners[2] = pcorner ; corners[2][1] += NS ; corners[2][2] += NS ; 
+                        corners[3] = pcorner ; corners[3][1] += NS ; 
+
+                        corners[4] = pcorner ; corners[4][0] += NS ; corners[4][1] += NS ; 
+                        corners[5] = pcorner ; corners[5][0] += NS ; corners[5][1] += NS ; corners[5][2] += NS ; 
+                        corners[6] = pcorner ; corners[6][0] += NS ; corners[6][2] += NS ;
+                        corners[7] = pcorner ; corners[7][0] += NS ;
+                        break ;
+                    }
+                }
+
+
                 for (int face=0;face<6;face++)
                 {
                     // If this face is visible, then make some triangles for it. 
-                    if (CN->tex[face]>0)
+                    t = CN->tex[face] ;
+                    if (t>=0)
                     {
-                        int O = face ;
-                        pcorner = pos ; 
-                        
-                        int zoffset = Dz(face)*NS*(face%2) ;
-                        pcorner[Z(O)] += zoffset ; 
-                        
-                        // in vectors, this x is now the index for the coordinate pointed on the x axis. 
-                        int32_t x = X(O) ; int32_t y = Y(O) ; int32_t z = Z(O) ; 
-
-                        // ASSIGN TRIANGLE VERTICES HERE
+                        float tc = ((float)t+0.5)/(float)engine.numtex ;
+                        // Face Builder. 
+                        // Every face is defined with: 
                         /*
-                            How triangles are made! Now are you starting to suspect that 
-                            we need (at minimum) to start coding within html-aware programs? 
-                            Depending on whether X(O) grows in the positive or negative for a 
-                            given face, the triangles to be drawn are like this: 
+                            A ++++ D
+                              + /+
+                              +/ +
+                            B ++++ C
 
-                            A  B    A  B
-                            *--*    *--*
-                            | /|    |\ |
-                            |/ |    | \|
-                            *--*    *--*
-                            D  C    D  C
-
-                            The first one is for when X grows in the positive, the second is for 
-                            when X grows in the negative. 
-
-                                                                        probably not: Compute A, B, C then D. 
-                            In case 1, we compute vertices BAD and DCB. 
-                            In case 2, we compute vertices ADC and CBA
+                            (Here the sequence ABCD is used to define the four corners 
+                            of a texture that will be used to paint this face.)
+                            
+                            Triangle 1: vertices = ABD  texcoords: (0,0) (0,1) (1,0)  
+                            Triangle 2: vertices = DBC  texcoords: (1,0) (0,1) (1,0)  
                         */
 
-                        // Faces 0, 3, 4 - where 'X' grows in the negative direction. 
-                        if (((face)&1)==((face>>1)&1))
-                        {
-///////////////////////////////////////////////////////////////////////////////////////////////////
-                            // Triangle ADC
-                            tex[numverts].x = 0 ; tex[numverts].y = 0 ;
-//                            tex[numverts].x = 0 ; tex[numverts].y = 0 ;
-//colors[numverts]   = thecolors[colorNow%10] ;
-                            colors[numverts]   = thecolors[colorNow] ;
-                            verts[numverts][x] = pcorner[x] + NS ;
-                            verts[numverts][y] = pcorner[y] + NS ;
-                            verts[numverts][z] = pcorner[z] ; 
+                        // triangle 1
+                        float x0 = (float)corners[fi[face*4+2]][X(face)]/128 ; // scaled so that the full-size texture is 128 units tall and wide. 
+                        float x1 = (float)corners[fi[face*4]][X(face)]/128 ;
+                        float y0 = (float)corners[fi[face*4+2]][Y(face)]/128 ;
+                        float y1 = (float)corners[fi[face*4]][Y(face)]/128 ;
 
-                            tex[numverts+1].x = 0 ; tex[numverts+1].y = 1 ;
-//                            tex[numverts+1].x = 0 ; tex[numverts+1].y = 1 ;
-//colors[numverts+1]   = thecolors[colorNow%10] ;
-                            colors[numverts+1]   = thecolors[(colorNow+1)%10] ;
-                            verts[numverts+1][x] = pcorner[x] + NS ;
-                            verts[numverts+1][y] = pcorner[y] ;
-                            verts[numverts+1][z] = pcorner[z] ; 
 
-                            tex[numverts+2].x = 1 ; tex[numverts+2].y = 1 ;
-//                            tex[numverts+2].x = 1 ; tex[numverts+2].y = 1 ;
-//colors[numverts+2]   = thecolors[colorNow%10] ;
-                            colors[numverts+2]   = thecolors[(colorNow+2)%10] ;
-//colors[numverts+2]   = thecolors[colorNow] ;
-                            verts[numverts+2][x] = pcorner[x] ;
-                            verts[numverts+2][y] = pcorner[y] ;
-                            verts[numverts+2][z] = pcorner[z] ; 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-                            // Triangle CBA
-//colors[numverts+3]   = thecolors[colorNow%10] ;
-                            tex[numverts+3].x = 1 ; tex[numverts+3].y = 1 ;
-//                            tex[numverts+3].x = 1 ; tex[numverts+3].y = 1 ;
-                            colors[numverts+3]   = thecolors[colorNow] ;
-                            verts[numverts+3][x] = pcorner[x] ;
-                            verts[numverts+3][y] = pcorner[y] ;
-                            verts[numverts+3][z] = pcorner[z] ; 
-
-                            tex[numverts+4].x = 1 ; tex[numverts+4].y = 0 ;
-//                            tex[numverts+4].x = 1 ; tex[numverts+4].y = 0 ;
-                            colors[numverts+4]   = thecolors[colorNow] ;
-                            verts[numverts+4][x] = pcorner[x] ;
-                            verts[numverts+4][y] = pcorner[y] + NS ;
-                            verts[numverts+4][z] = pcorner[z] ; 
-
-                            tex[numverts+5].x = 0 ; tex[numverts+5].y = 0 ;
-//                            tex[numverts+5].x = 0 ; tex[numverts+5].y = 0 ;
-                            colors[numverts+5]   = thecolors[(colorNow+2)%10] ;
-                            verts[numverts+5][x] = pcorner[x] + NS ;
-                            verts[numverts+5][y] = pcorner[y] + NS ;
-                            verts[numverts+5][z] = pcorner[z] ; 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-                        //numverts += 6 ;    //  Two new triangles for this face means 6 new vertices
-                        }
-                        // Faces 1, 2, 5
-                        else //if (0)
-                        {
-///////////////////////////////////////////////////////////////////////////////////////////////////
-                            // Triangle BAD
-                            tex[numverts].x = 1 ; tex[numverts].y = 0 ;
-//                            tex[numverts].x = 1 ; tex[numverts].y = 0 ;
-                            colors[numverts]   = thecolors[colorNow] ;
-                            verts[numverts][x] = pcorner[x] + NS ;
-                            verts[numverts][y] = pcorner[y] + NS ;
-                            verts[numverts][z] = pcorner[z] ; 
-
-                            tex[numverts+1].x = 0 ; tex[numverts+1].y = 0 ;
-//                            tex[numverts+1].x = 0 ; tex[numverts+1].y = 0 ;
-                            colors[numverts+1]   = thecolors[colorNow] ;
-                            verts[numverts+1][x] = pcorner[x] ;
-                            verts[numverts+1][y] = pcorner[y] + NS ;
-                            verts[numverts+1][z] = pcorner[z] ; 
-
-                            tex[numverts+2].x = 0 ; tex[numverts+2].y = 1 ;
-//                            tex[numverts+2].x = 0 ; tex[numverts+2].y = 1 ;
-                            colors[numverts+2]   = thecolors[colorNow] ;
-                            verts[numverts+2][x] = pcorner[x] ;
-                            verts[numverts+2][y] = pcorner[y] ;
-                            verts[numverts+2][z] = pcorner[z] ; 
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-                            // Triangle DCB
-                            tex[numverts+3].x = 0 ; tex[numverts+3].y = 1 ;
-//                            tex[numverts+3].x = 0 ; tex[numverts+3].y = 1 ;
-                            colors[numverts+3]   = thecolors[colorNow] ;
-                            verts[numverts+3][x] = pcorner[x] ;
-                            verts[numverts+3][y] = pcorner[y] ;
-                            verts[numverts+3][z] = pcorner[z] ; 
-
-                            tex[numverts+4].x = 1 ; tex[numverts+4].y = 1 ;
-//                            tex[numverts+4].x = 1 ; tex[numverts+4].y = 1 ;
-                            colors[numverts+4]   = thecolors[colorNow] ;
-                            verts[numverts+4][x] = pcorner[x] + NS ;
-                            verts[numverts+4][y] = pcorner[y] ;
-                            verts[numverts+4][z] = pcorner[z] ; 
-
-                            tex[numverts+5].x = 1 ; tex[numverts+5].y = 0 ;
-//                            tex[numverts+5].x = 1 ; tex[numverts+5].y = 0 ;
-                            colors[numverts+5]   = thecolors[colorNow] ;
-                            verts[numverts+5][x] = pcorner[x] + NS ;
-                            verts[numverts+5][y] = pcorner[y] + NS ;
-                            verts[numverts+5][z] = pcorner[z] ; 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-                        }
-                        //FIXME: restore this numverts += 6 ;    //  Two new triangles for this face means 6 new vertices
-                        numverts += 6 ;    //  Two new triangles for this face means 6 new vertices
+                        tex[nv]   = vec(x0,-y0,tc) ; verts[nv]   = corners[fi[face*4+2]] ;
+                        tex[nv+1] = vec(x0,-y1,tc) ; verts[nv+1] = corners[fi[face*4+3]] ;
+                        tex[nv+2] = vec(x1,-y0,tc) ; verts[nv+2] = corners[fi[face*4+1]] ;
+                        
+                        // triangle 2 
+                        tex[nv+3] = vec(x1,-y0,tc) ; verts[nv+3] = corners[fi[face*4+1]] ;
+                        tex[nv+4] = vec(x0,-y1,tc) ; verts[nv+4] = corners[fi[face*4+3]] ;
+                        tex[nv+5] = vec(x1,-y1,tc) ; verts[nv+5] = corners[fi[face*4]] ;
+/*
+                        tex[nv]   = vec2(x0,-y0) ; verts[nv]   = corners[fi[face*4+2]] ;
+                        tex[nv+1] = vec2(x0,-y1) ; verts[nv+1] = corners[fi[face*4+3]] ;
+                        tex[nv+2] = vec2(x1,-y0) ; verts[nv+2] = corners[fi[face*4+1]] ;
+                        
+                        // triangle 2 
+                        tex[nv+3] = vec2(x1,-y0) ; verts[nv+3] = corners[fi[face*4+1]] ;
+                        tex[nv+4] = vec2(x0,-y1) ; verts[nv+4] = corners[fi[face*4+3]] ;
+                        tex[nv+5] = vec2(x1,-y1) ; verts[nv+5] = corners[fi[face*4]] ;
+*/
+                        
+                        nv += 6 ;    //  Two new triangles for this face means 6 new vertices
                     } // end if (CN->tex[face]>0) (if face is visible)
                 } // end loop over 6 faces
             } // end if has geometry 
         }
 
-        // These last lines of the while loop make up the 'going up the tree' action. 
+        // up the tree
         path[d] = NULL ;
         d-- ;
-
         if (d<0) { break ; }
-        CN = path[d] ;
         // reset our corner position
         incr = (1<<(SI-d)) ;
-        loopi(3) 
-        { 
-            incornot = ((idxs[d]>>i)&1) ; 
-            pos.v[i] -= incornot * incr ; 
-        }
-
+        loopi(3) { incornot = ((idxs[d]>>i)&1) ; pos.v[i] -= incornot * incr ; }
         idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
+        CN = path[d] ;
     }// end while d>=0
     
-    CN->geom->numverts = numverts ;
+    //CN->geom->numverts = numverts ;
+    CN->geom->numverts = nv ;
 
     if (!glIsBuffer(CN->geom->vertVBOid)) { glGenBuffers( 1, &(CN->geom->vertVBOid)) ; }
     glBindBuffer( GL_ARRAY_BUFFER, CN->geom->vertVBOid) ;
-    glBufferData( GL_ARRAY_BUFFER, numverts*sizeof(vec), verts, GL_STATIC_DRAW );
-
-/*
-    if (!glIsBuffer(CN->geom->colorVBOid)) { glGenBuffers( 1, &(CN->geom->colorVBOid)) ; }
-    glBindBuffer( GL_ARRAY_BUFFER, (CN->geom->colorVBOid)) ;
-    glBufferData( GL_ARRAY_BUFFER, numverts*sizeof(vec), colors, GL_STATIC_DRAW );
-*/
+    glBufferData( GL_ARRAY_BUFFER, nv*sizeof(vec), verts, GL_STATIC_DRAW );
 
     if (!glIsBuffer(CN->geom->texVBOid)) { glGenBuffers( 1, &(CN->geom->texVBOid)) ; }
     glBindBuffer( GL_ARRAY_BUFFER, (CN->geom->texVBOid));            // Bind The Buffer
-    glBufferData( GL_ARRAY_BUFFER, numverts*sizeof(vec2), tex, GL_STATIC_DRAW );
+    glBufferData( GL_ARRAY_BUFFER, nv*sizeof(vec), tex, GL_STATIC_DRAW );
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-worldgeometry.add(CN->geom) ;
-
+    worldgeometry.add(CN->geom) ;
 }
 
-void faceIsCovered(ivec start, int face, int size)
+
+// Array: face indexes. 
+// Specifies which four indexes turn a given face of a an octree node into a 
+// quadtree. 
+int faceidxs[24] = 
+{
+    0, 2, 4, 6, // face 0
+    1, 3, 5, 7, // face 1
+    0, 1, 4, 5, // face 2
+    2, 3, 6, 7, // face 3
+    0, 1, 2, 3, // face 4
+    4, 5, 6, 7  // face 5
+} ;
+
+/*  
+    Performs a face-biased traversal of the tree. If 'face' 
+    corresponds to the cube side whose normal is the x axis, 
+    then only nodes in the higher-x set of 4 children get 
+    traversed. This actually turns the octree into a sort 
+    of quadtree, for a given face of the octree. 
+*/
+bool FaceCovered(ivec start, int face, int size)
 {
     Octant* CN = NULL ;
+    int* fidxs = &faceidxs[face*4] ;
     /*
     while (d>=0)
     {
@@ -2329,7 +2297,6 @@ void faceIsCovered(ivec start, int face, int size)
         {
             if (idxs[d]<8)
             {
-                // We're going down to a child, marked relative to its parent by idxs[d]. 
                 loopi(3) {incr = (1<<(SI-d)) ; yesorno = ((idxs[d]>>i)&1) ;pos.v[i] += yesorno * incr ;}
                 CN = &CN->children[idxs[d]] ; 
                 d++ ;
@@ -2349,10 +2316,7 @@ void faceIsCovered(ivec start, int face, int size)
         // These last lines of the while loop make up the 'going up the tree' action. 
         path[d] = NULL ;
         d-- ;
-        if (d<0)    // Past the root? Then we're done. 
-        {   
-            break ;
-        }
+        if (d<0) {   break ; } // Past the root? Then we're done. 
         CN = path[d] ;
 
         loopi(3) {
@@ -2363,13 +2327,13 @@ void faceIsCovered(ivec start, int face, int size)
     }                   // end while d>=0
     */
 }
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // REPLACE ME AND MOVE ME! 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/* tree traversal below is 38 lines */
-
-
+/* tree traversal below is 29 lines */
 /*
     while (d>=0)
     {
@@ -2387,28 +2351,16 @@ void faceIsCovered(ivec start, int face, int size)
             }
         }
         // If we don't have children, then maybe we have geometry.
-        else
-        {
-            if ( CN->has_geometry() )
-            {
-            }
-        }
+        else { if ( CN->has_geometry() ) { } }
 
         // These last lines of the while loop make up the 'going up the tree' action. 
         path[d] = NULL ;
         d-- ;
-        if (d<0)    // Past the root? Then we're done. 
-        {   
-            break ;
-        }
+        if (d<0) {   break ; } // Past the root? Then we're done. 
         CN = path[d] ;
-
-        loopi(3) {
-            incr = (1<<(SI-d)) ; yesorno = ((idxs[d]>>i)&1) ;
-            pos.v[i] -= yesorno * incr ;
-        }
+        loopi(3) { incr = (1<<(SI-d)) ; yesorno = ((idxs[d]>>i)&1) ; pos.v[i] -= yesorno * incr ; }
         idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
-    }                   // end while d>=0
+    } // end while d>=0
 */
 
 
@@ -2420,106 +2372,98 @@ void World::initialize()
     printf("\n\n****************************WORLD SIZE = %d************************************\n\n", world.size ) ;
 }
 
+
+bool showpolys = false ;
 void drawworld()
 {
-// Now for every geometric set in our world, render! 
+    // Now for every geometric set in our world, render! 
 
     //--------------------------------------------------------------------
     // FIXME: encapsulate this block into a render state set or shader or something. 
-    glEnable( GL_TEXTURE_2D ) ;
-    glBindTexture(GL_TEXTURE_2D, texid ) ;
+    //glEnable( GL_TEXTURE_2D ) ;
+    glEnable( GL_TEXTURE_3D ) ;
+    //glBindTexture(GL_TEXTURE_2D, texid ) ;
+extern GLuint surfacetex ;
+    glBindTexture(GL_TEXTURE_3D, surfacetex) ;
+    
+    bool showVBOs = false ;
+    //glColor3f(.6,.6,.6) ;
+    glColor3f(1,1,1) ;
 
-    glColor3f(.4,.4,.4) ;
     glEnableClientState( GL_VERTEX_ARRAY );                       // Enable Vertex Arrays
-//    glEnableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
     glEnableClientState( GL_TEXTURE_COORD_ARRAY );                // Enable Vertex Arrays
 
     glEnable( GL_CULL_FACE ) ;
     glCullFace( GL_BACK ) ;
     glFrontFace( GL_CCW ) ;
+    glDepthFunc( GL_LESS ) ;    // Only replace a pixel if new pixel is nearer
 
     //---------------------------------------------------------------------
-
-glColor3f(.6,.6,.6) ;
     loopv(worldgeometry)
     {
         Geom* g = worldgeometry[i] ;
 
-        //if (g->vertVBOid>0 && g->colorVBOid>0 && g->texVBOid)
         if (g->vertVBOid>0 && g->texVBOid)
         {
-            glBindBuffer(GL_ARRAY_BUFFER, g->vertVBOid);
-            //glVertexPointer( 3, GL_FLOAT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
-            glVertexPointer( 3, GL_FLOAT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
+            // FIXME: eventually it will useful (and fun) to color-code the different VBOs, so we retain 
+            // the ability to inspect the extent of individual VBOs. 
+            if (showpolys) { glColor3fv(colors[i%10].v) ; }
 
+            glBindBuffer(GL_ARRAY_BUFFER, g->vertVBOid) ;
+            glVertexPointer( 3, GL_INT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
 
-//            glBindBuffer(GL_ARRAY_BUFFER, g->colorVBOid);
-  //          glColorPointer( 3, GL_FLOAT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
-
-
-            glBindBuffer(GL_ARRAY_BUFFER, g->texVBOid);
-            glTexCoordPointer( 2, GL_FLOAT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
-
-glDepthFunc( GL_LESS ) ;
+            glBindBuffer(GL_ARRAY_BUFFER, g->texVBOid) ;
+            glTexCoordPointer( 3, GL_FLOAT,  0, (char *) NULL) ;
 
             glDrawArrays( GL_TRIANGLES, 0, g->numverts);    // Draw All Of The Triangles At Once
-            
         }// end if VBO ID's valid
     }// end looping over worldgeometry
+    //---------------------------------------------------------------------
 
+    // if show triangles 
+    if (showpolys&&0)
+    {
+        glDepthFunc( GL_LEQUAL ) ;
 
-glBindBuffer(GL_ARRAY_BUFFER, 0);
+        if (showVBOs) 
+        { 
+            // new color
+        }
+        else { glColor4f(0,0,0,1) ; }
 
+        glPolygonMode( GL_FRONT, GL_LINE ) ;
+        glLineWidth(9) ;
+        glDisable( GL_DEPTH_TEST ) ;
 
-
-
-
-// if show triangles 
-if (1 && 0)
-{
-
-    glDepthFunc( GL_LEQUAL ) ;
-    // /*
-    glColor3f(0,0,0) ;
-    glLineWidth(3) ;
-    //glDisable( GL_DEPTH_TEST ) ;
-    glPolygonMode( GL_FRONT, GL_LINE ) ;
-
-
-        loopv(worldgeometry)
-        {
-            Geom* g = worldgeometry[i] ;
-
-            ///if (g->vertVBOid>0 && g->colorVBOid>0 && g->texVBOid)
-            if (g->vertVBOid>0 && g->texVBOid)
+            loopv(worldgeometry)
             {
+                glColor3fv(colors[i%10].v) ;
+                Geom* g = worldgeometry[i] ;
 
-                glBindBuffer(GL_ARRAY_BUFFER, g->vertVBOid);
-                glVertexPointer( 3, GL_FLOAT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
-                glDrawArrays( GL_TRIANGLES, 0, g->numverts);    // Draw All Of The Triangles At Once
+                ///if (g->vertVBOid>0 && g->colorVBOid>0 && g->texVBOid)
+                if (g->vertVBOid>0 && g->texVBOid)
+                {
+                    glBindBuffer(GL_ARRAY_BUFFER, g->vertVBOid);
+                    glVertexPointer( 3, GL_INT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
+                    glDrawArrays( GL_TRIANGLES, 0, g->numverts);    // Draw All Of The Triangles At Once
+                }// end if VBO ID's valid
+            }// end looping over worldgeometry
 
-            }// end if VBO ID's valid
-        }// end looping over worldgeometry
+        glPolygonMode( GL_FRONT, GL_FILL ) ;
+        glLineWidth(1) ;
+        glEnable( GL_DEPTH_TEST ) ;
+    }
 
-
-
-    glPolygonMode( GL_FRONT, GL_FILL ) ;
-    //glEnable( GL_DEPTH_TEST ) ;
-    glLineWidth(1) ;
-}
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 // */
 
 
-
-
-
+    // Get out of this rendering state 
     glDisableClientState( GL_VERTEX_ARRAY );
-//    glDisableClientState( GL_COLOR_ARRAY );
     glDisableClientState( GL_TEXTURE_COORD_ARRAY );
-
-    
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDisable( GL_TEXTURE_2D ) ;
+    //glDisable( GL_TEXTURE_2D ) ;
+    glDisable( GL_TEXTURE_3D ) ;
 
     int x = X(sel_o) ;
     int y = Y(sel_o) ;
@@ -2547,15 +2491,19 @@ for (int face=0;face<6;face++)
         hello[i] -= 640 ; 
         
         ivec art = hello ;
-    glColor3f(1,0,0) ;
+        
+        glColor3f(1,0,0) ;
         glVertex3iv( art.v ) ; 
         art[X(face)] += targetsize/2 ;
         art[Y(face)] += targetsize/2 ;
         glVertex3iv( art.v ) ; 
-    glColor3f(0,0,1) ;
+        
+        glColor3f(0,0,1) ;
     }
 }
 }
+
+
 /*
     hello[1] -= 1280 ; glVertex3iv( hello.v ) ; 
     hello[1] += 2560 ; glVertex3iv( hello.v ) ; 
@@ -2575,23 +2523,17 @@ for (int face=0;face<6;face++)
 void SendGeomToGfx(Geom* g)
 {
     if ( glIsBuffer(g->vertVBOid)  && 
-         glIsBuffer(g->colorVBOid) && 
          glIsBuffer(g->texVBOid)   )
     {
         glBindBuffer( GL_ARRAY_BUFFER, g->vertVBOid) ;
-        glBufferData( GL_ARRAY_BUFFER, g->numverts*sizeof(vec), g->vertices, GL_STATIC_DRAW );
-
-/*
-        glBindBuffer( GL_ARRAY_BUFFER, g->colorVBOid) ;
-        glBufferData( GL_ARRAY_BUFFER, g->numverts*sizeof(vec), g->colors, GL_STATIC_DRAW );
-*/
+        glBufferData( GL_ARRAY_BUFFER, g->numverts*sizeof(vec), g->vertices, GL_STATIC_DRAW ) ;
 
         glBindBuffer( GL_ARRAY_BUFFER, g->texVBOid) ;
-        glBufferData( GL_ARRAY_BUFFER, g->numverts*sizeof(vec2), g->texcoords, GL_STATIC_DRAW );
+        glBufferData( GL_ARRAY_BUFFER, g->numverts*sizeof(vec), g->texcoords, GL_STATIC_DRAW ) ;
+
         glBindBuffer( GL_ARRAY_BUFFER, 0) ;             
     }
 }
-
 
 // Conversion from float to int - is this fast? 
 //__m128 a ;

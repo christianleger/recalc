@@ -6,7 +6,6 @@
 void Quit( int returnCode )
 {
     /* clean up SDL */
-
     printf("\n QUIT -- CLEANING UP TEXT ... ") ;
     clean_up_text() ;
     printf("\n QUIT -- CLEANING UP TEXT FINISHED. ") ;
@@ -14,10 +13,12 @@ void Quit( int returnCode )
     printf("\n QUIT -- CLEANING UP SOUND ... ") ;
     extern void clear_sound() ;
     clear_sound() ;
-//extern void stopsounds() ;
- //   stopsounds() ;
-//extern void stopchannels() ;
- //   stopchannels() ;
+
+    //extern void stopsounds() ;
+    //stopsounds() ;
+    //extern void stopchannels() ;
+    //stopchannels() ;
+
     printf("\n QUIT -- CLEANING UP SOUND FINISHED. ") ;
 
     SDL_Quit( );
@@ -31,27 +32,28 @@ void Quit( int returnCode )
 }
 
 
-
 Engine engine ; 
 void Engine::initialize()
 {
 //    engine.fullscreen = true ;
-    engine.window_active = true ;
-    engine.testing = true ; 
-    engine.menu = true ; 
-    engine.playing = true ; 
-    engine.rendering = true ;
-    engine.physics = true ;
-    engine.paused = false ; 
-    engine.fov = 75 ;
+    window_active = true ;
+    testing = true ; 
+    menu = true ; 
+    playing = true ; 
+    rendering = true ;
+    physics = true ;
+    paused = false ; 
+    fov = 75 ;
 //    engine.gridscale = 10 ;
 //    engine.gridsize = 2<<10 ;
 
     // utility (non-game) components 
-    engine.info = true ;
-    engine.console = false ;  // when this is set to true, then the pointer to 
+    info = true ;
+    console = false ;  // when this is set to true, then the pointer to 
                               // current_commands points to console_commands 
-    engine.console_scale = 1.0f ;
+    console_scale = 1.0f ;
+    tex = 0 ;
+    numtex = 0 ;
 }
 
 
@@ -221,8 +223,8 @@ void initialize_subsystems()
     world.initialize() ;
 
     // non-class components 
-    initialize_text() ;
-    initialize_input() ;
+    init_text() ;
+    init_input() ;
     init_physics() ;
 
     initialize_tests() ;

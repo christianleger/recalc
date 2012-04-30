@@ -1,6 +1,5 @@
 
 
-
 #include "recalc.h"
 
 
@@ -21,7 +20,7 @@ void CheckGlError()
     if (err)
     {
         // FIXME: logging system. 
-        printf("\n\nGL EROR IS %d\n\n", (err)) ; 
+        printf("\n\nGL ERROR IS %d\n\n", (err)) ; 
     }
     else
     {
@@ -36,8 +35,8 @@ void render_ortho_begin()
     // we assume the matrix mode is always GL_MODELVIEW
     glPushMatrix() ; 
     glLoadIdentity() ; 
-
     glMatrixMode( GL_PROJECTION ) ;
+
     glPushMatrix() ; 
     glLoadIdentity() ; 
     glOrtho( 0, engine.current_w, 0, engine.current_h, -1, 1000 ) ; 
@@ -58,9 +57,6 @@ void render_ortho_end()
 
 void render_world( )
 {
-    // render_fucking_world_shader() ;
-    // shade this fucker muther 
-
     glMatrixMode( GL_MODELVIEW ) ; 
     glLoadIdentity() ; 
 
@@ -74,17 +70,13 @@ void render_world( )
     //glTranslatef( -camera.pos.x, -camera.pos.y, -(1.8+camera.pos.z) ) ;
     glTranslatef( -camera.pos.x, -camera.pos.y, -(camera.pos.z) ) ;
 
-    glColor3f( 0, 1, 0) ; 
-    glBegin( GL_LINE_STRIP ) ; 
-        glVertex3f( 0,  0, -50 ) ;
-        glVertex3f( 0,  1, -50 ) ;
-        glVertex3f( 1,  1, -50 ) ;
-        glVertex3f( 1,  0, -50 ) ;
-        glVertex3f( 0,  0, -50 ) ;
-    glEnd() ; 
-    
-    extern void drawworld() ;
+    // render_fucking_world_shader() ;
+    // shade this fucker muther 
+extern void drawworld() ;
     drawworld() ;
+
+extern void renderentities() ;
+    renderentities() ;
 }
 
 
@@ -109,12 +101,11 @@ void draw_cursor()
     glPointSize( 10.0 ) ;
 
     glBegin( GL_LINES ) ;
-        v1[0] -= 10 ; glVertex3fv( v1 ); 
-        v1[0] += 20 ; glVertex3fv( v1 ); 
-
-        v1[0] -= 10 ; 
-        v1[1] -= 10 ; glVertex3fv( v1 ); 
-        v1[1] += 20 ; glVertex3fv( v1 ); 
+                           v1[0] -= 10 ; 
+        glVertex3fv( v1 ); v1[0] += 20 ; 
+        glVertex3fv( v1 ); v1[0] -= 10 ; v1[1] -= 10 ; 
+        glVertex3fv( v1 ); v1[1] += 20 ; 
+        glVertex3fv( v1 ); 
     glEnd() ;
 
     glPopMatrix() ;
@@ -131,7 +122,7 @@ void render_editor()
 {
     float v1[3] = { 0, 0, 0 } ; 
 
-    extern void update_editor() ;
+extern void update_editor() ;
     update_editor() ;
 // Before we draw a frame we must find out what we are looking at
    
@@ -150,14 +141,14 @@ void render_editor()
     // draw a little dot or cross or crosshair. 
     draw_cursor() ;
     
-    extern void draw_highlight() ; // FIXME lol externs everywhere. 
+extern void draw_highlight() ; // FIXME lol externs everywhere. 
     draw_highlight() ;
 
     draw_selection() ;
     
     // green square that shows where on world boundary ray is entering world, 
     // if camera is looking at world from outside. 
-    extern void draw_ray_start_node() ;
+extern void draw_ray_start_node() ;
     draw_ray_start_node() ;
 
 //    CheckGlError() ;
@@ -169,77 +160,66 @@ void render_tester()
 
     float v1[3] = { 0, 50, 20 } ; 
 
+/*
     glBegin( GL_LINES ) ; 
 
-        glColor3f( 1, 0, 0) ; 
+    glColor3f( 1, 0, 0) ; 
                         glVertex3fv( v1 ) ; 
         v1[0] = -10 ;   glVertex3fv( v1 ) ; 
-        glColor3f( 0, 1, 0) ; 
+    glColor3f( 0, 1, 0) ; 
         v1[0] = -10 ;   glVertex3fv( v1 ) ; 
         v1[0] = -20 ;   glVertex3fv( v1 ) ; 
 
     glEnd() ; 
-
+*/
     //extern void render_test_001() ;
     //render_test_001() ;
 }
 
+extern GLuint mainfontID ;
 extern vector<Font*> fonts ;
 void drawchar(int x,int _y, char c)
 {
-    glBindTexture(GL_TEXTURE_2D, fonts[0]->gl_char_IDs[(int)(c)]) ;
 
     glBegin(GL_QUADS) ;
 
-//    int bot = 
-    int y = _y + fonts[0]->bot[(int)c] ;
+    int y = _y + 2* fonts[0]->bot[(int)c] ;
 
+if (1)
+{
         //0
-    glTexCoord2d(0,0);    // bottom left of a letter 
-    //glVertex2f( 0, -_font->_height + top );
-    glVertex2f( 
-        x, 
-        //y+2*fonts[0]->height[(int)c]
-        y+fonts[0]->height[(int)c]
-        );
-
+    //glTexCoord3d( 0, 0, c);    
+    glTexCoord3d( 0, 0, (float)c/128);    
+    glVertex3f( x, y+2*fonts[0]->height[(int)c], 0) ;
 
         //1 
-    glTexCoord2d(
-        0,
-        fonts[0]->tcoords[c][1][1]
-        );
-    glVertex2f( 
-        x, 
-        y
-        );
+    //glTexCoord3d( 0, fonts[0]->tcoords[c][1][1], c) ;
+    glTexCoord3d( 
+        fonts[0]->tcoords[(int)c][1][0],
+        fonts[0]->tcoords[(int)c][1][1],
+        (float)c/128) ;
+    glVertex3f( x, y, 0);
 
-
-        //2 
-    glTexCoord2d(
-        fonts[0]->tcoords[c][2][0],
-        fonts[0]->tcoords[c][2][1]
-        );    // bottom right of a letter 
-    glVertex2f( 
-        //x+2*fonts[0]->width[(int)c], 
-        x+fonts[0]->width[(int)c], 
-        y
-        );
-
+        //2 // bottom right of a letter 
+    //glTexCoord3d( fonts[0]->tcoords[c][2][0], fonts[0]->tcoords[c][2][1], c);
+    glTexCoord3d( 
+        fonts[0]->tcoords[(int)c][2][0],
+        fonts[0]->tcoords[(int)c][2][1],
+        (float)c/128) ;
+    glVertex3f( x+2*fonts[0]->width[(int)c], y, 0);
 
         //3 
-    glTexCoord2d(
-        fonts[0]->tcoords[c][3][0],
-        0
-        );
-    glVertex2f(
-        //x+2*fonts[0]->width[(int)c], 
-        x+fonts[0]->width[(int)c], 
-        //y+2*fonts[0]->height[(int)c]
-        y+fonts[0]->height[(int)c]
-        );
-    
+    //glTexCoord3d( fonts[0]->tcoords[c][3][0], 0, c);
+    glTexCoord3d(
+        fonts[0]->tcoords[(int)c][3][0],
+        fonts[0]->tcoords[(int)c][3][1],
+        (float)c/128) ;
+    glVertex3f( x+2*fonts[0]->width[(int)c], y+2*fonts[0]->height[(int)c], 0);
+}
+
+
     glEnd() ;
+
 /*
 */
     //CheckGlError() ;
@@ -249,68 +229,89 @@ void render_menu()
 {
     render_ortho_begin() ;
     //CheckGlError() ;
-
-
+//glTranslatef(400,0,0) ;
     glColor3f(1,1,1) ;
 
-    extern uint texid ;
+//glBindTexture(GL_TEXTURE_2D, engine.texids[engine.tex]) ;
+extern GLuint surfacetex ;
 
-    glEnable( GL_TEXTURE_2D ) ;
-    glBindTexture(GL_TEXTURE_2D, texid) ;
+    //glEnable( GL_TEXTURE_2D ) ;
+    glEnable( GL_TEXTURE_3D ) ;
+
+glBindTexture(GL_TEXTURE_3D, surfacetex) ;
+
+
+extern int yeshello ;
+    float f = engine.tex ;
+    f = (f+0.5f) / 3.0f ;
+    
+    // This block demonstrates texture coordinate repetition
+    if (engine.numtex>0)
+    {
+        glBegin(GL_QUADS) ;
+            glTexCoord3f( 0.0f, 0.0f, f);
+            glVertex3f(1000.0f, 200.0f, 0.0f);
+
+            glTexCoord3f( 0.0f, 1.0f, f);
+            glVertex3f(1000.0f, 000.0f, 0.0f);
+
+            glTexCoord3f( 2.0f, 1.0f, f);         // when texture is repeating, this makes two get drawn. 
+            glVertex3f(1400.0f, 000.0f, 0.0f);
+
+            glTexCoord3f( 2.0f, 0.0f, f);
+            glVertex3f(1400.0f, 200.0f, 0.0f);
+        glEnd() ;
+    }
+
+    int next = 0 ;
+    glColor3f(1,1,1) ;
+
+    //glDisable( GL_TEXTURE_2D ) ;
+    glDisable( GL_TEXTURE_3D ) ;
+
+
+/*
+
+    // This block demonstrates 3D texture text 
+    glEnable( GL_TEXTURE_3D ) ;
+    glBindTexture(GL_TEXTURE_3D, mainfontID) ;
+
+        next = 100 ;
+        drawchar(next,400, 'A') ;    next += 2*fonts[0]->width['A']+3 ;
+        drawchar(next, 400, 'B') ;       next += 2*fonts[0]->width['B']+3 ;
+        drawchar(next, 400, 'C') ;       next += 2*fonts[0]->width['C']+3 ;
+        drawchar(next, 400, 'D') ;       next += 2*fonts[0]->width['D']+3 ;
+        drawchar(next, 400, 'E') ;       next += 2*fonts[0]->width['E']+3 ;
+        drawchar(next, 400, 'F') ;       next += 2*fonts[0]->width['F']+3 ;
+        drawchar(next, 400, 'G') ;       next += 2*fonts[0]->width['G']+3 ;
+        drawchar(next, 400, 'H') ;       next += 2*fonts[0]->width['H']+3 ;
+        drawchar(next, 400, 'I') ;       next += 2*fonts[0]->width['I']+3 ;
+        drawchar(next, 400, 'J') ;       next += 2*fonts[0]->width['J']+3 ;
+        drawchar(next, 400, 'K') ;       next += 2*fonts[0]->width['K']+3 ;
+        drawchar(next, 400, 'L') ;       next += 2*fonts[0]->width['L']+3 ;
+        drawchar(next, 400, 'M') ;       next += 2*fonts[0]->width['M']+3 ;
+        drawchar(next, 400, 'N') ;       next += 2*fonts[0]->width['N']+3 ;
+        drawchar(next, 400, 'O') ;       next += 2*fonts[0]->width['O']+3 ;
+        drawchar(next, 400, 'P') ;       next += 2*fonts[0]->width['P']+3 ;
+        drawchar(next, 400, 'j') ;       next += 2*fonts[0]->width['j']+3 ;
+  
+
+    // This demonstrates that we can draw a 2D texture which is stored as a 
+    // subset of a 3D texture which was set using glTexSubImage3D. 
+    extern GLuint surfacetex ;
+    glBindTexture(GL_TEXTURE_3D, surfacetex) ;
     glBegin(GL_QUADS) ;
+            glTexCoord3f( 0.0f, 0.0f, 0.0f ); glVertex3f(400.0f, 200.0f, 0.0f);
 
-        glTexCoord2f( 0.0f, 0.0f );
-        glVertex3f(1000.0f, 200.0f, 00.0f);
+            glTexCoord3f( 0.0f, 1.0f, 0.0f ); glVertex3f(400.0f, 0.0f, 0.0f);
 
-        glTexCoord2f( 0.0f, 1.0f );
-        glVertex3f(1000.0f, 000.0f, 00.0f);
+            glTexCoord3f( 1.0f, 1.0f, 0.0f ); glVertex3f(600.0f, 0.0f, 0.0f);
 
-        glTexCoord2f( 1.0f, 1.0f );
-        glVertex3f(1200.0f, 000.0f, 00.0f);
-
-        glTexCoord2f( 1.0f, 0.0f );
-        glVertex3f(1200.0f, 200.0f, 00.0f);
+            glTexCoord3f( 1.0f, 0.0f, 0.0f ); glVertex3f(600.0f, 200.0f, 0.0f);
     glEnd() ;
-
-int next = 0 ;
-    glColor3f(0,.8,0) ;
-        next = 400 ;
-        drawchar(400,400, 'A') ;    next += fonts[0]->width['A']+3 ;
-        drawchar(next, 400, 'J') ;       next += fonts[0]->width['J']+3 ;
-        drawchar(next, 400, 'C') ;       next += fonts[0]->width['C']+3 ;
-        drawchar(next, 400, 'D') ;       next += fonts[0]->width['D']+3 ;
-        drawchar(next, 400, 'E') ;       next += fonts[0]->width['E']+3 ;
-        drawchar(next, 400, 'a') ;       next += fonts[0]->width['a']+3 ;
-        drawchar(next, 400, 'd') ;       next += fonts[0]->width['d']+3 ;
-        drawchar(next, 400, 'j') ;       next += fonts[0]->width['j']+3 ;
-        drawchar(next, 400, 'a') ;       next += fonts[0]->width['a']+3 ;
-        drawchar(next, 400, 'c') ;       next += fonts[0]->width['c']+3 ;
-        drawchar(next, 400, 'i') ;       next += fonts[0]->width['i']+3 ;
-        drawchar(next, 400, 'n') ;       next += fonts[0]->width['n']+3 ;
-        drawchar(next, 400, 't') ;       next += fonts[0]->width['t']+3 ;
-        drawchar(next, 400, 't') ;       next += fonts[0]->width['t']+3 ;
-        drawchar(next, 400, 'g') ;       next += fonts[0]->width['g']+3 ;
-        drawchar(next, 400, 'q') ;       next += fonts[0]->width['q']+3 ;
-        drawchar(next, 400, 't') ;       next += fonts[0]->width['t']+3 ;
-/*        drawchar(480,400, 'C') ;
-        drawchar(520,400, 'D') ;
-        drawchar(560,400, 'E') ;
-        drawchar(600,400, 'J') ; */
-
-    glColor3f(.9,.9,.9) ;
-
-    glDisable( GL_TEXTURE_2D ) ;
-
-    glBegin( GL_LINES ) ;
-        glVertex3f(400,400,0) ;
-        glVertex3f(500,400,0) ;
-    glEnd() ;
-
-
-
-
-
-
+   
+    glDisable( GL_TEXTURE_3D ) ;
+*/   
     render_ortho_end() ;
 //    CheckGlError() ;
 }
@@ -333,36 +334,31 @@ void render_console()
 {
     render_ortho_begin() ;
     
-    
-    extern void prstrstart() ;
+    // Position console contents to the top of the screen  
+extern void prstrstart() ;
     prstrstart() ;
-
-// FIXME: print out from the current line in console buffer and the CONSOLE_V_SIZE-1 
-// next lines. For now, only printing line buffer. 
-    //int next_line = min( console.current_line, console.top_scr_line + CONSOLE_V_SIZE-1 ) ;
-
-    // show all currently visible content of the console 
-    glTranslatef(fonts[0]->width[SDLK_SPACE], engine.current_h-fonts[0]->_height, 0 ) ;
-    for (int i=c.top_scr_line;i< CONSOLE_V_SIZE ;i++)
+    glTranslatef(0, engine.current_h-fonts[0]->_height, 0 ) ;
+    
+    for (int i=0 ; i<CONSOLE_V_SIZE ; i++)
     {
-        // visible command history above 
-        prstr( 0, - (i+1)*fonts[0]->_height, c.lines[i] ) ;
+        prstr( 0, -(i+1)*fonts[0]->_height, c.lines[i] ) ;
     }
+
+    // Console entry buffer
     glLoadIdentity() ; 
-
-
     prstr( 0, 2*fonts[0]->_height, c.line_buffer ) ;
 
+extern void prstrend() ;
+    prstrend() ;
+
     // Cursor 
+    glColor3f(1,1,1) ;
     float cursor_pos_x = c.current_line_pix_len ;
     float v[3] = { cursor_pos_x, 1.5*fonts[0]->_height, 0 } ;
     glBegin( GL_LINES ) ; 
         glVertex3fv( v ) ; v[0] = cursor_pos_x + fonts[0]->_width;
         glVertex3fv( v ) ;
     glEnd() ; 
-
-    extern void prstrend() ;
-    prstrend() ;
 
     render_ortho_end() ;
 //    CheckGlError() ;
@@ -397,7 +393,7 @@ void render_info()
     if (!textenabled) { return ; }
 
 
-    int i = 0 ;
+    int i = 10 ; // Number of lines above bottom of screen. Leave room for command entry line. 
     int j = 0 ;
 
     #define next_line ((i++)+1)     // is that the stupidest thing to do or just effective? 
@@ -412,80 +408,67 @@ void render_info()
         ////////////////////////////////////////////////////////////////////////////////
         char info_msg[256] ;
         sprintf(info_msg, "height=%d ", height) ;
-        prstr( 600.f, 0 + next_line*height,
-                   info_msg) ; 
-        prstr( 600.f, 0 + next_line*height,
-                   "howdy toons") ; 
-        prstr( 600.f, 0 + next_line*height,
-                   "howdy bloggers") ; 
+//        prstr( 60.f, 0 + next_line*height, "info messages here") ; 
 
+glTranslatef(0, 3*engine.current_h/4, 0) ;
         ////////////////////////////////////////////////////////////////////////////////
         //                      MESSAGES FROM INPUT SYSTEM
         ////////////////////////////////////////////////////////////////////////////////
-        extern int input_msgs_num ;
-        extern char input_msgs[100][256] ;
-        extern void update_input_messages() ;
-        update_input_messages() ;
+        prstr( 10.f, - next_line*height, "----input system: ----") ; // j++ ;
+extern int input_msgs_num ;
+extern char input_msgs[100][256] ;
+extern void update_input_messages() ;
+update_input_messages() ;
         while (j<input_msgs_num)
         {
-            //prstr( 0, 600.f, engine.current_h - next_line*height,
-            prstr( 60.f, 0 + next_line*height,
-                   input_msgs[j]) ; j++ ;
+            prstr( 10.f, - next_line*height, input_msgs[j]) ; j++ ;
         }
 
         ////////////////////////////////////////////////////////////////////////////////
         //                      MESSAGES FROM GEOMETRY
         ////////////////////////////////////////////////////////////////////////////////
         // PER ACTION messages
-        extern int geom_msgs_num ;
-        extern char geom_msgs[100][256] ;
+        prstr( 10.f, - next_line*height, "----geometry messages:----") ; // j++ ;
+extern int geom_msgs_num ;
+extern char geom_msgs[100][256] ;
         j = 0 ;
         while (j<geom_msgs_num)
         {
-            //prstr( 0, 600.f, engine.current_h - next_line*height, 
-            prstr( 60.f, 0 + next_line*height, 
-                   geom_msgs[j]) ; j++ ;
+            prstr( 10.f, - next_line*height, geom_msgs[j]) ; j++ ;
         }
 
 
         // PER FRAME messages
-        extern int geom_msgs_num2 ;
-        extern char geom_msgs2[100][256] ;
+extern int geom_msgs_num2 ;
+extern char geom_msgs2[100][256] ;
         // messages from geometry 
         j = 0 ;
         while (j<geom_msgs_num2)
         {
-            //prstr( 0, 600.f, engine.current_h - next_line*height, 
-            //prstr( engine.current_w-300, 60.f, 0 + next_line*height, 
-            prstr( engine.current_w-600, 0 + (j+20)*height, 
-                   geom_msgs2[j]) ; j++ ;
+            prstr( 10, - next_line*height, geom_msgs2[j]) ; j++ ;
         }
-
-
 
         ////////////////////////////////////////////////////////////////////////////////
         //                      MESSAGES FROM MAIN
         ////////////////////////////////////////////////////////////////////////////////
-        extern int main_msgs_num ;
-        extern char main_msgs[100][256] ;
+        prstr( 10.f, - next_line*height, "----main messages:----") ; // j++ ;
+extern int main_msgs_num ;
+extern char main_msgs[100][256] ;
         j = 0 ;
         while (j<main_msgs_num)
         {
-            //prstr( 0, engine.current_w - scrstrlen(main_msgs[1]), engine.current_h - next_line*height, 
-            //prstr( 0, 10, engine.current_h - next_line*height, 
-            prstr( 10, 400 + next_line*height, 
-                     main_msgs[j]) ; j++ ;
+            prstr( 10, - next_line*height, main_msgs[j]) ; j++ ;
         }
         ////////////////////////////////////////////////////////////////////////////////
         //                      MESSAGES FROM PHYSICS
         ////////////////////////////////////////////////////////////////////////////////
-        extern int phys_msgs_num ;
-        extern char phys_msgs[100][256] ;
+        prstr( 10.f, - next_line*height, "----physics messages:----") ; //j++ ;
+extern int phys_msgs_num ;
+extern char phys_msgs[100][256] ;
         j = 0 ;
         while (j<phys_msgs_num)
         {
-            prstr( 10, 400 + next_line*height, 
-                     phys_msgs[j]) ; j++ ;
+            prstr( 10, - next_line*height, phys_msgs[j]) ; j++ ;
         }
 ////////////////////////////////////////////////////////////////////////////////
     extern void prstrend() ;
