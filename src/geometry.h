@@ -197,6 +197,7 @@ struct World
     int gridsize ;  // variable. 
 
     void initialize() ; 
+    void SaveToFile(const char* name) ; 
 
     Octant root ;
 } ;

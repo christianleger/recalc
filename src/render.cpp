@@ -241,9 +241,10 @@ extern GLuint surfacetex ;
 glBindTexture(GL_TEXTURE_3D, surfacetex) ;
 
 
-extern int yeshello ;
+extern int yeshello ; // where is this from ? 
+    // texture scrolling! , actually. 
     float f = engine.tex ;
-    f = (f+0.5f) / 3.0f ;
+    f = (f+0.5f) / 3.0f ;   // fuck this shit this is what you have to do to specify the layer you want. 
     
     // This block demonstrates texture coordinate repetition
     if (engine.numtex>0)
@@ -470,9 +471,20 @@ extern char phys_msgs[100][256] ;
         {
             prstr( 10, - next_line*height, phys_msgs[j]) ; j++ ;
         }
+
 ////////////////////////////////////////////////////////////////////////////////
     extern void prstrend() ;
     prstrend() ;
+
+        int h = next_line*height ;
+        glColor3f(0.5f,0.5f,0.9f) ;
+        glBegin( GL_LINES ) ;
+            glVertex3f(50, h, 0) ;
+            glVertex3f(500, h, 0) ;
+        glEnd() ;
+
+
+
     render_ortho_end() ;
 //    CheckGlError() ;
 }

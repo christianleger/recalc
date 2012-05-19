@@ -136,13 +136,13 @@ void init_test_001()
     // VERTICES
     glGenBuffers( 1, &m_vertVBO );                            // Get A Valid Name
     glBindBuffer( GL_ARRAY_BUFFER, m_vertVBO );            // Bind The Buffer
-    glBufferData( GL_ARRAY_BUFFER, 500*9*sizeof(float), m_vertices, GL_STATIC_DRAW );
+    glBufferData( GL_ARRAY_BUFFER, 500*sizeof(vec), m_vertices, GL_STATIC_DRAW );
     // glBufferData( GL_ARRAY_BUFFER, 500*3*sizeof(float), m_vertices, GL_STATIC_DRAW );
 
     // COLOR VALUES 
     glGenBuffers( 1, &m_colorVBO );                            // Get A Valid Name
     glBindBuffer( GL_ARRAY_BUFFER, m_colorVBO );            // Bind The Buffer
-    glBufferData( GL_ARRAY_BUFFER, 500*9*sizeof(float), m_colors, GL_STATIC_DRAW );
+    glBufferData( GL_ARRAY_BUFFER, 500*sizeof(vec), m_colors, GL_STATIC_DRAW );
     /*
     */
 
@@ -156,6 +156,59 @@ void init_test_001()
     //  delete [] m_pTexCoords; m_pTexCoords = NULL;
 }
 
+extern World world ;
+#include "time.h"
+
+/*
+    This demonstrates successful use of the uthash table. It's not the most 
+    light-weight, but hey, now I don't have to write it :) 
+*/
+void testhashtable()
+{
+    printf("\nHELLO") ;
+    printf("\nHELLO") ;
+    printf("\nHELLO") ;
+    printf("\nHELLO") ;
+    printf("\nHELLO") ;
+    printf("\n") ;
+
+
+    struct veclookup
+    {
+        vec v ;
+        UT_hash_handle hh ;
+    } ;
+
+    struct veclookup* entries = NULL ;
+    uint32_t keylen = 0 ;
+
+    struct veclookup this1 ; this1.v = vec(10,40,30) ;
+    struct veclookup this2 ; this2.v = vec(11,40,30) ;
+    struct veclookup this3 ; this3.v = vec(12,40,30) ;
+    struct veclookup this4 ; this4.v = vec(18,40,30) ;
+
+    static veclookup vecs[100] ;
+
+    srand(time(NULL)) ;
+
+    loopi(100)
+    {
+        vecs[i].v = vec( rand()%(world.size+1), rand()%(world.size+1), rand()%(world.size+1)) ;
+    }
+
+    //keylen = offsetof(veclookup, v) + sizeof(vec) - offsetof(veclookup, v) ;
+    keylen = sizeof(vec) ;
+
+    HASH_ADD(hh, entries, v, keylen, &this1) ;
+    HASH_ADD(hh, entries, v, keylen, &this2) ;
+    HASH_ADD(hh, entries, v, keylen, &this3) ;
+    HASH_ADD(hh, entries, v, keylen, &this4) ;
+
+    struct veclookup* result = NULL ;
+    HASH_FIND(hh, entries, &this2.v, keylen, result );
+
+    printf("\n Result is v = %f %f %f", result->v.x, result->v.y, result->v.z) ;
+}
 
 void render_test_001()
 {
@@ -174,22 +227,16 @@ void render_test_001()
 // FIXME: DO THISSSSSSSSSSSSSSSS    //glDrawElements(GL_QUADS, 24, GL_UNSIGNED_BYTE, 0);
 
     // bind with 0, so, switch back to normal pointer operation
-    //glBindBuffer(GL_ARRAY_BUFFER_ARB, 0);
-
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
     //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     // Enable Pointers
     glEnableClientState( GL_VERTEX_ARRAY );                        // Enable Vertex Arrays
     glEnableClientState( GL_COLOR_ARRAY );                        // Enable Vertex Arrays
-    /*
-     */
-    // glEnableClientState( GL_TEXTURE_COORD_ARRAY );                // Enable Texture Coord Arrays
+
 
     // Set Pointers To Our Data
     
-
-    /*
-*/
     glBindBuffer(GL_ARRAY_BUFFER, m_vertVBO );
     glVertexPointer( 
         3,              // size (of vertex)

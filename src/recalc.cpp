@@ -232,3 +232,56 @@ void initialize_subsystems()
     return ; 
 }
 
+
+
+int Screenshot(char *filename)
+{
+    SDL_Surface *screen = engine.surface ;
+    SDL_Surface *temp;
+    unsigned char *pixels;
+    int i;
+
+    int w = engine.current_w ;
+    int h = engine.current_h ;
+printf("\n hi 1 ") ;   
+    if (!(screen->flags & SDL_OPENGL))
+    {
+printf("\n hi 3 ") ;   
+        SDL_SaveBMP(temp, filename);
+printf("\n hi 2 ") ;   
+        return 0;
+    }
+printf("\n hi 4 ") ;   
+        
+    temp = SDL_CreateRGBSurface(SDL_SWSURFACE, screen->w, screen->h, 24,
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN
+    0x000000FF, 0x0000FF00, 0x00FF0000, 0
+#else
+    0x00FF0000, 0x0000FF00, 0x000000FF, 0
+#endif
+    );
+printf("\n hi 4 ") ;   
+printf("\n hi 4 ") ;   
+printf("\n hi 4 ") ;   
+    if (temp == NULL)
+        return -1;
+
+    pixels = (uchar *)malloc(3 * w * h);
+    if (pixels == NULL)
+    {
+        SDL_FreeSurface(temp);
+        return -1;
+    }
+
+    glReadPixels(0, 0, screen->w, screen->h, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+    for (i=0; i<h; i++)
+        memcpy(((char *) temp->pixels) + temp->pitch * i, pixels + 3*w * (h-i-1), w*3);
+    free(pixels);
+
+    SDL_SaveBMP(temp, filename);
+    SDL_FreeSurface(temp);
+    return 0 ;
+}
+
+

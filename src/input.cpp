@@ -93,6 +93,8 @@ void toggle_gridsize_scroll( bool enable = true )
     }
 }
 
+
+// texture scrolling! 
 int yeshello = 0 ;
 void texture_scroll(void *args) 
 {
@@ -766,8 +768,13 @@ extern bool jumping ;
                 reset_physics() ;
                 break; 
             }
+            case SDLK_F7: //          = 288,
+            {
+                char duh[] = "hello.bmp" ;
+                Screenshot(duh) ;
+                break ;
+            }
 /*
-            SDLK_F7         = 288,
             SDLK_F8         = 289,
             SDLK_F9         = 290,
             SDLK_F10      = 291,

@@ -30,13 +30,22 @@
 #endif
 
 
+// External libs
+// SDL
 #include <SDL.h>
 #include <SDL_mixer.h>
+
+// OpenGL
 #include <GL/gl.h>
 
+// Zlib
 #include <zlib.h>
 
+// Newton
+#include "Newton.h"
 
+// uthash
+#include "uthash.h"
 //--------------------------------------------------------------------------------------------------
 //                  LOCAL INCLUDE FILES 
 //--------------------------------------------------------------------------------------------------
@@ -51,7 +60,6 @@
 #include "console.h"
 
 
-#include "Newton.h"
 /*   
  *     INPUTS: the definitions of all our primitive types. 
  *
@@ -155,6 +163,9 @@ struct Engine
 } ;
 
 
+
+int Screenshot(char * filename) ;
+
 /*
     This function belongs to the one Engine we'll be using. 
 
@@ -244,8 +255,17 @@ typedef struct _menu
 /*
 */
 typedef void (* console_command)(char * ); 
+
+
 /* land of black sheep: components which are integrated here first, before they are 
-   modularized, if ever */ 
+   modularized, if ever 
+*/ 
+
+
+/*
+    The idea: a node that is easily carried around which refers to a function and 
+    which can be invoked from within the console. 
+*/
 typedef struct _command 
 {
     char name[64]; 
@@ -269,6 +289,7 @@ typedef struct _list_node
     void * data; 
     struct _list_node * next; 
 } ListNode; 
+
 
 typedef ListNode CElementNode; 
 typedef ListNode MB_node; 
@@ -312,8 +333,10 @@ void pause_physics() ;
 void physics_frame( unsigned int ) ; 
 void init_physics() ;
 
+
 // render
 void CheckGlError() ;
+
 
 // text 
 void init_text() ; 
@@ -321,39 +344,34 @@ void prstr( float x, float y, const char * fmt ) ;
 int scrstrlen( const char * ) ; 
 void clean_up_text() ;
 
+
 // input 
 void init_input() ; 
 void handle_key() ;
 void handle_mouse_motion() ;
 void handle_mouse_button( SDL_Event * ev ) ;
 
+
 // from main: function which resizes the window 
 void resize_window( int w, int h, int fov) ;
 
 // geometry
+void    draw_selection() ;
+void    draw_sel_start() ;
+void    draw_sel_end() ;
+void    set_sel_start() ;
+void    set_sel_end() ;
+void    clear_selection() ;
+void    extrude( void * ) ; 
+void    draw_new_octs() ;
+void    initialize() ;
 
-void draw_selection() ;
-void draw_sel_start() ;
-void draw_sel_end() ;
-void set_sel_start() ;
-void set_sel_end() ;
-void clear_selection() ;
-void extrude( void * ) ; 
-void draw_new_octs() ;
-void initialize() ;
-
-// sound
-
-// sound status
-void soundoff() ;
-void soundon() ;
-
-// sound commands
-void startsound() ; // initialize sound subsystem
-    
-int justplay(int thesound) ; // a dysfunctional little puppy that insists a piece of audio be played. 
-
-int playsound( vec* loc, int n, int loops, int fade, int chanid, int radius, int expire) ;
+// sound control
+void    soundoff() ;
+void    soundon() ;
+void    startsound() ; // initialize sound subsystem
+int     justplay(int thesound) ; // a dysfunctional little puppy that insists a piece of audio be played. 
+int     playsound( vec* loc, int n, int loops, int fade, int chanid, int radius, int expire) ;
 
 
 #endif

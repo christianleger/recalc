@@ -9,6 +9,8 @@
 
 */
 
+
+void testhashtable() ;
 void render_test_001() ;
 
 

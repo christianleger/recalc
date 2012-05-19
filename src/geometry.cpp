@@ -113,7 +113,8 @@ char geom_msgs2[100][256] ;
 //                  GEOMETRY SUPPORT FUNCTIONS  (octree, memory, etc.)
 //------------------------------------------------------------------------
 Octant* FindNode(ivec at, int* out_size, int* nscale) ; 
-Octant* findGeom(ivec at, int* out_size, int* nscale) ; 
+Octant* FindSizedNode(ivec at, int size) ; 
+Octant* FindGeom(ivec at, int* out_size, int* nscale) ; 
 
 int numchildren = 0 ;
 
@@ -128,6 +129,7 @@ bool CubeInsideWorld(
     World& w /* world to check against */
     ) ;
 
+bool FaceCovered(Octant* node, int face) ;
 void AnalyzeGeometry(Octant* tree, ivec corner, int scale) ;
 void AssignNewVBOs(Octant* tree, ivec corner, int scale) ;
 void makeSubtreeVBO(Octant* parent, ivec corner, int NS) ;
@@ -241,6 +243,7 @@ void Octant::clear_all()
     {
         clear_geometry() ; numchildren-- ;
     }
+    loopi(6) tex[i] = -1 ;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -979,7 +982,7 @@ sprintf(geom_msgs2[geom_msgs_num2], "HAVE TARGET: icorner at %d %d %d targetsize
     // If we're pointing at something and we want to do something with it, now's the time to do it. 
     if (havetarget)
     { 
-//findGeom(ifront, &NS, &Nscale) ; 
+//FindGeom(ifront, &NS, &Nscale) ; 
         sprintf( geom_msgs2[geom_msgs_num2], "") ; geom_msgs_num2++ ;
         sprintf( geom_msgs2[geom_msgs_num2], "NODE TARGETED. selection corner at: %d %d %d    (%d steps) ORIENTATION=%d", 
         icorner.x, icorner.y, icorner.z, steps, o) ; geom_msgs_num2++ ;
@@ -1238,9 +1241,34 @@ Octant* FindNode(ivec at, int* out_size=NULL, int* nScale=NULL) // , int* out_si
 }
 
 /*
+    Finds a node no smaller than size in_size. 
+
+*/
+Octant* FindSizedNode(ivec at, int in_size)
+{
+    int32_t CGS = world.scale ;
+    int32_t i = 0 ;
+    Octant* oct = &world.root ;
+
+    while ((2<<CGS)>in_size)
+    {
+        if ( oct->children ) 
+        {
+            i = octastep(at.x,at.y,at.z,CGS) ;
+            oct = &oct->children[i] ;
+        }
+        else { break ; }
+        CGS-- ;
+    }
+
+//printf("\nDone finding node. Node is%s null", oct==NULL?(""):(" not")) ;
+    return oct ;
+}
+
+/*
     Finds the geom, if any, that contains the point
 */
-Octant* findGeom(ivec at, int* out_size, int* nscale) //, int* out_size=NULL) ;
+Octant* FindGeom(ivec at, int* out_size, int* nscale) //, int* out_size=NULL) ;
 {
     int CS = world.scale ;
     int i = 0 ;
@@ -1374,6 +1402,17 @@ void FlagPathForUpdate( Octant** path, int _depth)
         c is the corner of the parent node. 
         oct is the node that will be subdiviced. 
 */
+static int facechildindexes[6][4] = 
+{
+    {0,2,4,6}, 
+    {1,3,5,7}, 
+    {0,1,4,5}, 
+    {2,3,6,7}, 
+    {0,1,2,3},
+    {4,5,6,7} 
+} ;
+#define fci facechildindexes
+
 void SubdivideOctant( Octant** path , int depth )
 {
     Octant* oct = path[depth] ;
@@ -1386,14 +1425,35 @@ void SubdivideOctant( Octant** path , int depth )
     
     // Steps: 
     // 1. Gather the eight vertices of this cube. 
+    Octant* CC = &(oct->children[0]) ;
     loopi(8)
     {
-        Octant* CC = &(oct->children[i]) ;
-        CC->set_all_edges() ; numchildren++ ;
+        CC->set_all_edges() ; 
+//        loopj(6) { CC->tex[j] = -1 ;}
+        numchildren++ ;
+        CC++ ;
     }
     // 2. Using interpolation to find the mid-face vertices, generate the 5 new 
     // vertices per face needed to specify the faces of the children. 
     // 3. Build the children's faces with the accumulated vertices. 
+         //   int j = 0 ; //  j = //j = ((1%2)<<(face/2)) ; // int j = 1 ; j = ((1%2)<<(face/2)) ; 
+
+    for (int face=0;face<6;face++)
+    {
+        int k = oct->tex[face] ;
+       
+        oct->children[fci[face][0]].tex[face] = k ;
+        oct->children[fci[face][1]].tex[face] = k ;
+        oct->children[fci[face][2]].tex[face] = k ;
+        oct->children[fci[face][3]].tex[face] = k ;
+
+        /*
+        oct->children[fci[face][0]].tex[face] = -1 ;
+        oct->children[fci[face][1]].tex[face] = -1 ;
+        oct->children[fci[face][2]].tex[face] = -1 ;
+        oct->children[fci[face][3]].tex[face] = -1 ;
+        */
+    }
     // 4. assign to all the faces concerned the tex slots currently used 
     // by the parent node. 
     // 5. flag this subtree as needing update. 
@@ -1535,206 +1595,203 @@ void extrude( void * _in )
     path[0] = oct ;
     int depth = 0 ; // first child of root
 
-    {
     // ---------------------------------------------------------------------------
     // DELETION
     // ---------------------------------------------------------------------------
-        if ( in )
+
+
+    if ( in )
+    {
+        if ( (O%2) ){NC[z] -= wp[O][z] * (sel_size) ;}
+        if (!CubeInsideWorld(NC, world)) { return ; }
+        NC[x] -= 1 ;
+        NC[y] -= 1 ;
+        ivec NCstart = NC ;
+
+        while ( y_count < sel_counts[y]+1)
         {
-            if ( (O%2) ){NC[z] -= wp[O][z] * (sel_size) ;}
-            if (!CubeInsideWorld(NC, world)) { return ; }
-            NC[x] -= 1 ;
-            NC[y] -= 1 ;
-            ivec NCstart = NC ;
-
-//printf("\n preparing to delete. ") ;
-
-            while ( y_count < sel_counts[y]+1)
+            while ( x_count < sel_counts[x]+1)
             {
-//printf("\n Row %d. ", y_count) ;
-                while ( x_count < sel_counts[x]+1)
+                bool inside = false ;
+                if ( (x_count>=0 && x_count<sel_counts[x]) &&
+                     (y_count>=0 && y_count<sel_counts[y]) )
                 {
-//printf("\n Col %d. ", x_count) ;
-
-                    bool inside = false ;
-                    if ( (x_count>=0 && x_count<sel_counts[x]) &&
-                         (y_count>=0 && y_count<sel_counts[y]) )
-                    {
-                        inside = true ;
-                    }
-                    
-                    while (CGS>=WGSc)
-                    {
-                        // If we're not done going deeper and we hit geometry, we need to subdivide. 
-                        if (!oct->children )
-                        {
-                            if (inside && oct->has_geometry() )
-                            {
-                                SubdivideOctant( path, depth ) ;
-                            }
-                            else { break ; }
-                        }
-
-                        int i = octastep(NC.x,NC.y,NC.z,CGS) ;
-                        oct = &oct->children[i] ;
-                        depth++ ;
-                        path[depth] = oct ;
-                        CGS-- ;
-                    }
-                    
-                    //if (oct)
-                    if (inside)
-                    {
-                     //   FlagSubtreeForUpdate(oct) ;
-                        if (oct->children){deletesubtree( oct ) ;}
-                        if (oct->has_geometry()){oct->clear_geometry() ;}
-                    }
-                    FlagPathForUpdate( path, depth) ;
-                    
-                    // reset node tracker
-                    CGS = WS ; 
-                    depth = 0 ;
-                    oct = &world.root ;
-
-                    // Move to next R^3 position for a new node 
-                    NC[x] += GS ;
-                    x_count ++ ;
-                } // end while ( x_count < sel_counts[X(O)])
-                x_count = -1 ;
-                y_count ++ ;
-                NC[x] = NCstart[x] ;
-                NC[y] += GS ;
-            } // end while ( y_count < sel_counts.y )
-            
-//printf("\nNext phase in life. . ") ;
-            
-            // Now do a similar process of flagging for update (no tree modifications 
-            // after this point) for the surface that is ahead of the deletion area.
-            NCstart[x] += 1 ;
-            NCstart[y] += 1 ;
-            NCstart[z] -= Dz(O)*GS ;
-            NC = NCstart ;
-            x_count = 0 ;
-            y_count = 0 ;
-
-            while ( y_count < sel_counts[y])
-            {
-                while ( x_count < sel_counts[x])
-                {
-                    while (CGS>=WGSc)
-                    {
-                        if (!oct->children)
-                        {
-                            break ;
-                        }
-                        int i = octastep(NC.x,NC.y,NC.z,CGS) ;
-                        oct = &oct->children[i] ;
-                        depth++ ;
-                        path[depth] = oct ;
-                        CGS-- ;
-                    }
-                    FlagPathForUpdate( path, depth) ;
-
-                    CGS = WS ; 
-                    depth = 0 ;
-                    oct = &world.root ;
-
-                    NC[x] += GS ;
-                    x_count ++ ;
+                    inside = true ;
                 }
-                x_count = 0 ;
-                y_count ++ ;
-                NC[x] = NCstart[x] ;
-                NC[y] += GS ;
-            } // end while ( y_count < sel_counts.y )
-            
-            // Move selection highlights to match new additions. 
-            sel_end  [sel_o>>1] -= GS*Dz(O) ;
-            sel_start[sel_o>>1] = sel_end  [sel_o>>1] ; // GS*Dz(O) ;
-
-        }   // end if deleting nodes 
-// ---------------------------------------------------------------------------
-// EXTRUSION
-// ---------------------------------------------------------------------------
-        else
-        {
-            // 'pop out' from reference point if orientation is even
-            // geometry from coordinates where to do so means to decrement our coords. 
-            if ( !(O%2) ){NC[z] += wp[O][z] * (sel_size) ;}
-            // If the new cube coordinates exceed world limits, then we forget it
-            if (!CubeInsideWorld(NC, world)){return ;}
-            NC[x] -= 1 ;NC[y] -= 1 ;
-            ivec NCstart = NC ;
-            while ( y_count < sel_counts[y]+1 )
-            {
-                while ( x_count < sel_counts[x]+1 )
+                
+                while (CGS>=WGSc)
                 {
-                    bool inside = false ;
-                    if ((x_count>=0 && x_count<sel_counts[x])&&
-                        (y_count>=0 && y_count<sel_counts[y]))
+                    // If we're not done going deeper and we hit geometry, we need to subdivide. 
+                    if (!oct->children )
                     {
-                        inside = true ;
-                    }
-                    while (CGS>=WGSc)
-                    {
-                        int i = octastep(NC.x,NC.y,NC.z,CGS) ;
-                        if ( !oct->children )
+                        if (inside && oct->has_geometry() )
                         {
-                            if (inside) 
-                            { 
-                                new_octants(oct) ;
-                            }
-                            else{break ;}
-                            
+                            SubdivideOctant( path, depth ) ;
                         }
-                        oct = &oct->children[i] ;
-                        depth++ ;
-                        path[depth] = oct ;
-                        CGS-- ;
+                        else { break ; }
                     }
-                    
-                    if (oct){
-                        if (inside){
-                            if (oct->children){deletesubtree( oct ) ;}
-                            oct->set_all_edges() ; numchildren++ ;
+
+                    int i = octastep(NC.x,NC.y,NC.z,CGS) ;
+                    oct = &oct->children[i] ;
+                    depth++ ;
+                    path[depth] = oct ;
+                    CGS-- ;
+                }
+                
+                //if (oct)
+                if (inside)
+                {
+                 //   FlagSubtreeForUpdate(oct) ;
+                    if (oct->children){deletesubtree( oct ) ;}
+                    if (oct->has_geometry()){oct->clear_geometry() ;}
+                }
+                FlagPathForUpdate( path, depth) ;
+                
+                // reset node tracker
+                CGS = WS ; 
+                depth = 0 ;
+                oct = &world.root ;
+
+                // Move to next R^3 position for a new node 
+                NC[x] += GS ;
+                x_count ++ ;
+            } // end while ( x_count < sel_counts[X(O)])
+            x_count = -1 ;
+            y_count ++ ;
+            NC[x] = NCstart[x] ;
+            NC[y] += GS ;
+        } // end while ( y_count < sel_counts.y )
+        
+//printf("\nNext phase in life. . ") ;
+        
+        // Now do a similar process of flagging for update (no tree modifications 
+        // after this point) for the surface that is ahead of the deletion area.
+        NCstart[x] += 1 ;
+        NCstart[y] += 1 ;
+        NCstart[z] -= Dz(O)*GS ;
+        NC = NCstart ;
+        x_count = 0 ;
+        y_count = 0 ;
+
+        while ( y_count < sel_counts[y])
+        {
+            while ( x_count < sel_counts[x])
+            {
+                while (CGS>=WGSc)
+                {
+                    if (!oct->children)
+                    {
+                        break ;
+                    }
+                    int i = octastep(NC.x,NC.y,NC.z,CGS) ;
+                    oct = &oct->children[i] ;
+                    depth++ ;
+                    path[depth] = oct ;
+                    CGS-- ;
+                }
+                FlagPathForUpdate( path, depth) ;
+
+                CGS = WS ; 
+                depth = 0 ;
+                oct = &world.root ;
+
+                NC[x] += GS ;
+                x_count ++ ;
+            }
+            x_count = 0 ;
+            y_count ++ ;
+            NC[x] = NCstart[x] ;
+            NC[y] += GS ;
+        } // end while ( y_count < sel_counts.y )
+        
+        // Move selection highlights to match new additions. 
+        sel_end  [sel_o>>1] -= GS*Dz(O) ;
+        sel_start[sel_o>>1] = sel_end  [sel_o>>1] ; // GS*Dz(O) ;
+
+    }   // end if deleting nodes 
+    // ---------------------------------------------------------------------------
+    // EXTRUSION
+    // ---------------------------------------------------------------------------
+    else
+    {
+        // 'pop out' from reference point if orientation is even
+        // geometry from coordinates where to do so means to decrement our coords. 
+        if ( !(O%2) ){NC[z] += wp[O][z] * (sel_size) ;}
+        // If the new cube coordinates exceed world limits, then we forget it
+        if (!CubeInsideWorld(NC, world)){return ;}
+        NC[x] -= 1 ;
+        NC[y] -= 1 ;
+        ivec NCstart = NC ;
+        while ( y_count < sel_counts[y]+1 )
+        {
+            while ( x_count < sel_counts[x]+1 )
+            {
+                bool inside = false ;
+                if ((x_count>=0 && x_count<sel_counts[x])&&
+                    (y_count>=0 && y_count<sel_counts[y]))
+                {
+                    inside = true ;
+                }
+                while (CGS>=WGSc)
+                {
+                    int i = octastep(NC.x,NC.y,NC.z,CGS) ;
+                    if ( !oct->children )
+                    {
+                        if (inside) 
+                        { 
+                            new_octants(oct) ;
                         }
-                        FlagPathForUpdate( path, depth) ;
+                        else{break ;}
+                        
                     }
-                    // Reset variables for any subsequent new nodes. 
-                    CGS = WS ; 
-                    depth = 0 ;
+                    oct = &oct->children[i] ;
+                    depth++ ;
+                    path[depth] = oct ;
+                    CGS-- ;
+                }
+                
+                if (oct){
+                    if (inside){
+                        if (oct->children){deletesubtree( oct ) ;}
+                        oct->set_all_edges() ; numchildren++ ;
+                    }
+                    FlagPathForUpdate( path, depth) ;
+                }
+                // Reset variables for any subsequent new nodes. 
+                CGS = WS ; 
+                depth = 0 ;
 // possible optimization: instead of going back up to the root, only go back up as far as necessary
 // 7 times out of 8 (ok, maybe 4.5 out of 8) the trip would be super short. 
-                    oct = &world.root ; 
+                oct = &world.root ; 
 
-                    // Move to next position for a new node 
-                    NC[x] += GS ;
-                    x_count ++ ;
-                } // end while ( x_count < sel_counts.x )
-                x_count = -1 ;
-                y_count ++ ;
-                NC[x] = NCstart[x] ;
-                NC[y] += GS ;
-            } 
-            
-            // Now flag the area that potentially just got obscured. 
-            x_count = 0 ;
-            y_count = 0 ;
-            NCstart[x] += 1 ;
-            NCstart[y] += 1 ;
-            NCstart[z] -= Dz(O)*GS ;
-            NC = NCstart ;
-            
-            while ( y_count < sel_counts[y] )
+                // Move to next position for a new node 
+                NC[x] += GS ;
+                x_count ++ ;
+            } // end while ( x_count < sel_counts.x )
+            x_count = -1 ;
+            y_count ++ ;
+            NC[x] = NCstart[x] ;
+            NC[y] += GS ;
+        } 
+        
+        // Now flag the area that potentially just got obscured. 
+        x_count = 0 ;
+        y_count = 0 ;
+        NCstart[x] += 1 ;
+        NCstart[y] += 1 ;
+        NCstart[z] -= Dz(O)*GS ;
+        NC = NCstart ;
+        
+        while ( y_count < sel_counts[y] )
+        {
+            while ( x_count < sel_counts[x] )
             {
-                while ( x_count < sel_counts[x] )
+                while (CGS>=WGSc)
                 {
-                    while (CGS>=WGSc)
-                    {
-                        int i = octastep(NC.x,NC.y,NC.z,CGS) ;
-                        if ( !oct->children ){break ;}
-                        oct = &oct->children[i] ;
-                        depth++ ;
+                    int i = octastep(NC.x,NC.y,NC.z,CGS) ;
+                    if ( !oct->children ){break ;}
+                    oct = &oct->children[i] ;
+                    depth++ ;
                         path[depth] = oct ;
                         CGS-- ;
                     }
@@ -1745,18 +1802,18 @@ void extrude( void * _in )
 
                     NC[x] += GS ;
                     x_count ++ ;
-                }
-                x_count = 0 ;
-                y_count ++ ;
-                NC[x] = NCstart[x] ;
-                NC[y] += GS ;
             }
-            // Move selection highlights to match new additions. 
-            sel_start[sel_o>>1] += GS*Dz(O) ;
-            sel_end  [sel_o>>1] += GS*Dz(O) ;
+            x_count = 0 ;
+            y_count ++ ;
+            NC[x] = NCstart[x] ;
+            NC[y] += GS ;
+        }
+        // Move selection highlights to match new additions. 
+        sel_start[sel_o>>1] += GS*Dz(O) ;
+        sel_end  [sel_o>>1] += GS*Dz(O) ;
             
-        }// end if extruding
-    }
+    }   // end extrusion
+
     // Identify pieces that need to be rebuilt
     AnalyzeGeometry(&world.root, vec(0,0,0), world.scale) ;
 
@@ -1863,7 +1920,7 @@ void AnalyzeGeometry(Octant* tree, ivec corner, int scale)
                     ivec pcorner ;          // probe corner
                     Octant* anode ;         // probe node
                     int NS = 1<<(S-d+1) ;   // present Node size. 
-                    int ns = 0 ;            // neighbor size
+//                    int ns = 0 ;            // neighbor size
 
 //--------------------------------------------------------------------------------------
                     // face visibility
@@ -1881,29 +1938,57 @@ void AnalyzeGeometry(Octant* tree, ivec corner, int scale)
                             CN->tex[face] = -1 ;
                             continue ;
                         }
-                        anode = FindNode(pcorner, &ns) ;
-                        pcorner = pos ;
-                        /* When do we skip drawing a face?  - when an adjacent node is at least as big - when the face can only be seen from outside world limits (this might change if we want to be able to have multiple worlds.  Q. How do we calculate that first one, 'there is an at-least-as-big neighbor covering the face'?  A.  -> you take this node's corner, and generate with it a point that lies just outside the face concerned.  face i.  corner[i>>1]+=Dz(i)*(1 + (i%2)*(NS)) -> you find the node located there -> if that node is solid, and is bigger than this one, then we know we're skipping this face.  If our node extends beyond what its neighbor can cover of that face */
-                       
-                        if ( !anode->has_geometry() || ns<NS ) 
-                        {
-                            // FIXME: add a check for whether a face is covered even though it is covered by 
-                            // smaller nodes. 
+                        //anode = FindNode(pcorner, &ns) ;
+                        anode = FindSizedNode(pcorner, NS) ;
 
-                            // texture slot assignment: Current texture or default==1
- //                           printf("\n assigning %d as current face tex. ", engine.texids[engine.tex]) ;
-//   CN->tex[face] = engine.texids[engine.tex] ;
-                            if (CN->tex[face] == -1)  // setting this to 'null' in case we don't want to see this face. 
-                            {
-                                CN->tex[face] = engine.tex ;
-                            }
-                            CN->vc += 6 ;
-                        }   // end if neighbor is not in the way of this face
-                        else
+
+                        // If the adjacent node is bigger than us and has geometry - don't show this face. 
+                        // FIXME: add checking if the face is flush to our face. 
+                        if ( anode->has_geometry() ) 
                         {
+                            // avoid this face! 
                             CN->tex[face] = -1 ;
                         }
-                    }       // end for (int face=0;face<6;face++)
+                        else
+                        {
+//printf("\nProcessing node at %d %d %d", pcorner.x, pcorner.y, pcorner.z) ;
+                            if 
+                            (
+//                    ( !anode->has_geometry() )
+//                    &&
+                                    /* 
+                                    FIXME - 
+                                   If we want to see whether face 1 is covered, we 
+                                   check face 0, the face opposite to this one, in 
+                                   our neighbor node. Each of the number pairs that match 
+                                   a face and its neighbor-opposite share the property that 
+                                   all bits but the first one (2^0) are the same. So to switch 
+                                   between either of any pair, we just flip the smallest bit. 
+                                    0 -> 1, 1 -> 0, 2 -> 3, 3 -> 2, etc. 
+                                    - FIXME
+                                    */
+                                ( !FaceCovered(anode, (face&0x6|((~face)&0x1))) ) 
+                            )
+                            {
+                                // FIXME: add a check for whether a face is covered even though it is covered by 
+                                // smaller nodes. 
+
+                                //  texture slot assignment: Current texture or default==1
+                                //  printf("\n assigning %d as current face tex. ", engine.texids[engine.tex]) ;
+                                //  CN->tex[face] = engine.texids[engine.tex] ;
+                                //if (CN->tex[face] == -1)  // setting this to 'null' in case we don't want to see this face. 
+                                {
+                                    CN->tex[face] = engine.tex ;
+                                }
+                                CN->vc += 6 ;
+                            }   // end if neighbor is not in the way of this face
+                            
+
+                        }   // end for (int face=0;face<6;face++)
+
+                        pcorner = pos ; // do we need to reset this here?
+
+                    }   // end for every face
 //--------------------------------------------------------------------------------------
                 }           // end if ( CN->has_geometry() )
             }               // end if not have children
@@ -2154,7 +2239,6 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
                     4, 5, 6, 7, // face 1 CCW from face bottom-left
                     7, 6, 1, 0, // face 2
                     3, 2, 5, 4, // face 3
-                    //3, 4, 7, 0, // face 4
                     0, 3, 4, 7, // face 4
                     6, 5, 2, 1, // face 5
                 } ;
@@ -2206,13 +2290,13 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
                             Triangle 2: vertices = DBC  texcoords: (1,0) (0,1) (1,0)  
                         */
 
-                        // triangle 1
                         float x0 = (float)corners[fi[face*4+2]][X(face)]/128 ; // scaled so that the full-size texture is 128 units tall and wide. 
                         float x1 = (float)corners[fi[face*4]][X(face)]/128 ;
                         float y0 = (float)corners[fi[face*4+2]][Y(face)]/128 ;
                         float y1 = (float)corners[fi[face*4]][Y(face)]/128 ;
 
 
+                        // triangle 1 
                         tex[nv]   = vec(x0,-y0,tc) ; verts[nv]   = corners[fi[face*4+2]] ;
                         tex[nv+1] = vec(x0,-y1,tc) ; verts[nv+1] = corners[fi[face*4+3]] ;
                         tex[nv+2] = vec(x1,-y0,tc) ; verts[nv+2] = corners[fi[face*4+1]] ;
@@ -2221,16 +2305,6 @@ void makeSubtreeVBO(Octant* root, ivec in_corner, int _NS)
                         tex[nv+3] = vec(x1,-y0,tc) ; verts[nv+3] = corners[fi[face*4+1]] ;
                         tex[nv+4] = vec(x0,-y1,tc) ; verts[nv+4] = corners[fi[face*4+3]] ;
                         tex[nv+5] = vec(x1,-y1,tc) ; verts[nv+5] = corners[fi[face*4]] ;
-/*
-                        tex[nv]   = vec2(x0,-y0) ; verts[nv]   = corners[fi[face*4+2]] ;
-                        tex[nv+1] = vec2(x0,-y1) ; verts[nv+1] = corners[fi[face*4+3]] ;
-                        tex[nv+2] = vec2(x1,-y0) ; verts[nv+2] = corners[fi[face*4+1]] ;
-                        
-                        // triangle 2 
-                        tex[nv+3] = vec2(x1,-y0) ; verts[nv+3] = corners[fi[face*4+1]] ;
-                        tex[nv+4] = vec2(x0,-y1) ; verts[nv+4] = corners[fi[face*4+3]] ;
-                        tex[nv+5] = vec2(x1,-y1) ; verts[nv+5] = corners[fi[face*4]] ;
-*/
                         
                         nv += 6 ;    //  Two new triangles for this face means 6 new vertices
                     } // end if (CN->tex[face]>0) (if face is visible)
@@ -2280,36 +2354,48 @@ int faceidxs[24] =
 } ;
 
 /*  
-    Performs a face-biased traversal of the tree. If 'face' 
+    Performs a face-restricted traversal of the tree. If 'face' 
     corresponds to the cube side whose normal is the x axis, 
     then only nodes in the higher-x set of 4 children get 
     traversed. This actually turns the octree into a sort 
     of quadtree, for a given face of the octree. 
 */
-bool FaceCovered(ivec start, int face, int size)
+bool FaceCovered(Octant* node, int face)
 {
-    Octant* CN = NULL ;
-    int* fidxs = &faceidxs[face*4] ;
-    /*
+    int32_t d = 0 ;
+
+    int idxs[20] ;
+    loopi(20) {idxs[i]=0 ;}
+    Octant* path[20] ;
+    loopi(20) {path[i]=NULL ;}
+
+    Octant* CN = node ;
+    path[0] = CN ;
+    vec pos(0,0,0) ;
+
+//    return false ;
+
     while (d>=0)
     {
         if ( CN->children )
         {
-            if (idxs[d]<8)
+            if (idxs[d]<4)
             {
-                loopi(3) {incr = (1<<(SI-d)) ; yesorno = ((idxs[d]>>i)&1) ;pos.v[i] += yesorno * incr ;}
-                CN = &CN->children[idxs[d]] ; 
+ //           printf("\nFaceCovered: checking a child.") ;
+                CN = &CN->children[fci[face][idxs[d]]] ; 
                 d++ ;
                 path[d] = CN ;
                 idxs[d] = 0 ; // Start the children at this level. 
                 continue ;
             }
         }
-        // If we don't have children, then maybe we have geometry.
         else
         {
-            if ( CN->has_geometry() )
+            // If the face is not flat against its opposite, then we can see the 
+            // opposite. 
+            if ( !CN->has_geometry() )
             {
+                return false ;
             }
         }
 
@@ -2318,14 +2404,11 @@ bool FaceCovered(ivec start, int face, int size)
         d-- ;
         if (d<0) {   break ; } // Past the root? Then we're done. 
         CN = path[d] ;
-
-        loopi(3) {
-            incr = (1<<(SI-d)) ; yesorno = ((idxs[d]>>i)&1) ;
-            pos.v[i] -= yesorno * incr ;
-        }
         idxs[d]++ ;   // Next time we visit this node, it'll be next child. 
-    }                   // end while d>=0
-    */
+    }   // end while d>=0
+
+    // If we did not encounter leaf nodes on this face which lacked geometry, then the face is covered. 
+    return true ;
 }
 
 
@@ -2381,13 +2464,12 @@ void drawworld()
     //--------------------------------------------------------------------
     // FIXME: encapsulate this block into a render state set or shader or something. 
     //glEnable( GL_TEXTURE_2D ) ;
-    glEnable( GL_TEXTURE_3D ) ;
     //glBindTexture(GL_TEXTURE_2D, texid ) ;
+    glEnable( GL_TEXTURE_3D ) ;
 extern GLuint surfacetex ;
     glBindTexture(GL_TEXTURE_3D, surfacetex) ;
     
     bool showVBOs = false ;
-    //glColor3f(.6,.6,.6) ;
     glColor3f(1,1,1) ;
 
     glEnableClientState( GL_VERTEX_ARRAY );                       // Enable Vertex Arrays
@@ -2421,7 +2503,7 @@ extern GLuint surfacetex ;
     //---------------------------------------------------------------------
 
     // if show triangles 
-    if (showpolys&&0)
+    if (showpolys&&1)
     {
         glDepthFunc( GL_LEQUAL ) ;
 
@@ -2432,16 +2514,19 @@ extern GLuint surfacetex ;
         else { glColor4f(0,0,0,1) ; }
 
         glPolygonMode( GL_FRONT, GL_LINE ) ;
-        glLineWidth(9) ;
-        glDisable( GL_DEPTH_TEST ) ;
+        glPolygonOffset( 0.5, 1) ;
+        glLineWidth(3) ;
+//        glDisable( GL_DEPTH_TEST ) ;
 
             loopv(worldgeometry)
             {
-                glColor3fv(colors[i%10].v) ;
+//                glColor3fv(colors[i%10].v) ;
+                glColor3fv(vec(0,0,0).v) ;
                 Geom* g = worldgeometry[i] ;
 
                 ///if (g->vertVBOid>0 && g->colorVBOid>0 && g->texVBOid)
-                if (g->vertVBOid>0 && g->texVBOid)
+                //if (g->vertVBOid>0 && g->texVBOid)
+                if (g->vertVBOid>0)
                 {
                     glBindBuffer(GL_ARRAY_BUFFER, g->vertVBOid);
                     glVertexPointer( 3, GL_INT,  0, (char *) NULL);        // Set The Vertex Pointer To The Vertex Buffer
@@ -2450,6 +2535,7 @@ extern GLuint surfacetex ;
             }// end looping over worldgeometry
 
         glPolygonMode( GL_FRONT, GL_FILL ) ;
+        glPolygonOffset( 0, 0) ;
         glLineWidth(1) ;
         glEnable( GL_DEPTH_TEST ) ;
     }
@@ -2464,10 +2550,6 @@ extern GLuint surfacetex ;
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     //glDisable( GL_TEXTURE_2D ) ;
     glDisable( GL_TEXTURE_3D ) ;
-
-    int x = X(sel_o) ;
-    int y = Y(sel_o) ;
-    int z = Z(sel_o) ;
 
     glColor3f(0,0,1) ;
     glLineWidth(3) ;

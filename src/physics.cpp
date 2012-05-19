@@ -108,7 +108,6 @@ if (updatephysics)
             {
                 fallspeed = 30 ; // falling up!
                 jumping = false ;
-             //   jumptime++ ;
             }
         }
         vel.z = fallspeed ;
@@ -135,25 +134,23 @@ if (updatephysics)
     Octant* newnode = FindNode(newposi) ;
 
 
-//speed = 0 ;
-
 
 if (!engine.editing)
 {
     extern float RayHitWorld(vec pos, vec ray, float max_t, vec* loc, vec* normal) ;
-    t = RayHitWorld(newpos, vec(1,0,0), speed, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
+    t = RayHitWorld(newpos, vec(1,0,0), speed+40, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
     if (t<speed) { newpos.x -= speed-t ; }
 
-    t = RayHitWorld(newpos, vec(-1,0,0), speed, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
+    t = RayHitWorld(newpos, vec(-1,0,0), speed+40, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
     if (t<speed) { newpos.x += speed-t ; }
 
-    t = RayHitWorld(newpos, vec(0,1,0), speed, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
+    t = RayHitWorld(newpos, vec(0,1,0), speed+40, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
     if (t<speed) { newpos.y -= speed-t ; }
 
-    t = RayHitWorld(newpos, vec(0,-1,0), speed, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
+    t = RayHitWorld(newpos, vec(0,-1,0), speed+40, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
     if (t<speed) { newpos.y += speed-t ; }
 
-    t = RayHitWorld(newpos, vec(0,0,-1), 120, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
+    t = RayHitWorld(newpos, vec(0,0,-1), 120+40, &loc, &norm) ; // speed gets adjusted in case we're about to hit something
     if (t<120)
     {
         fallspeed = 0 ;
@@ -167,7 +164,7 @@ if (!engine.editing)
 
 camera.pos = newpos ;
 
-sprintf(phys_msgs[phys_msgs_num], "position = %.2f %.2f %.2f", newpos.x, newpos.y, newpos.z ) ;  phys_msgs_num++ ;
+//sprintf(phys_msgs[phys_msgs_num], "position = %.2f %.2f %.2f", newpos.x, newpos.y, newpos.z ) ;  phys_msgs_num++ ;
 
 }   // end physics_frame
 
@@ -304,18 +301,21 @@ void SetTransformCallback(
     Entity* ent;
     ent = (Entity*) NewtonBodyGetUserData(body) ;
 
-    loopv(entities) { if (ent==entities[i]) { printf("\n Entity %d: ", i ) ; } }
+//    loopv(entities) { if (ent==entities[i]) { printf("\n Entity %d: ", i ) ; } }
 
 
     // Get the position from the matrix
     nVector posit (matrix[12], matrix[13], matrix[14]);
-    
+   
+
+   /*
     printf("pos=%f %f %f ",
         ent->pos[0], ent->pos[1], ent->pos[2]
         ) ;
     printf("\nrot=%f %f %f ",
         matrix[0], matrix[1], matrix[2]
         ) ;
+    */
 
 if (ent==entities[1]) return ;
 
@@ -371,10 +371,13 @@ void ContactCallback(
     const NewtonJoint* contactJoint, dFloat timestep, int threadIndex
     )
 {
+
+
+/*
     printf("\n Contact callback. "
         //NewtonMaterialGetContactNormalSpeed(materialID) 
         ) ;
-
+*/
 
 
 

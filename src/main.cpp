@@ -35,8 +35,6 @@
 
 /* all other globals are found in recalc.c */
 
-SDL_Surface *surface;
-
 //#define SCREEN_WIDTH 2600
 //#define SCREEN_HEIGHT 900
 
@@ -89,9 +87,13 @@ void load_texture()
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    //glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    //glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER,GL_NEAREST_MIPMAP_LINEAR ) ;
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, data_image->w, data_image->h, 3, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+    glGenerateMipmap(GL_TEXTURE_3D) ;
 /*
 */
     glEnable( GL_TEXTURE_3D ) ;
@@ -428,25 +430,17 @@ void initGL( )
     glClearDepth( 1.0f ) ;
     
     /* Really Nice Perspective Calculations */
-    //glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST ) ;
-    glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST ) ;
+    //glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST ) ;
+    glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST ) ;
     glHint( GL_POINT_SMOOTH_HINT, GL_NICEST ) ;
 
     glEnable( GL_DEPTH_TEST ) ;
     glEnable( GL_BLEND ) ;
-//FIXME: re-enable    glCullFace(GL_CW) ;
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) ; // checked. 
     glDepthFunc( GL_LESS ) ; // checked. 
 
     return ; 
-    // glHint( GL_TEXTURE_COMPRESSION_HINT, GL_NICEST ) ;
-    // glHint( GL_LINE_SMOOTH_HINT, GL_NICEST ) ;
-    // glHint( GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST ) ;
-    /* The Type Of Depth Test To Do */
-    // glDepthFunc( GL_EQUAL | GL_NOTEQUAL ) ;
-    // glDepthFunc( GL_GREATER ) ;
-    // glEnable(GL_CULL_FACE) ;
 }
 
 /* reset our viewport after a window resize */
@@ -542,7 +536,15 @@ read_args(argc, argv) ;
         // Things to test: 
         // sub-milimeter timing code
         testtiming() ;
+
+
+
         // floating-point to integer conversion
+
+
+        // test a new hash table implementation. 
+        testhashtable() ;
+
         // Whoops haha we leave now because we only wanted to run some arbitrary code ! 
         // get_cycle(delta_cycle) ;
         cycle_delta(first_cycle, delta_cycle) ;
@@ -617,7 +619,11 @@ CheckGlError() ;
     {
         millis = SDL_GetTicks() ;
         delta = millis - last_millis ;
-        if ( delta >= 1 ) // approximately 200 fps, unless vsync is enabled. 
+        if (delta<0)
+        {
+            delta +=10 ;
+        }
+        if ( delta > 1 ) // approximately 200 fps, unless vsync is enabled. 
         {
             delta_millis += delta ;
             physics_millis += delta ;
@@ -685,7 +691,8 @@ CheckGlError() ;
         // PHYSICS 
         if (!engine.paused)
         //if ( physics_millis >= PHYSICS_FRAME_TIME )
-        if ( physics_millis >= 1 )
+        //if ( physics_millis >= 1 )
+        if ( 1 )
         {
             // Reset counter if frame was run
             if ( engine.physics )
@@ -698,7 +705,7 @@ CheckGlError() ;
 
 
         if (
-               ( delta_millis >= FRAME_TIME) &&
+               ( delta_millis >= FRAME_TIME-1) &&
                ( engine.window_active ) &&
                ( !engine.paused )
            )
@@ -752,7 +759,7 @@ CheckGlError() ;
                 SDL_GL_SwapBuffers() ; 
             }
             SDL_Delay(1) ; 
-            SDL_GL_SwapBuffers() ; 
+           // SDL_GL_SwapBuffers() ; 
         }
         
         // FRAME COUNTING and other 1Hz actions. 
