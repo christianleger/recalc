@@ -24,6 +24,21 @@ extern Camera camera ;
 
 int input_msgs_num = 0 ;
 char input_msgs[100][256] ;
+
+/*
+    Message presets
+     
+    How module messages work: 
+    A number of pre-defined messages are placed at the start of this section's 
+    messages array. Reserving a portion of the array for these regular messages 
+    allows us to use the remaining space for other messages. 
+
+    The result is two types of messages: 
+        - constantly available messages, like states
+        - time-dependent messages, like whatever the last frame had to say for 
+          itself. 
+*/
+
 ///////////////////////////////////////////////////////////////////////////////
 // Function pointers for binding management 
 ///////////////////////////////////////////////////////////////////////////////
@@ -39,19 +54,20 @@ void (** current_commands)(void *) ;                // default global commands
 void (** last_commands)(void *) ;                // default global commands 
 
 
-void (* l_alt_commands[320])(void *) ;
-void (* r_alt_commands[320])(void *) ;
-void (* l_ctrl_commands[320])(void *) ;
-void (* r_ctrl_commands[320])(void *) ;
-void (* l_shift_commands[320])(void *) ;
-void (* r_shift_commands[320])(void *) ;
+//void (* l_alt_commands[320])(void *) ;
+//void (* r_alt_commands[320])(void *) ;
+//void (* l_ctrl_commands[320])(void *) ;
+//void (* r_ctrl_commands[320])(void *) ;
+//void (* l_shift_commands[320])(void *) ;
+//void (* r_shift_commands[320])(void *) ;
 
 
+// TODO: figure out what this is for. Anything? 
 void (* mouse_binding)(void *) ;
 
 void (* mouse_scroll_command)(void *) ;
 
-void toggle_extrude_scroll()
+void toggle_modify_scroll()
 {
 }
 
@@ -75,7 +91,7 @@ void gridsize_scroll(void * args)
         }
     }
     world.gridsize = 1<<(world.gridscale) ;
-    printf("\n world.gridscale = %d \n", world.gridscale ) ;
+    printf("\n world.gridscale = %d (%dm)\n", world.gridscale, 2<<world.gridscale ) ;
     /*
     sprintf( input_msgs[input_msgs_num], "world.gridscale=%d", 
         world.gridscale
@@ -86,71 +102,81 @@ void gridsize_scroll(void * args)
 
 void toggle_gridsize_scroll( bool enable = true ) 
 {
-    if (enable) { mouse_scroll_command = &gridsize_scroll ; }
+    //if (enable) { mouse_scroll_command = &gridsize_scroll ; }
+    if (enable) { mouse_scroll_command = gridsize_scroll ; }
     else {
         mouse_scroll_command = NULL ;
-        mouse_scroll_command = &extrude ;
+        mouse_scroll_command = &modify ;
     }
 }
 
 
 // texture scrolling! 
 int yeshello = 0 ;
+
+/*
+    TODO: when scrolling (selecting) textures, if we have any faces selected,
+    the texture assigned to these faces should change along with the texture 
+    selected. 
+*/
 void texture_scroll(void *args) 
 {
+printf("\n\ntex scroll: current texture is %d", engine.activetex) ;
     if ((*(bool*)args)) // scroll up 
     {
-        engine.tex -- ;
+        engine.activetex -- ;
         yeshello -- ;
-        if (engine.tex<0)
+        if (engine.activetex<0)
         {
-            engine.tex = engine.numtex-1 ;
+            engine.activetex = engine.numtex-1 ;
         }
     }
     else                // scroll down
     {
         yeshello ++ ;
-        engine.tex ++ ;
-        if (engine.tex>=engine.numtex)
+        engine.activetex ++ ;
+        if (engine.activetex>=engine.numtex)
         {
-            engine.tex = 0 ;
+            engine.activetex = 0 ;
         }
     }
+printf("\ntex scroll: current texture is now %d", engine.activetex) ;
 
-//    printf("\n texture is now %d", engine.tex) ;
+    printf("\n active texture is now %d", engine.activetex) ;
  //   printf("\n now engine.tex/3.0f=%f", engine.tex/3.0f) ;
 }
+
 void toggle_texture_scroll( bool enable = true ) 
 {
+    printf("YES WE ARE SCROLLING TEXTURES") ;
     if (enable) { mouse_scroll_command = &texture_scroll ; }
     else {
         mouse_scroll_command = NULL ;
-        mouse_scroll_command = &extrude ;
+        mouse_scroll_command = &modify ;
     }
 }
 
 
+/*
+    FUNCTION:
+        deform_scroll
+
+    DESCRIPTION:
+        This function is used to turn cubes into different shapes, by pushing 
+        and pulling on their corners. If the scroll is up, this results in 
+        pushing a corner into the face currently selected. If the scroll is 
+        down, this pulls on the corner.
+    
+*/
 void deform_scroll(void * args)
 {
     // FIXME: I have no code!
-    if ((*(bool*)args)) // scroll up 
+    if ((*(bool*)args)) // scroll up: push inwards
     {
-        world.gridscale += 1 ;
-        if (world.gridscale>world.scale)
-        {
-            world.gridscale = world.scale ;
-        }
+        PushCorner() ;
     }
-    else                // scroll down 
-    {
-        world.gridscale -= 1 ;
-        if (world.gridscale<2)
-        {
-            world.gridscale = 2 ;
-        }
-    }
-    world.gridsize = 1<<(world.gridscale) ;
-    printf("\n world.gridscale = %d \n", world.gridscale ) ;
+    // scroll down 
+    else  { PullCorner() ; }
 }
 
 
@@ -158,7 +184,7 @@ void deform_scroll(void * args)
     By default, activated by holding down q. 
 
     When active during edit mode, scrolling up or 
-    down deforms cubes instead of extruding or 
+    down deforms cubes instead of modifying or 
     deleting them. 
 */
 void toggle_deform_scroll( bool enable = false ) 
@@ -166,11 +192,13 @@ void toggle_deform_scroll( bool enable = false )
     if (enable)
     {
         mouse_scroll_command = &deform_scroll ;
+        printf("\n cube deform enabled. \n") ;
     }
     else
     {
-        mouse_scroll_command = NULL ;
-        mouse_scroll_command = &extrude ;
+        //mouse_scroll_command = NULL ;
+        mouse_scroll_command = &modify ;
+        printf("\n cube deform disabled. \n") ;
     }
 }
 
@@ -179,9 +207,9 @@ bool commands_initialized = false ;
 
 
 // from menu.cpp 
-extern void (* menu_commands[320])(void *) ;
+//extern void (* menu_commands[320])(void *) ;
 // from console.cpp 
-extern void (* console_commands[320])(void *) ;
+//extern void (* console_commands[320])(void *) ;
 
 
 // purely utilitarian - temporary, intemporal, casual. Only for scratch. 
@@ -204,12 +232,67 @@ void hello(void * nothing)
 
 
 */
+bool grabinput = true ;
 void tab_window(void*)
 {
-    engine.window_active = false ;
-    SDL_WM_GrabInput( SDL_GRAB_OFF ) ;
-    SDL_ShowCursor( SDL_ENABLE ) ;
+    //engine.window_active = false ;
+    grabinput = !grabinput ;
+
+    if (grabinput)
+    {
+        SDL_WM_GrabInput( SDL_GRAB_ON ) ;
+        SDL_ShowCursor( SDL_DISABLE ) ;
+    }
+    else
+    {
+        SDL_WM_GrabInput( SDL_GRAB_OFF ) ;
+        SDL_ShowCursor( SDL_ENABLE ) ;
+    }
     //while ( SDL_PollEvent ( &ev )) ;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//  Play Commands
+////////////////////////////////////////////////////////////////////////////////
+//  These commands are used by the play mode. 
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+    FUNCTION:
+        set_editing
+
+    DESCRIPTION: 
+        This enables the edit mode. 
+*/
+void set_editing()
+{
+    // have visuals be set to edit mode (world frame, world, cursors)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//  Editing Commands
+////////////////////////////////////////////////////////////////////////////////
+//  These commands are used by the edit mode. 
+////////////////////////////////////////////////////////////////////////////////
+
+
+/*
+    FUNCTION:
+        set_play
+
+    DESCRIPTION: 
+        This enables the play mode. 
+
+    USAGE:
+        The play mode can be enabled from the main menu, or from edit mode. 
+*/
+void set_play()
+{
+    // Set play mode visuals
+//    rendersys.setplay() ;
+
+    // Set play mode input handlers
+//    intputsys.setplay() ;
 }
 
 
@@ -243,9 +326,9 @@ void init_commands()
     // when this is set to null, it means defaults are in effect 
     current_commands = NULL ;
 
-    mouse_scroll_command = &extrude ;
+    mouse_scroll_command = &modify ;
 
-    l_alt_commands[SDLK_TAB] = &tab_window ;
+//    l_alt_commands[SDLK_TAB] = &tab_window ;
 }
 
 
@@ -269,14 +352,20 @@ unsigned int mouse_event_count = 0 ;
 // command set. 
 //
 
+/*  
+    NOTES
+        We use the convention that scrolling up is caused by passing true to 
+        the scroll command. 
+*/
 void handle_mouse_scroll( bool up )
 {
-    if (mouse_scroll_command) //scroll is up
+    if (mouse_scroll_command) 
     {
         mouse_scroll_command( (void*)&up ) ;
     }
 }
 
+bool mbutton1down = false ;
 void handle_mouse_motion( SDL_Event* event )
 {
     // Record the current position of the mouse 
@@ -299,7 +388,7 @@ void handle_mouse_motion( SDL_Event* event )
     float pitch_cos =   cos(  camera.pitch      * deg_to_radians ) ;
     dir.x = pitch_cos * cos( (camera.yaw+900)   * deg_to_radians ) ;
     dir.y = pitch_cos * sin( (camera.yaw+900)   * deg_to_radians ) ;
-    dir.z = sin(  camera.pitch      * deg_to_radians ) ;
+    dir.z = sin(  camera.pitch                  * deg_to_radians ) ;
 
     float len = dir.x*dir.x + dir.y*dir.y + dir.z*dir.z ;
     len = sqrt( len ) ;
@@ -325,11 +414,27 @@ void handle_mouse_motion( SDL_Event* event )
     //while (SDL_PollEvent( &ev )) ;
 
     //(*mouse_binding)() ;
+
+extern bool havesel ;
+    if (    havesel     &&
+            mbutton1down
+       ) 
+    {
+        printf("havesel with mouse button down. ") ;
+        set_sel_end() ;
+    }
+
     return ;
 }
 
+void (*mousescrollup)(void) ;
+void (*mousescrolldown)(void) ;
 
-void handle_mouse_button( SDL_Event * event )
+void (*leftmousedown)(void) ;
+void (*middlemousedown)(void) ;
+void (*rightmousedown)(void) ;
+
+void handle_mouse_button_down( SDL_Event * event )
 {
     // scroll down 
     if ( event->button.button == SDL_BUTTON_WHEELUP )
@@ -356,24 +461,31 @@ void handle_mouse_button( SDL_Event * event )
     }
     else
     {
-        printf("\nGetting mouse click \n") ;
-
         if ( engine.editing ) // do edit click
         {
-            // if left button 
             if ( event->button.button == SDL_BUTTON_LEFT )
             {
+                mbutton1down = !mbutton1down ;
                 set_sel_start() ; 
             }
-            // if right button 
             else if ( event->button.button == SDL_BUTTON_RIGHT )
             {
+                //mbutton1down = !mbutton1down ;
                 set_sel_end() ; 
             }
         }
         else // do game/sim click 
         {
         }
+    }
+}
+
+void handle_mouse_button_up(SDL_Event* ev)
+{
+    if ( ev->button.button == SDL_BUTTON_LEFT )
+    {
+        mbutton1down = !mbutton1down ;
+        //set_sel_start() ; 
     }
 }
 
@@ -390,20 +502,27 @@ void handle_mouse_button( SDL_Event * event )
         Purpose: tells all major modules to pause immediately
 
 */
+//void toggle_pause() 
 void all_pause() 
 {
 
     // physics and main engine render: main 3D render pauses
+    //engine.playing = !engine.playing ;
     engine.playing = false ; 
+    
+    //engine.testing_physics  = !engine.testing_physics ;
     engine.testing_physics  = false ;
+//    engine.paused = true ;
 
 //    if ( !_3D_main_menu ) engine.rendering = 
 
     // testing 
-    engine.playing = false ; 
+    //engine.playing = false ; 
+//    engine.playing = !engine.playing ;
 
     // console 
-    engine.playing = false ; 
+    //engine.playing = false ; 
+//    engine.playing = engine.playing ;
 
     return ;
 }
@@ -415,8 +534,6 @@ void reset_commands()
     while ( SDL_PollEvent( &ev ) ) ;
 }
 
-
-extern void Quit( int ) ; 
 
 // Main key handling routine: 
 //     
@@ -431,11 +548,11 @@ void handle_key( SDL_Event* event )
 {
     SDLKey k = event->key.keysym.sym ;
 
-    // If we have an active command set (console, editing, etc.), then we use it. 
+    // If we have an active command set (console, editing, etc.), then we try to use it. 
     // Otherwise, we use the base command set. 
     // Any commands requested that are not part of the current command set are 
     // obtained from the main module, and this case is detected when the 
-    // current_commands pointer is set to NULL. 
+    // current_commands[k] pointer is set to NULL. 
     if (current_commands)
     {
         if (event->type==SDL_KEYDOWN)
@@ -448,11 +565,15 @@ void handle_key( SDL_Event* event )
                 current_commands[k]((void*)(&k)) ;
                 return ;
             }
+            else
+            {
+         //       printf("\nNo command assigned to requested key. \n") ;
+            }
         }
     }
     else
     {
-        //printf("\ncommand requested and current_commands is NULL\n")  ;
+//        printf("\ncommand requested and current_commands is NULL\n")  ;
     }
 
     // default set of commands 
@@ -472,7 +593,8 @@ void handle_key( SDL_Event* event )
             }
             case SDLK_TAB:
             {
-                current_commands[ SDLK_TAB ] ;
+                tab_window(NULL) ;
+                //current_commands[ SDLK_TAB ] ;
                 break ;
             }
             /*
@@ -493,6 +615,9 @@ void handle_key( SDL_Event* event )
             */
             case SDLK_ESCAPE:
             {
+//printf("\nENGINE MENU STATUS: %s\n", engine.menu ? "ACTIVE":"INACTIVE") ;
+                playsound(0) ;
+                //Quit( 0 ) ; 
                 // TODO FIXME:  assign me to the activation of the main menu and 
                 // TODO FIXME:  pausing all other activity. 
 
@@ -505,14 +630,23 @@ void handle_key( SDL_Event* event )
                 //                      polling modules to pause themselves at once. 
 
                 all_pause() ; 
-                if (engine.paused) 
+                //toggle_pause() ; 
+                //if (engine.paused) 
+                if (engine.menu) 
                 {
-                    engine.paused = !engine.paused ; 
+printf("\nRESUMING. ENGINE PAUSE STATUS: %s\n", engine.paused?"TRUE":"FALSE") ;
+                    EditNewMap() ;
+                    engine.paused = !engine.paused ;
+                    engine.menu = !engine.menu ;
                 }
                 else
                 {
-                    Quit( 0 ) ; 
+printf("\nPAUSING. ENGINE PAUSE STATUS: %s\n", engine.paused?"TRUE":"FALSE") ;
+                    ActivateMainMenu() ;
+                //    engine.paused = !engine.paused ;
+                 //   engine.menu = !engine.menu ;
                 }
+                printf("\nENGINE MENU STATUS: %s\n", engine.menu ? "ACTIVE":"INACTIVE") ;
                 break ; 
             }
             case SDLK_SPACE: // = 32,
@@ -525,7 +659,7 @@ extern bool jumping ;
                 }
                 else
                 {
-                    extern void clear_selection() ;
+                //    extern void clear_selection() ;
                     clear_selection() ;
                 }
                 break ;
@@ -573,7 +707,11 @@ extern bool jumping ;
             */
             case SDLK_BACKQUOTE: // value 96 
             {
+                //playsound() ;
+                playsound(0) ;
                 toggle_console(NULL) ;
+
+
 /*
                 if (engine.console)
                 {
@@ -714,8 +852,23 @@ extern bool jumping ;
 
            // @name Arrows + Home/End pad
             //@{
-            SDLK_UP         = 273,
-            SDLK_DOWN      = 274,
+            */
+            case SDLK_UP:     //    = 273,
+            {
+                printf("\n SDLK_UP hit. scroll command. ") ;
+                bool truth = true ;
+                mouse_scroll_command(&truth) ;
+                // this is a keyboard duplicate of the mouse-scroll command. 
+                break ;
+            }
+            case SDLK_DOWN:           //= 274
+            {
+                printf("\n SDLK_DOWN hit. scroll command. ") ;
+                bool truth = false ;
+                mouse_scroll_command(&truth) ;
+                break ;
+            }
+            /*
             SDLK_RIGHT      = 275,
             SDLK_LEFT      = 276,
             SDLK_INSERT      = 277,
@@ -727,8 +880,15 @@ extern bool jumping ;
 
            // @name Function keys 
             //@{
-            SDLK_F1         = 282,
             */
+            case SDLK_F1:   // = 282,
+            {
+                printf("\nF1 hit. \n") ;
+                LoadMapNames(true) ;
+                break ;
+            }
+            // TODO: define a command (such as F1, F12, Home, etc.) which resets controls to all default states 
+            // (nothing pressed, correct command set for current interface). 
             case SDLK_F2:
             {
                 if (engine.console_scale>=3.0f)
@@ -743,14 +903,18 @@ extern bool jumping ;
             }
             case SDLK_F3:
             {
+                // TODO: add to timestamped logging system, if logging level is appropriate.  
                 engine.toggle_fullscreen() ;
-                printf("\nengine ordered to toggle fullscreen. engine reports fullscreen status is %d\n", engine.fullscreen ) ;
+                printf("\nFullscreen toggle requested. Engine reports screen status is now %s.\n", 
+                    engine.fullscreen ? ("fullscreen") : ("windowed")
+                    ) ;
                 break ;
             }
            
             // toggle the showing of triangles 
             case SDLK_F4:
-            {   
+            {
+                // TODO: put this in a menu that contains this and other dev and debug-related options. 
                 extern bool showpolys ;
                 showpolys = !showpolys ;
                 break ;
@@ -758,8 +922,11 @@ extern bool jumping ;
 
             case SDLK_F5: //         = 286,
             {
-                extern bool updatephysics ;
-                updatephysics = !updatephysics ;
+                // TODO: also put this in a dev menu. 
+                //extern bool updatephysics ;
+                //updatephysics = !updatephysics ;
+                extern bool updateeditor ;
+                updateeditor = !updateeditor ;
                 break ;
             }
             case SDLK_F6: //         = 287,
@@ -770,14 +937,46 @@ extern bool jumping ;
             }
             case SDLK_F7: //          = 288,
             {
+                // TODO: when a screenshot is taken, a global variable should 
+                // already know what the highest-numbered screenshot is, and save the 
+                // new one to a higher number. 
                 char duh[] = "hello.bmp" ;
                 Screenshot(duh) ;
                 break ;
             }
+            case SDLK_F8:        // = 289,
+            {
+                // TODO: when a file being worked on is saved, a new one of that name 
+                // gets saved here, after the latest one is renamed to a backup version.
+                // If this is a new unnamed map, then a query pops up to ask the user what 
+                // name is desired here. 
+                world.SaveToFile("map.txt") ;
+                break ;
+            }
+            case SDLK_F9:       //          = 290,
+            {
+                // TODO: when load is invoked, first a popup should ask which map to load. 
+                // This popup will show a navigable list of maps, as well as some quick keys
+                // to load a recent map. 
+                //world.LoadFromFile("map.txt") ;
+                LoadWorld("hyueuk heyuek") ;
+                break ;
+            }
+               
+            case SDLK_F10:      //       = 291,
+            {
+// TODO: this is just for testing during prototype stage. Remove when 
+// shaders are the normal way to render. 
+// extern void loadShaderFiles() ;
+// loadShaderFiles() ;
+engine.current_w -= 100 ;
+engine.current_h -= 100 ;
+        SDL_SetVideoMode( engine.current_w, engine.current_h, SCREEN_BPP, ((engine.fullscreen)   ?  engine.videoFlagsFS : (engine.videoFlags|SDL_RESIZABLE)) ) ; 
+
+                resize_window( engine.current_w, engine.current_h, engine.fov ) ; 
+                break ;
+            }
 /*
-            SDLK_F8         = 289,
-            SDLK_F9         = 290,
-            SDLK_F10      = 291,
             SDLK_F11      = 292,
             SDLK_F12      = 293,
             SDLK_F13      = 294,
@@ -794,6 +993,7 @@ extern bool jumping ;
 */
             case SDLK_LSHIFT:
             {
+                // TODO: place basic_velocity somewhere else. Like in Engine.physics. 
             extern float basic_velocity ;
                 if ( basic_velocity > 25000 )
                 {
@@ -811,8 +1011,8 @@ extern bool jumping ;
             */
             case SDLK_LALT:
             {
-                last_commands = current_commands ;
-                current_commands = l_alt_commands ; 
+//                last_commands = current_commands ;
+//                current_commands = l_alt_commands ; 
 
                 // enable tabbing out of application 
                 break ; 
@@ -837,18 +1037,17 @@ extern bool jumping ;
             SDLK_EURO      = 321,      //< Some european keyboards 
             SDLK_UNDO      = 322,      //< Atari keyboard has Undo 
             //@}
-
 */
             case SDLK_a:
             {
-                camera.set_strafe_left() ; 
+                camera.set_move_left() ; 
                 break ; 
             }
             //SDLK_b         = 98,
             //SDLK_c         = 99,
             case SDLK_d:
             {
-                camera.set_strafe_right() ; 
+                camera.set_move_right() ; 
                 break ; 
             }
             case SDLK_e:
@@ -880,7 +1079,8 @@ extern bool jumping ;
             //SDLK_q         = 113,
             case SDLK_q:
             {
-                toggle_deform_scroll() ; // releasing q disables cube deformation
+                toggle_deform_scroll(true) ; // releasing q disables cube deformation
+                break ;
             }
             //SDLK_r         = 114,
             case SDLK_s:
@@ -925,7 +1125,7 @@ extern bool jumping ;
             }
             default: 
             {
-                if (!commands_initialized){init_commands() ;}
+//                if (!commands_initialized){init_commands() ;}
                 (*commands[k])(NULL) ;
                 printf("\n You have hit a key with SDL code %d", k) ;
                 break ; 
@@ -934,14 +1134,23 @@ extern bool jumping ;
     }
 
 
+
+
+
+
+
+
+
+
+
     else if (event->type==SDL_KEYUP)
     {
         switch( k )
         {
             case SDLK_LALT:
             {
-                current_commands = last_commands ;
-                last_commands = NULL ;
+//                current_commands = last_commands ;
+//                last_commands = NULL ;
                 break ; 
             }
             case SDLK_TAB:
@@ -960,12 +1169,12 @@ extern bool jumping ;
             }
             case SDLK_a:
             {   
-                camera.stop_strafe_left() ;
+                camera.stop_move_left() ;
                 break ;
             }
             case SDLK_d:
             {   
-                camera.stop_strafe_right() ;
+                camera.stop_move_right() ;
                 break ;
             }
             case SDLK_g:
@@ -978,6 +1187,7 @@ extern bool jumping ;
             {
                 // releasing q disables cube deformation
                 toggle_deform_scroll( false ) ; 
+                break ;
             }
             case SDLK_y:
             {
@@ -993,8 +1203,6 @@ extern bool jumping ;
             }
         } 
     }// end input processing 
-    /*
-        */
 
     return ;
 
@@ -1012,8 +1220,6 @@ extern bool jumping ;
             -> records all files loaded and all their contents, 
                as well as any output from the execution of loaded 
                files. 
-*/
-/*
 */
 void handle_console_key_in()
 {
@@ -1044,18 +1250,23 @@ void clear_main_commands()
     current_commands = NULL ;
 }
 
+
 /*
 */
 void update_input_messages()
 {
     input_msgs_num = 0 ;
 
-    sprintf( input_msgs[input_msgs_num], "world.gridscale=%d", 
-        world.gridscale
+    #define GRIDSCALE_MSG 0
+    sprintf( input_msgs[GRIDSCALE_MSG], "world.gridscale=%d (%.2fm)", 
+        world.gridscale,
+        //1<<(world.gridscale-6)
+        (1<<world.gridscale) / 64.0 
         ); input_msgs_num++ ;
 
+    #define DIRVEC_MSG 1
     sprintf(
-        input_msgs[input_msgs_num], 
+        input_msgs[DIRVEC_MSG], 
         "direction vector : %.2f %.2f %.2f %.2f", 
         camera.dir.x,
         camera.dir.y,
@@ -1063,16 +1274,42 @@ void update_input_messages()
         camera.pitch
         ) ; input_msgs_num++ ;
 
-    sprintf( input_msgs[input_msgs_num], "pitch = %.2f and sin (theta) = %.2f", 
+    #define ANGLES_MSG 2
+    sprintf( input_msgs[ANGLES_MSG], "pitch = %.2f and sin (theta) = %.2f", 
         camera.pitch/10.f, sin(  camera.pitch      * deg_to_radians )
         ); input_msgs_num++ ;
 
-            extern float basic_velocity ;
+extern float basic_velocity ;
+    #define VEL_MSG 3
     sprintf(
-        input_msgs[input_msgs_num], 
+        input_msgs[VEL_MSG], 
         " basic_velocity set to %.2f ",
         basic_velocity 
         ); input_msgs_num++ ;
-    sprintf( input_msgs[input_msgs_num], "engine.tex=%d   coord=%f", engine.tex, (((float)engine.tex)+0.5f)/3.0f); input_msgs_num++ ;
+    sprintf( input_msgs[input_msgs_num], "engine.activetex=%d   coord=%f", engine.activetex, (((float)engine.activetex)+0.5f)/3.0f); input_msgs_num++ ;
 }
+
+
+/*
+    Actions which modify the key mappings
+*/
+void setcommands(void (*newcommands[320])(void*)) 
+{
+    current_commands = newcommands ;
+}
+
+//typedef void (**commandptr)(void*) ;
+
+commandptr getcommands() 
+{
+    return commands ;
+}
+
+/*
+    Return to default set of commands. 
+*/
+void resetcommands() 
+{
+}
+
 

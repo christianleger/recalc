@@ -1074,6 +1074,24 @@ struct glmatrixf
     float operator[](int i) const { return v[i]; }
     float &operator[](int i) { return v[i]; }
 
+
+    void operator=(const glmatrixf& m) 
+    { 
+        /*  
+            Question: which is faster? Doing one from each row at one time, or 
+            one from each column at one time? 
+            For now we guess that doing it by rows gains from the pre-fetching of 
+            columns, which are the elements contiguous in memory. 
+        */
+        for (int i=0;i<4;i++)
+        {   
+            v[i]     = m[i]   ;
+            v[i+4]   = m[i+4]   ;
+            v[i+8]   = m[i+8]   ;
+            v[i+12]   = m[i+12]   ;
+        }
+    }
+
     #define ROTVEC(A, B) \
     { \
         float a = A, b = B; \
@@ -1081,28 +1099,87 @@ struct glmatrixf
         B = b*c - a*s; \
     }
 
+    /*
+        Description: 
+            This is not the original function found in sauerbraten! I couldn't 
+            understand why it was the way it was, and it wasn't giving me the 
+            results I was hoping for. So I looked up what a rotation transformation 
+            should look like according to a book, and then worked with that. 
+
+        Reference: 
+            The red book (OpenGL programming guide, second ed. in this case). 
+    */
     void rotate_around_x(float angle)
     {
         float c = cosf(angle), s = sinf(angle);
-        ROTVEC(v[4], v[8]);
-        ROTVEC(v[5], v[9]);
-        ROTVEC(v[6], v[10]);
+
+// What did the original one accomplish, anyway? 
+//        ROTVEC(v[4], v[8]);
+//        ROTVEC(v[5], v[9]);
+//        ROTVEC(v[6], v[10]);
+
+        float a = v[1], b = v[2]; 
+        v[1] = c*a - s*b ;
+        v[2] = s*a + c*b ;
+        
+        a = v[5], b = v[6]; 
+        v[5] = c*a - s*b ;
+        v[6] = s*a + c*b ;
+        
+        a = v[9], b = v[10]; 
+        v[9] = c*a - s*b ;
+        v[10] = s*a + c*b ;
+
+        a = v[13], b = v[14]; 
+        v[13] = c*a - s*b ;
+        v[14] = s*a + c*b ;
     }
 
     void rotate_around_y(float angle)
     {
         float c = cosf(angle), s = sinf(angle);
-        ROTVEC(v[8], v[0]);
-        ROTVEC(v[9], v[1]);
-        ROTVEC(v[10], v[2]);
+        //ROTVEC(v[8], v[0]);
+        //ROTVEC(v[9], v[1]);
+        //ROTVEC(v[10], v[2]);
+        float a = v[0], b = v[2]; 
+        v[0] = c*a + s*b ;
+        v[2] = -s*a + c*b ;
+        
+        a = v[4], b = v[6]; 
+        v[4] = c*a + s*b ;
+        v[6] = -s*a + c*b ;
+        
+        a = v[8], b = v[10]; 
+        v[8] = c*a + s*b ;
+        v[10] = -s*a + c*b ;
+
+        a = v[12], b = v[14]; 
+        v[12] = c*a + s*b ;
+        v[14] = -s*a + c*b ;
     }
 
     void rotate_around_z(float angle)
     {
+        //float c = cosf(angle), s = sinf(angle);
         float c = cosf(angle), s = sinf(angle);
-        ROTVEC(v[0], v[4]);
-        ROTVEC(v[1], v[5]);
-        ROTVEC(v[2], v[6]);
+        //ROTVEC(v[0], v[4]);
+        //ROTVEC(v[1], v[5]);
+        //ROTVEC(v[2], v[6]);
+        float a = v[0], b = v[1]; 
+        v[0] = c*a - s*b ;
+        v[1] = s*a + c*b ;
+        
+        a = v[4], b = v[5]; 
+        v[4] = c*a - s*b ;
+        v[5] = s*a + c*b ;
+        
+        a = v[8], b = v[9]; 
+        v[8] = c*a - s*b ;
+        v[9] = s*a + c*b ;
+
+        a = v[12], b = v[13]; 
+        v[12] = c*a - s*b ;
+        v[13] = s*a + c*b ;
     }
 
     #undef ROTVEC
@@ -1207,11 +1284,17 @@ struct glmatrixf
         v[8] = -v[8]; v[9] = -v[9]; v[10] = -v[10]; v[11] = -v[11];
     }
 
+    /*
+        Description: 
+            This is apparently used in texture and shadow-related operations. But 
+            I do not know more than that right now. -CL
+    */
     void projective(float zscale = 0.5f, float zoffset = 0.5f)
     {
         loopi(2) loopj(4) v[i + j*4] = 0.5f*(v[i + j*4] + v[3 + j*4]); 
         loopj(4) v[2 + j*4] = zscale*v[2 + j*4] + zoffset*v[3 + j*4];
     }
+
 
     void transpose()
     {
@@ -1220,21 +1303,89 @@ struct glmatrixf
         swap(v[11], v[14]);
     }
 
+
+    /*
+        Description: 
+            The viewing frustum. 
+
+        Reference: 
+            From sauerbraten. 
+    */
     void frustum(float left, float right, float bottom, float top, float znear, float zfar)
     {
-        float width = right - left, height = top - bottom, zrange = znear - zfar;
-        v[0] = 2*znear/width; v[4] = 0;              v[8] = (right + left)/width;   v[12] = 0;
-        v[1] = 0;             v[5] = 2*znear/height; v[9] = (top + bottom)/height;  v[13] = 0;
-        v[2] = 0;             v[6] = 0;              v[10] = (zfar + znear)/zrange; v[14] = 2*znear*zfar/zrange;
+        float w = right - left ;
+        float h = top - bottom ;
+        //float zr = znear - zfar ;    // zrange 
+        float zr = zfar - znear ;    // zrange 
+
+        /*
+        v[0] = 2*znear/w; v[4] = 0;              v[8] = 0 ;   v[12] = 0;
+        v[1] = 0;             v[5] = 2*znear/h; v[9] = 0 ;   v[13] = 0;
+        v[2] = 0;             v[6] = 0;              v[10] = (zfar + znear)/zrange; v[14] = -2*znear*zfar/(zfar-znear);
         v[3] = 0;             v[7] = 0;              v[11] = -1;                    v[15] = 0;
+        */
+        
+        v[0] = 2*znear/w ;   v[4] = 0 ;             v[8] = (right + left)/w;        v[12] = 0;
+        v[1] = 0 ;           v[5] = 2*znear/h ;     v[9] = (top + bottom)/h;        v[13] = 0;
+        v[2] = 0 ;           v[6] = 0 ;             v[10] = -(zfar + znear)/zr ;     v[14] = (-2*znear*zfar)/zr ;
+        v[3] = 0 ;           v[7] = 0 ;             v[11] = -1;                     v[15] = 0;
     }
 
+
+    /*
+        Description: 
+            Used to produce a perspective projection.
+
+        Reference: 
+            None. This function was here from sauerbraten code. 
+
+        Usage: 
+            This can be used without having to first the matrix to identity, 
+            for it fully specifies every element in the projection matrix. 
+
+            Oh, and yes, and barring debug or weird reasons, this is definitely 
+            only to be used for the purpose of setting the projection matrix. 
+    */
     void perspective(float fovy, float aspect, float znear, float zfar)
     {
-        float ydist = znear * tan(fovy/2*RAD), xdist = ydist * aspect;
+    
+        float ydist = znear * tanf(fovy * M_PI / 360.0) ;
+//        float ydist = znear * tanf(fovy/2*RAD) ;
+        float xdist = ydist * aspect ;
+        //double ydist = znear * tan(fovy/2*RAD), xdist = ydist * aspect;
         frustum(-xdist, xdist, -ydist, ydist, znear, zfar);
     }
 
+   
+    /*  
+        Description: 
+            This is used to produce the 2D projection matrix. 
+
+        Reference: 
+            OpenGL programming guide, any edition
+
+        l -> left
+        r -> right
+        b -> bottom
+        t -> top
+        n -> z near
+        f -> z far
+    */
+    void ortho(float l, float r, float b, float t, float n, float f)
+    {
+        float w = r - l ;
+        float h = t - b ; 
+        //float zrange = znear - zfar ;
+
+        v[0] = 2/w ;     v[4] = 0 ;      v[8] = 0 ;             v[12] = -(r+l) / (w) ;
+        v[1] = 0 ;       v[5] = 2/h ;    v[9] = 0 ;             v[13] = -(t+b) / (h) ;
+        v[2] = 0 ;       v[6] = 0 ;      v[10] = -2/ (f - n) ;  v[14] = -(f+n) / (f-n) ;
+        v[3] = 0 ;       v[7] = 0 ;      v[11] = 0 ;            v[15] = 1 ;
+    }
+
+
+    /*
+    */
     void clip(const plane &p, const glmatrixf &m)
     {
         float x = ((p.x<0 ? -1 : (p.x>0 ? 1 : 0)) + m.v[8]) / m.v[0],
@@ -1247,7 +1398,10 @@ struct glmatrixf
         v[10] = p.z*scale + 1.0f;
         v[14] = p.offset*scale;
     }
-            
+
+
+    /*
+    */
     float transformx(const vec &p) const
     {
         return p.x*v[0] + p.y*v[4] + p.z*v[8] + v[12];

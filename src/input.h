@@ -7,8 +7,14 @@
 
 */
 
-void handle_mouse_motion( SDL_Event* event ) ;
+//void handle_mouse_motion( SDL_Event* event ) ;
 
 
-void handle_key( SDL_Event* event ) ;
+//void handle_key( SDL_Event* event ) ;
 
+
+/*struct Inputsys
+{
+    void setplay() ;
+    void setediting() ;
+} ;*/

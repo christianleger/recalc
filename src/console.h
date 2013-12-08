@@ -13,6 +13,8 @@
 
 
 // surely 10,000 is enough .... eerr .. right? 
+// TODO: log console output to a file, in a thread, whenever 
+// console output exceeds 10000 lines. 
 #define CONSOLE_BUFFER_LINES 10000
 
 // Now if you complain about this here, well too bad !
@@ -41,8 +43,8 @@ struct Console
     int top_scr_line ;
     int current_char ; // index of next character to use. Also used as length. 
 
-    void initialize() ;
-
+    void initialize() ;    
+    void message(char const* msg) ; // receives a message for the console to record and display
 } ;
 
 /*
@@ -51,7 +53,7 @@ struct Console
 */
 void key_in( void * key ) ;
 
-
+Console& GetConsole() ;
 
 
 #endif //__CONSOLE_H__

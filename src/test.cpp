@@ -463,14 +463,14 @@ void render_test_002()
 }
 
 /*
-    Function: initialize_tests
+    Function: init_tests
 
     Purpose: to provide a number of tests which are to be run at the start of 
     the application. This is perfect for console-only, one-off tests. 
 
 
 */
-void initialize_tests()
+void init_tests()
 {
 
     // Test: floating point numbers. 

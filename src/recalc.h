@@ -4,9 +4,6 @@
     This file contains all definitions that are considered global to the 
     entire engine, or which have not been categorized yet. 
 */ 
-
-
-
 #ifndef __recalc_h_
 #define __recalc_h_
 
@@ -25,26 +22,34 @@
 
 #ifdef WIN32
     #include "windows.h"
+#endif
+
+
+//--------------------------------------------------------------------------------------------------
+// External libs
+//--------------------------------------------------------------------------------------------------
+// SDL   - OS window context, input, sound
+#include <SDL.h>
+#include <SDL_mixer.h>
+#include <SDL_image.h>
+
+// OpenGL - 3D/GPU rendering
+
+#ifdef WIN32
     #include <GL/glew.h>
     #include <GL/glext.h>
 #endif
 
-
-// External libs
-// SDL
-#include <SDL.h>
-#include <SDL_mixer.h>
-
-// OpenGL
 #include <GL/gl.h>
-
-// Zlib
+#include <GL/glext.h>
+#include <GL/glu.h>
+// Zlib - file and data compression/decompression
 #include <zlib.h>
 
-// Newton
+// Newton - rigid body physics
 #include "Newton.h"
 
-// uthash
+// uthash - hash maps
 #include "uthash.h"
 //--------------------------------------------------------------------------------------------------
 //                  LOCAL INCLUDE FILES 
@@ -58,6 +63,7 @@
 #include "test.h"
 #include "render.h"
 #include "console.h"
+#include "menu.h"
 
 
 /*   
@@ -92,8 +98,8 @@ void Quit( int returnCode );
 struct Engine
 {
     // WINDOWING AND RENDERING PARAMETERS 
-    int scr_w ; // - Records size when windowed. 
-    int scr_h ; // 
+    int win_w ; //scr_w ; // - Records size when windowed. 
+    int win_h ; //scr_h ; // 
 
     int desktop_w ; // These remember the size of the fullscreen, in case
     int desktop_h ; // we switch to windowed mode for some time.         
@@ -104,17 +110,22 @@ struct Engine
 
     int fov ;
 
+
     // EDITING PARAMETERS 
     int gridscale ;
     int gridsize ;      // 2^gridscale 
 
+    unsigned int maxfps;    // if no vsync then rendering happens at max fps rate 
+    bool texarray ;         // Texture array available? 
+    bool texatlas ;         // If texture array not available then use texture atlas. 
+    int  texatlassize ;
+    int  texatlastilesize ;
+    int  texatlasrowcount ;
     bool fullscreen ;
-    bool window_active;  // should be false when the window doesn't have input control 
-    unsigned int maxfps;  /* if true then rendering happens at max rate */
-    char use_vsync;  /* if true then max rate limited to screen refresh */
+    bool window_active;     // should be false when the window doesn't have input control 
+    char use_vsync;         // if true then max rate limited to screen refresh 
 
-
-    bool info ;                 // when true, the information subsystem provides text readouts of engine data
+    bool info ;             // when true, the information subsystem provides text readouts of engine data
     bool paused ;
     bool playing ;
     bool rendering ;
@@ -126,21 +137,23 @@ struct Engine
     bool console ;
 
     float console_scale ;
-
-
-
+    
+    
     // belgh texture management is so much fun
-    int tex ;       // currently active texture id
-    int numtex ;    // number of available textures
+    int activetex ;         // currently active texture id
+    int numtex ;            // number of available textures
     vector<int> texids ;
-    void addtex(int _glid)
+
+    void addtex(int glid)
     {
         numtex++ ;
-        texids.add(_glid) ;
-        printf("\n added a texture id %d. numtex=%d and tex=%d", _glid, numtex, tex) ;
+        texids.add(glid) ;
+
+        printf("\n added a texture id %d. numtex=%d and activetex=%d", glid, numtex, activetex) ;
     }
 
     void initialize() ; 
+    void message(char const* msg, int where) ;
 
     void pause_physics() ; 
     
@@ -162,7 +175,7 @@ struct Engine
     int videoFlagsFS; // videoFlags with fullscreen 
 } ;
 
-
+Engine& GetEngine() ;
 
 int Screenshot(char * filename) ;
 
@@ -209,12 +222,12 @@ struct Camera
     void mouse_move( float xrel, float yrel ) ;
     void set_forward() ;
     void set_backward() ;
-    void set_strafe_left() ;
-    void set_strafe_right() ;
+    void set_move_left() ;
+    void set_move_right() ;
     void stop_forward() ;
     void stop_backward() ;
-    void stop_strafe_left() ;
-    void stop_strafe_right() ;
+    void stop_move_left() ;
+    void stop_move_right() ;
     bool inworld(World current_world) ;
 } ; 
 
@@ -238,29 +251,45 @@ typedef struct _dir_navigator
 
 } DirNavigator; 
 
-typedef struct _menu
+
+/*
+    The Mode struct is used to group things that define a given Recalc mode. 
+
+    The modes available by default are: 
+
+    Main menu (when application starts)
+    Edit      (editing maps and scenarios)
+    Play      (playing a scenario)
+    Demo      (showing a recorded play or edit sequence)
+*/
+struct Mode
 {
-    short pos; /* position of focs in a list of options */
-
-} Menu; 
-
+    vector<void (*)(void)> renderfuncs ;
+} ;
 
 
 #define XY 0
 #define XZ 1
 #define YZ 2
 
-
-
 /*
 */
 typedef void (* console_command)(char * ); 
 
+/*
+    This type exists to enable passing around arrays of function 
+    pointers. The syntax is completely magical for me (especially 
+    given that I don't know how to avoid use of a typedef when 
+    using this type as a return type), but it makes switching 
+    command sets very simple and efficient. 
+*/
+typedef void (**commandptr)(void*) ;
 
-/* land of black sheep: components which are integrated here first, before they are 
-   modularized, if ever 
+
+/* 
+    Land of black sheep: components which are integrated here first, before they are 
+    modularized, if ever.
 */ 
-
 
 /*
     The idea: a node that is easily carried around which refers to a function and 
@@ -328,6 +357,14 @@ typedef struct _screen_area
 } ScreenArea; 
 
 
+// console 
+void complete(char*) ;
+
+// scripting
+void readconfig(void*) ;
+void runscript(void*) ;
+void init_scripting() ;
+
 // physics 
 void pause_physics() ; 
 void physics_frame( unsigned int ) ; 
@@ -336,42 +373,94 @@ void init_physics() ;
 
 // render
 void CheckGlError() ;
+void init_rendering() ;
 
 
 // text 
 void init_text() ; 
-void prstr( float x, float y, const char * fmt ) ; 
+int  prstr( float x, float y, const char * fmt ) ; 
+//void prquad( int minx, int miny, int width, int height, vec4 color) ;
+void prquad( int minx, int miny, int width, int height/*, vec4 color*/) ;
 int scrstrlen( const char * ) ; 
 void clean_up_text() ;
 
 
 // input 
 void init_input() ; 
-void handle_key() ;
-void handle_mouse_motion() ;
-void handle_mouse_button( SDL_Event * ev ) ;
+void handle_key( SDL_Event* ev ) ;
+void handle_mouse_motion( SDL_Event* ev ) ;
+void handle_mouse_button_down( SDL_Event* ev ) ;
+void handle_mouse_button_up( SDL_Event* ev ) ;
+void setcommands(void (*commands[320])(void*)) ;
+void resetcommands() ;
 
 
 // from main: function which resizes the window 
 void resize_window( int w, int h, int fov) ;
 
 // geometry
+vector<Geom*>& GetWorldGeometry() ;
 void    draw_selection() ;
 void    draw_sel_start() ;
 void    draw_sel_end() ;
 void    set_sel_start() ;
 void    set_sel_end() ;
 void    clear_selection() ;
-void    extrude( void * ) ; 
+void    modify( void * ) ; 
+void    PushCorner() ;
+void    PullCorner() ;
 void    draw_new_octs() ;
 void    initialize() ;
+void    LoadWorld(const char*) ;
+void ComputeAimedCorner() ;
+void drawStars() ;
 
 // sound control
+extern bool    nosound ;
+extern bool    nomusic ;
+extern bool    nosfx ;
 void    soundoff() ;
+void    sfxoff() ;
+void    musicoff() ;
 void    soundon() ;
 void    startsound() ; // initialize sound subsystem
 int     justplay(int thesound) ; // a dysfunctional little puppy that insists a piece of audio be played. 
-int     playsound( vec* loc, int n, int loops, int fade, int chanid, int radius, int expire) ;
+//int     playsound( vec* loc, int n, int loops, int fade, int chanid, int radius, int expire) ;
+//int     playsound( vec* loc, int n, int loops, int fade, int chanid, int radius, int expire) ;
+//int playsound(int n, const vec *loc, /*extentity *ent = NULL,*/ int loops, int fade, int chanid, int radius, int expire) ;
+int playsound(int n, const vec *loc = NULL, /*extentity *ent = NULL,*/ int loops = 0, int fade = 0, int chanid = -1, int radius = 0, int expire = -1) ;
+void init_sound() ;
+
+// world
+
+// zip
+stream *openzipfile(const char *name, const char *mode) ;
+
+// stream
+char *makerelpath(const char *dir, const char *file, const char *prefix, const char *cmd) ;
+char* path(char *s) ;
+const char *findfile(const char *filename, const char *mode) ;
+bool listdir(const char *dir, const char *ext, vector<char *> &files) ;
+
+// menu
+void LoadMapNames(bool toConsole) ;
+void init_menus() ;
+void RenderCurrentMenu() ;
+void ActivateMainMenu() ;
+void EditNewMap() ;
 
 
-#endif
+// shaders
+GLuint GetShader(int shaderID) ;
+GLuint Get_P_MV_Matrix_Uniform(int shaderID) ;
+GLuint Get_MainTexSampler() ;
+GLuint GetColor(int shaderID) ;
+int GetAtlasScaleUniform() ;
+void render_shader_01() ;
+void init_shaders() ;
+
+// textures
+void LoadAllTextures() ;
+GLuint& GetMainTextures() ;
+
+#endif  // __recalc_h_

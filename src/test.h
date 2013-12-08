@@ -14,4 +14,4 @@ void testhashtable() ;
 void render_test_001() ;
 
 
-void initialize_tests() ;
+void init_tests() ;
