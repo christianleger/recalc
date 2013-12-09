@@ -1878,7 +1878,7 @@ static int facechildindexes[6][4] =
     the space being targeted will be removed. 
     
     Parameters: 
-        c is the corner of the parent node. 
+        path is the sequence of nodes leading to a desired smallest node. 
         oct is the node that will be subdiviced. 
 */
 
@@ -1946,7 +1946,7 @@ void MoveNodeCorner(Octant* node, int face, int corneridx, bool in)
     int coord = face>>1 ;   // X, Y or Z? 
     int shift = 4*corneridx ;
     int eg = node->eg[coord] ;
-    int mask = ~(0xF<< shift) ;
+    int mask = ~(0xF<< shift) ;	// 
     int neweg = eg & mask ;     // Zero out the part we're updating. 
     int val = (eg >> shift)&0xF ;
 

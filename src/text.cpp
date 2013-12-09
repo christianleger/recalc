@@ -478,7 +478,8 @@ int scrstrlen(const char * str)
 
 void init_text()
 {
-    printf("\nMAKE ME WORK::: TEXT AND FONTS !!!\n") ; 
+
+    printf("\n[TEXT::init_text] called... ") ;
     
     initfonts() ; 
 
@@ -495,7 +496,17 @@ void init_text()
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, iWidth, iHeight, iDepth, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, mainfontpix);
+    glTexImage3D(
+        GL_TEXTURE_3D, 
+        0, 
+        GL_RGBA, 
+        iWidth, 
+        iHeight, 
+        iDepth, 
+        0, 
+        GL_LUMINANCE_ALPHA, 
+        GL_UNSIGNED_BYTE, 
+        mainfontpix);
     CheckGlError() ;
 /*
     void glTexImage3D  (
@@ -511,6 +522,7 @@ void init_text()
         const GLvoid * pixels
     ) ;
 */
+    printf("\n[TEXT::init_text] done.") ;
 }
 
 void clean_up_text()

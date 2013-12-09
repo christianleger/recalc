@@ -5,28 +5,39 @@
 //extern void showfinaldata() ;
 void Quit( int returnCode )
 {
+    printf("\n QUIT -- CALLED WITH RETURN CODE == %d", returnCode) ;
     /* clean up SDL */
     printf("\n QUIT -- CLEANING UP TEXT ... ") ;
     clean_up_text() ;
     printf("\n QUIT -- CLEANING UP TEXT FINISHED. ") ;
 
     printf("\n QUIT -- CLEANING UP SOUND ... ") ;
-
-    if (1)
     {
-        extern void stopsounds() ;
-        stopsounds() ;
-        extern void stopchannels() ;
-        stopchannels() ;
-        extern void clear_sound() ;
-        clear_sound() ;
+    extern void stopmusic() ;
+        stopmusic() ;
+    extern void stopsounds() ;
+        stopsounds() ; 
+//      extern void stopchannels() ;
+//      stopchannels() ;
+//      extern void clear_sound() ;
+//      clear_sound() ;
+//      extern void stopsounds() ;
+//      stopsounds() ;
     }
+    printf(" Done. ") ;
 
-    printf("\n QUIT -- CLEANING UP SOUND FINISHED. ") ;
+    printf("\n QUIT -- CLEARING UP EVENT QUEUE... ") ;
+    SDL_Event event ;
+//    for (int i=0;i<1000;i++)
+    while (SDL_PollEvent(&event)) { ; }
+    printf(" DONE. ") ;
+    //printf(" DONE. ") ;
+    printf("\n QUIT -- CALLING SDL_Quit... ") ;
+    exit( returnCode );
+    //SDL_Quit( );    
+    printf(" DONE. ") ;
 
-    while (SDL_PollEvent(NULL)) ; 
-    SDL_Quit( );    
-
+    printf("\n QUIT -- Exiting. ") ;
     /* Make console a factor of 0.00001 less retarded */
     printf("\n\r");
 
@@ -362,9 +373,9 @@ int Screenshot(char *filename)
 // Then invoke every module's initialization routine. 
 void initialize_subsystems()
 {
-    setbuf(stdout, NULL ) ; 
+    setbuf(stdout, NULL ) ; // hate delays and mis-orderings in console output. 
 
-	// modules 
+	// class-based modules 
     engine.initialize() ;
     printf("\n\n ENGINE INITIALIZED: address at GetEngine=%d to refer %d", (int)(&GetEngine()), (int)(&engine)) ;
     console.initialize() ;
@@ -372,7 +383,7 @@ void initialize_subsystems()
     area.initialize() ;
     world.initialize() ;
 
-    // non-class components 
+    // non-class (more like file-based, mish-mashed) components 
     init_scripting() ;
     init_text() ;
     init_input() ;

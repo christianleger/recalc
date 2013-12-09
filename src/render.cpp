@@ -1049,11 +1049,14 @@ void remove_all_visuals()
 */
 void init_rendering()
 {
+    printf("\n[RENDER::init_rendering] called... ") ;
     visuals.add(render_menu) ;
 
     // TODO: if we're using GLSL 1.2, then set 
     setVertexAttribs = SetVertAttribsGLSL15 ;
     setVertexAttribs = SetVertAttribsGLSL12 ;
+    
+    printf("done. ") ;
 }
 
 

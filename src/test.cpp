@@ -472,10 +472,13 @@ void render_test_002()
 */
 void init_tests()
 {
+    printf("\n[TEST::init_tests] called... ") ;
 
     // Test: floating point numbers. 
     //float32_bits() ;
 
     init_test_002() ;
+    
+    printf("done. ") ;
 }
 

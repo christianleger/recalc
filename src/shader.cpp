@@ -803,7 +803,7 @@ void Show_P_MV_Matrices()
 */
 void init_shaders()
 {
-
+    printf("\n[SHADER::init_shaders] called... ") ;
 
 	glActiveTexture(GL_TEXTURE0);
 #ifdef holyshit
@@ -830,6 +830,7 @@ void init_shaders()
     printf("\n-----------------------------------------------------------------------------------------") ;
 
 
+    printf("done. ") ;
 }
 
 

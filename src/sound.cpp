@@ -1,4 +1,7 @@
-// sound.cpp: basic positional sound using sdl_mixer
+/* 
+    sound.cpp: basic positional sound using sdl_mixer 
+
+*/
 
 //#include "engine.h"
 #include "recalc.h"
@@ -78,6 +81,7 @@ soundchannel &newchannel(int n, soundslot *slot, const vec *loc = NULL, /*extent
 
 void freechannel(int n)
 {
+    if (nosound) return ;
     // Note that this can potentially be called from the SDL_mixer audio thread.
     // Be careful of race conditions when checking chan.inuse without locking audio.
     // Can't use Mix_Playing() checks due to bug with looping sounds in SDL_mixer.
@@ -89,6 +93,7 @@ void freechannel(int n)
 
 void syncchannel(soundchannel &chan)
 {
+    if (nosound) return ;
     if(!chan.dirty) return;
     if(!Mix_FadingChannel(chan.id)) Mix_Volume(chan.id, chan.volume);
     Mix_SetPanning(chan.id, 255-chan.pan, chan.pan);
@@ -97,6 +102,7 @@ void syncchannel(soundchannel &chan)
 
 void stopchannels()
 {
+    if (nosound) return ;
     loopv(channels)
     {
         soundchannel &chan = channels[i];
@@ -142,7 +148,7 @@ void stopmusic()
 }
 
 //VARF(soundchans, 1, 32, 128, initwarning("sound configuration", INIT_RESET, CHANGE_SOUND));
-int soundchans = 32 ;
+int soundchans = 8 ;
 //VARF(soundfreq, 0, MIX_DEFAULT_FREQUENCY, 44100, initwarning("sound configuration", INIT_RESET, CHANGE_SOUND));
 int soundfreq = MIX_DEFAULT_FREQUENCY ;
 //VARF(soundbufferlen, 128, 1024, 4096, initwarning("sound configuration", INIT_RESET, CHANGE_SOUND));
@@ -151,11 +157,15 @@ int soundfreq = MIX_DEFAULT_FREQUENCY ;
 //int soundbufferlen = 512 ;
 
 // Yes, this is small, but for whatever reason larger buffer sizes result in crazy latencies! 
-int soundbufferlen = 256 ;
+//int soundbufferlen = 256 ;
+int soundbufferlen = 1024 ;
 
 void initsound()
 {
-    if (nosound ) return ;
+    if ( nosound ) return ;
+    
+    printf("\n[SOUND::initsound] called. ") ;
+    
     if(Mix_OpenAudio(soundfreq, MIX_DEFAULT_FORMAT, 2, soundbufferlen)<0)
     {
         nosound = true;
@@ -168,6 +178,7 @@ void initsound()
     {
         printf("\nSound properly initialized. \n") ;
     }
+    return ;
 	Mix_AllocateChannels(soundchans);	
     Mix_ChannelFinished(freechannel);
     maxchannels = soundchans;
@@ -176,6 +187,7 @@ void initsound()
 
 void musicdone()
 {
+    if (nosound) return ;
     if(music) { Mix_HaltMusic(); Mix_FreeMusic(music); music = NULL; }
     if(musicrw) { SDL_FreeRW(musicrw); musicrw = NULL; }
     DELETEP(musicstream);
@@ -259,6 +271,7 @@ vector<soundslot> gamesounds, mapsounds;
 
 int findsound(const char *name, int vol, vector<soundslot> &sounds)
 {
+    if (nosound) return -1 ;
     loopv(sounds)
     {
         if(!strcmp(sounds[i].sample->name, name) && (!vol || sounds[i].volume==vol)) return i;
@@ -268,6 +281,7 @@ int findsound(const char *name, int vol, vector<soundslot> &sounds)
 
 int addsound(const char *name, int vol, int maxuses, vector<soundslot> &sounds)
 {
+    if (nosound) return -1 ;
     printf("\nadding sound 1.0") ;
     soundsample *s = samples.access(name);
     if(!s)
@@ -297,6 +311,7 @@ int addsound(const char *name, int vol, int maxuses, vector<soundslot> &sounds)
 
 int registersound(const char *name, int *vol)
 {
+    if (nosound) return -1 ;
 // intret(
     addsound(name, *vol, 0, gamesounds) ;
     //); 
@@ -305,6 +320,7 @@ int registersound(const char *name, int *vol)
 
 void mapsound(char *name, int *vol, int *maxuses) 
 {
+    if (nosound) return ;
 // intret(
     addsound(name, *vol, *maxuses < 0 ? 0 : max(1, *maxuses), mapsounds) ;
     //); 
@@ -313,14 +329,15 @@ void mapsound(char *name, int *vol, int *maxuses)
 
 void resetchannels()
 {
+    if (nosound) return ;
     loopv(channels) if(channels[i].inuse) freechannel(i);
     channels.shrink(0);
 }
 
 void clear_sound()
 {
-    closemumble();
     if(nosound) return;
+    closemumble();
     stopmusic();
     Mix_Quit() ;
     Mix_CloseAudio();
@@ -332,6 +349,7 @@ void clear_sound()
 
 void clearmapsounds()
 {
+    if (nosound) return ;
     loopv(channels) if(channels[i].inuse/* && channels[i].ent*/)
     {
         Mix_HaltChannel(i);
@@ -342,6 +360,7 @@ void clearmapsounds()
 
 void stopmapsound(/*extentity *e*/)
 {
+    if (nosound) return ;
     loopv(channels)
     {
         soundchannel &chan = channels[i];
@@ -384,6 +403,7 @@ int maxsoundradius = 340 ;
 
 bool updatechannel(soundchannel &chan)
 {
+    if(nosound) return false ;
     if(!chan.slot) return false;
     int vol = soundvol, pan = 255/2;
     if(chan.hasloc())
@@ -420,8 +440,8 @@ bool updatechannel(soundchannel &chan)
 
 void updatesounds()
 {
-    updatemumble();
     if(nosound) return;
+    updatemumble();
     checkmapsounds();
     int dirty = 0;
     loopv(channels)
@@ -601,6 +621,7 @@ int playsound(int n, const vec *loc, /*extentity *ent = NULL,*/ int loops, int f
 
 void stopsounds()
 {
+    if (nosound) return ;
     loopv(channels) if(channels[i].inuse)
     {
         Mix_HaltChannel(i);
@@ -610,22 +631,31 @@ void stopsounds()
 
 bool stopsound(int n, int chanid, int fade)
 {
-    if(!channels.inrange(chanid) || !channels[chanid].inuse || !gamesounds.inrange(n) || channels[chanid].slot != &gamesounds[n]) return false;
+    if (nosound) return false ;
+    
+    if( !channels.inrange(chanid)   || 
+        !channels[chanid].inuse     || 
+        !gamesounds.inrange(n)      || 
+        channels[chanid].slot != &gamesounds[n]) return false;
+
     if(dbgsound) 
     {
         //conoutf("stopsound: %s", channels[chanid].slot->sample->name);
         printf("stopsound: %s", channels[chanid].slot->sample->name);
     }
+
     if(!fade || !Mix_FadeOutChannel(chanid, fade))
     {
         Mix_HaltChannel(chanid);
         freechannel(chanid);
     }
+
     return true;
 }
 
 int playsoundname(const char *s, const vec *loc, int vol, int loops, int fade, int chanid, int radius, int expire) 
 { 
+    if (nosound) return -1 ;
     if(!vol) vol = 100;
     int id = findsound(s, vol, gamesounds);
     if(id < 0) id = addsound(s, vol, 0, gamesounds);
@@ -637,6 +667,7 @@ void sound(int *n) { playsound(*n); }
 
 void resetsound()
 {
+    if (nosound) return ;
     const SDL_version *v = Mix_Linked_Version();
     if(SDL_VERSIONNUM(v->major, v->minor, v->patch) <= SDL_VERSIONNUM(1, 2, 8))
     {
@@ -731,6 +762,7 @@ int mumble = 1 ;
 
 void initmumble()
 {
+    if (nosound) return ;
     if(!mumble) return;
 #ifdef VALID_MUMBLELINK
     if(VALID_MUMBLELINK) return;
@@ -760,6 +792,7 @@ void initmumble()
 
 void closemumble()
 {
+    if (nosound) return ;
 #ifdef WIN32
     if(mumbleinfo) { UnmapViewOfFile(mumbleinfo); mumbleinfo = NULL; }
     if(mumblelink) { CloseHandle(mumblelink); mumblelink = NULL; }
@@ -780,6 +813,7 @@ static inline vec mumblevec(const vec &v, bool pos = false)
 
 void updatemumble()
 {
+    if (nosound) return ;
 #ifdef VALID_MUMBLELINK
     if(!VALID_MUMBLELINK) return;
 
@@ -804,10 +838,15 @@ void updatemumble()
 */
 void soundoff() 
 {
+    printf("[SOUND::soundoff] called... ") ;
+    
+    stopsounds() ;
     stopmusic() ;
     nosound = true ;
     nomusic = true ;
     nosfx   = true ;
+    
+    printf("done. ") ;
 }
 
 // Stop sound effects, without stopping music. 
@@ -838,13 +877,19 @@ void soundon()
 */
 void init_sound() 
 {
-    if (nosound) return ;
+    printf("\n[SOUND::init_sound] called... ") ;
+    if (nosound)
+    {
+        printf("[SOUND::init_sound] skipping because sound is set to off. ") ;
+        return ;
+    }
 
     initsound() ;
     int vol = 80 ;
     registersound("computerbeep", &vol) ;
     printf("\nSound computerbeep registered. ") ;
     if (!nosound) startmusic("cranberry-radio_edit.mp3", NULL) ;
+    printf("done. ") ;
 }
 
 

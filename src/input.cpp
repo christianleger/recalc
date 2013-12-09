@@ -1234,9 +1234,11 @@ void handle_console_key_in()
 
 void init_input()
 {
+    printf("\n[INPUT::init_input] called...") ;
 
     init_commands() ; 
 
+    printf("done. ") ;
     // section: menu commands. the main menu is active when the 
     // program starts. 
 }

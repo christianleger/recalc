@@ -78,11 +78,11 @@ void physics_frame( unsigned int time_delta )
 {
     // Calculate the time slice for which this next physics frame is being run
 
-    float dist_delta ;
     float time_mul = 0 ;
     phys_msgs_num = 0 ;
 
     time_mul = (float)time_delta / (float)1000 ;
+    if (time_mul < 0) exit ; // Brutal exit if an unpermitted condition arises :)
 
 
     // Have newton compute one frame for 1/60th of a second. 
@@ -506,6 +506,7 @@ materialID = NewtonMaterialGetDefaultGroupID(g_world) ;
 
 void init_physics()
 {
+    printf("\n[PHYSICS::init_physics] called...") ;
 #ifdef USE_NEWTON
     //g_world = NewtonCreate (AllocMemory, FreeMemory);
     nVector worldMin(-1000,-1000,-1000) ;
@@ -566,6 +567,7 @@ AddBody(600,800,2000,1) ;
     // prototypes a functional. )
 
 #endif
+    printf("done. ") ;
 }
 
 

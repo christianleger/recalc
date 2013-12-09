@@ -250,7 +250,7 @@ MenuItem MIexitrecalc = { "Exit Recalc",     MenuQuit } ;
 
 void init_menus() 
 {
-    printf("\nINIT: initializing menus. ") ;
+    printf("\n[MENU::init_menus] called... ") ;
     mainmenu.activate = &ActivateMainMenu ;
    // mapmenu.activate = &ActivateMapMenu ;
 
@@ -278,6 +278,8 @@ void init_menus()
     //menu_commands[SDLK_BACKQUOTE] = &menu_up ;
 
     ActivateMainMenu() ; 
+    
+    printf("done. ") ;
 }
 
 

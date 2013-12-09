@@ -1,5 +1,5 @@
 /*
- * Copyright Christian Léger
+ * Copyright Christian Leger
  * 
  * Inspiration and code bits from the countless selfless contributors from the cyberverse, including folks from 
  *
@@ -37,7 +37,6 @@
 
 //#define SCREEN_WIDTH 2600
 //#define SCREEN_HEIGHT 900
-
 int default_screen_width = 1200 ; 
 int default_screen_height = 800 ; 
 
@@ -50,9 +49,9 @@ void initialize_subsystems() ;
 /*---------------------------------------------------*/
 //                  control variables
 /*---------------------------------------------------*/
-bool testonly = false ;
-bool usetextures = true ; // Why the hell not
-bool usesound = true ;
+bool testonly       = false ;
+bool usetextures    = true ; // Why the hell not
+bool usesound       = true ;
 
 /*-----------------------------------------------------------------*/
 //                  function prototypes 
@@ -69,7 +68,7 @@ GLuint tex2Did = 0 ;
 GLuint surfacetex = 0 ;
 GLuint texture2d = 0;
 
-GLuint gsurf = 0 ;
+// TODO: remove. GLuint gsurf = 0 ;
 /**
  * Function: load_texture
  *  
@@ -166,9 +165,9 @@ void load_textures()
     */
 
 
-//---------------------------------------------------------------------------------    
-// LOAD AN IMAGE
-//---------------------------------------------------------------------------------    
+    //---------------------------------------------------------------------------------    
+    // LOAD AN IMAGE
+    //---------------------------------------------------------------------------------    
     data_image = IMG_Load("data/textures/grid.png") ;
     if (data_image == NULL)
     {
@@ -245,12 +244,13 @@ void load_textures()
         data                                // the data
         ) ;
 #endif
+
     CheckGlError() ;
     SDL_FreeSurface(data_image) ;
 
-//---------------------------------------------------------------------------------    
-// LOAD AN IMAGE
-//---------------------------------------------------------------------------------    
+    //---------------------------------------------------------------------------------    
+    // LOAD AN IMAGE
+    //---------------------------------------------------------------------------------    
     data_image = IMG_Load("data/textures/planets.jpg") ;
     if (data_image == NULL)
     {
@@ -341,28 +341,29 @@ void readargs( int argc, char** argv )
                     {
                         switch (argv[i][2])
                         {
-                            case 'm': // disable music
+                            case 'm':   // disable music
                             {
                                 musicoff() ;
                                 break ;
                             }
-                            case 's': // disable sound effects
+                            case 's':   // disable sound effects
                             {
                                 sfxoff() ;
                                 break ;
                             }
                         }
                     } 
-                    else 
+                    else                // disable all sound
                     {
                         soundoff() ;
+                        // TODO: log printf("\nQUIET MODE SELECTED. SOUND SHOULDN'T PLAY. \n") ;
                     }
-                    // TODO: log printf("\nQUIET MODE SELECTED. SOUND SHOULDN'T PLAY. \n") ;
                     break ; 
                 }
                 case 't':
                 {
                     // TODO: log printf("\nTEST ONLY MODE SELECTED. NOW PROBABLY EXITING. \n") ;
+                    printf("\n[MAIN::READARGS] argument -t: test mode. ") ;
                     args = 0 ;
                     testonly = true ;
                     break ;
@@ -376,7 +377,7 @@ void readargs( int argc, char** argv )
         }
         else
         {
-            printf("\nNot Unhandled argument: '%s' from args)\n", argv[i]) ;
+            printf("\nUnhandled argument: '%s' from args)\n", argv[i]) ;
         }
         args-- ;
         i++ ;
@@ -458,13 +459,13 @@ void initSDL( Engine * engine )
     ) ;
     if (engine->fullscreen)
     {
-    engine->surface = SDL_SetVideoMode( 
-        engine->current_w, 
-        engine->current_h, 
-        SCREEN_BPP, 
-        //((engine->fullscreen)   ?  engine->videoFlagsFS : engine->videoFlags)
-        engine->videoFlagsFS 
-    ) ;
+        engine->surface = SDL_SetVideoMode(
+            engine->current_w, 
+            engine->current_h, 
+            SCREEN_BPP, 
+            //((engine->fullscreen)   ?  engine->videoFlagsFS : engine->videoFlags)
+            engine->videoFlagsFS 
+        ) ;
     }
 
     /* Verify there is a surface */
@@ -561,6 +562,41 @@ void resize_window( int width, int height, int fov )
 extern Camera camera ; 
 
 
+/*
+    Schedule desired tests before exiting program. 
+*/
+int tests_and_exit() 
+{
+    GLint texSize;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
+
+    printf("\n MAX texture size: %d      \n", texSize) ;
+
+    // Testing code. This can run stuff just to evaluate the characteristics of some 
+    // code without having to load and run everything. 
+    // Move this block further down is some resources are needed to perform some tests. 
+    //readconfig("data/config.cfg") ;
+
+    /* 
+    // Things to test: 
+    // sub-milimeter timing code
+    testtiming() ;
+
+    // floating-point to integer conversion
+    // TODO: when did you want to do this, anyway? 
+
+    // test a new hash table implementation. 
+    testhashtable() ;
+
+    // Whoops haha we leave now because we only wanted to run some arbitrary code ! 
+    // get_cycle(delta_cycle) ;
+    cycle_delta(first_cycle, delta_cycle) ;
+    printf("\nENGINE EXITING AFTER %lld CYCLES\n", delta_cycle) ;
+
+    */
+    Quit(0) ;
+}
+
 int main_msgs_num = 0 ;
 char main_msgs[100][256] ;
 uint millis = 0 ;
@@ -574,58 +610,20 @@ int main( int argc, char **argv )
     printf("\nENGINE STARTING ON CLOCK CYCLE %lld\n", first_cycle) ;
 
     Engine& engine = GetEngine() ;
-    
-    if (testonly)
-    {
-
-        GLint texSize;
-        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
-
-        printf("\n MAX texture size: %d      \n", texSize) ;
-
-    // Testing code. This can run stuff just to evaluate the characteristics of some 
-    // code without having to load and run everything. 
-    // Move this block further down is some resources are needed to perform some tests. 
-    //readconfig("data/config.cfg") ;
-
-       /* 
-        // Things to test: 
-        // sub-milimeter timing code
-        testtiming() ;
-
-        // floating-point to integer conversion
-        // TODO: when did you want to do this, anyway? 
-
-        // test a new hash table implementation. 
-        testhashtable() ;
-
-        // Whoops haha we leave now because we only wanted to run some arbitrary code ! 
-        // get_cycle(delta_cycle) ;
-        cycle_delta(first_cycle, delta_cycle) ;
-        printf("\nENGINE EXITING AFTER %lld CYCLES\n", delta_cycle) ;
-
-        char* hello = NULL ;
-
-        hello = new char[10+1] ;
-        delete hello ;
-        */
-
-        Quit(0) ;
-    }
-
     engine.window_active = true ;
-
     readargs(argc, argv) ; 
     
     initSDL( &engine ) ; // this by itself does a lot: it gives us our window and rendering context
     
     initOpenGL( ) ; CheckGlError() ;    /* OpenGL SUBSYSTEM */
     
-    init_scripting() ;
-
+// TODO: do we need this here? it is in the next function. init_scripting() ;
     // Parts of engine - input, geometry, sound, menus, etc. 
     initialize_subsystems() ; 
 
+
+    if (testonly) { tests_and_exit() ; }
+    
     // Any reason this can't be done in the previous subsystem initialization? 
     engine.fov = 100 ;
     resize_window( engine.current_w , engine.current_h, engine.fov ) ;

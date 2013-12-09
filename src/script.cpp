@@ -310,6 +310,8 @@ void runscript(void* nothing)
 */
 void init_scripting()
 {
+    printf("\n[SCRIPT::init_scripting] called... ") ;
+    
     //  Add all commands to commands table. 
     for (int i=0;CSCommandDefs[i].command!=NULL;i++)
     {
@@ -322,6 +324,8 @@ void init_scripting()
     // Read and execute main config file. 
     SetStrScriptArg(0, "data/config.cfg") ;
     readconfig(NULL) ;
+    
+    printf("done. ") ;
 }
 
 

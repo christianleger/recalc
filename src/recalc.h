@@ -28,17 +28,19 @@
 //--------------------------------------------------------------------------------------------------
 // External libs
 //--------------------------------------------------------------------------------------------------
-// SDL   - OS window context, input, sound
-#include <SDL.h>
-#include <SDL_mixer.h>
-#include <SDL_image.h>
-
 // OpenGL - 3D/GPU rendering
 
+#define NO_SDL_GLEXT
 #ifdef WIN32
     #include <GL/glew.h>
     #include <GL/glext.h>
 #endif
+
+// SDL   - OS window context, input, sound
+#include <SDL.h>
+#include <SDL_mixer.h>
+#include <SDL_image.h>
+#include <SDL_opengl.h>
 
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -412,8 +414,8 @@ void    PullCorner() ;
 void    draw_new_octs() ;
 void    initialize() ;
 void    LoadWorld(const char*) ;
-void ComputeAimedCorner() ;
-void drawStars() ;
+void    ComputeAimedCorner() ;
+void    drawStars() ;
 
 // sound control
 extern bool    nosound ;
