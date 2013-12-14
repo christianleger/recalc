@@ -12,7 +12,7 @@ void Quit( int returnCode )
 
     printf("\n QUIT -- CLEANING UP SOUND ... ") ;
 
-    if (1)
+    if (0)
     {
         extern void stopsounds() ;
         stopsounds() ;
@@ -24,7 +24,7 @@ void Quit( int returnCode )
 
     printf("\n QUIT -- CLEANING UP SOUND FINISHED. ") ;
 
-    while (SDL_PollEvent(NULL)) ; 
+//    while (SDL_PollEvent(NULL)) ; 
     SDL_Quit( );    
 
     /* Make console a factor of 0.00001 less retarded */
@@ -366,22 +366,35 @@ void initialize_subsystems()
 
 	// modules 
     engine.initialize() ;
-    printf("\n\n ENGINE INITIALIZED: address at GetEngine=%d to refer %d", (int)(&GetEngine()), (int)(&engine)) ;
+    printf("\n\n ENGINE INITIALIZED. ") ;
     console.initialize() ;
+    printf("\n\n CONSOLE INITIALIZED. ") ;
     camera.initialize(world) ;
+    printf("\n\n CAMERA INITIALIZED. ") ;
     area.initialize() ;
+    printf("\n\n AREA INITIALIZED. ") ;
     world.initialize() ;
+    printf("\n\n WORLD INITIALIZED. ") ;
 
     // non-class components 
     init_scripting() ;
+    printf("\n\n SCRIPTING INITIALIZED. ") ;
     init_text() ;
+    printf("\n\n TEXT INITIALIZED. ") ;
     init_input() ;
+    printf("\n\n INPUT INITIALIZED. ") ;
     init_physics() ;
+    printf("\n\n PHYSICS INITIALIZED. ") ;
     init_shaders() ;
+    printf("\n\n SHADERS INITIALIZED. ") ;
     init_rendering() ;
+    printf("\n\n RENDERING INITIALIZED. ") ;
     init_menus() ;
+    printf("\n\n MENUS INITIALIZED. ") ;
     init_tests() ;
+    printf("\n\n TESTS INITIALIZED. ") ;
     init_sound() ;
+    printf("\n\n SOUND INITIALIZED. ") ;
 
     return ; 
 }

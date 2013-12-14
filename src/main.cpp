@@ -575,47 +575,9 @@ int main( int argc, char **argv )
 
     Engine& engine = GetEngine() ;
     
-    if (testonly)
-    {
-
-        GLint texSize;
-        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
-
-        printf("\n MAX texture size: %d      \n", texSize) ;
-
-    // Testing code. This can run stuff just to evaluate the characteristics of some 
-    // code without having to load and run everything. 
-    // Move this block further down is some resources are needed to perform some tests. 
-    //readconfig("data/config.cfg") ;
-
-       /* 
-        // Things to test: 
-        // sub-milimeter timing code
-        testtiming() ;
-
-        // floating-point to integer conversion
-        // TODO: when did you want to do this, anyway? 
-
-        // test a new hash table implementation. 
-        testhashtable() ;
-
-        // Whoops haha we leave now because we only wanted to run some arbitrary code ! 
-        // get_cycle(delta_cycle) ;
-        cycle_delta(first_cycle, delta_cycle) ;
-        printf("\nENGINE EXITING AFTER %lld CYCLES\n", delta_cycle) ;
-
-        char* hello = NULL ;
-
-        hello = new char[10+1] ;
-        delete hello ;
-        */
-
-        Quit(0) ;
-    }
-
-    engine.window_active = true ;
-
+    
     readargs(argc, argv) ; 
+    engine.window_active = true ;
     
     initSDL( &engine ) ; // this by itself does a lot: it gives us our window and rendering context
     
@@ -626,6 +588,29 @@ int main( int argc, char **argv )
     // Parts of engine - input, geometry, sound, menus, etc. 
     initialize_subsystems() ; 
 
+    if (testonly)
+    {
+
+        printf("\n --------------------- \n" ) ;
+        printf("\n --------------------- \n" ) ;
+        printf("\n RUNNING TEST ONLY \n" ) ;
+        printf("\n --------------------- \n" ) ;
+        printf("\n --------------------- \n" ) ;
+        
+        GLint texSize;
+        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
+
+        printf("\n MAX texture size: %d      \n", texSize) ;
+
+        // Testing code. This can run stuff just to evaluate the characteristics of some 
+        // code without having to load and run everything. 
+        // Move this block further down is some resources are needed to perform some tests. 
+        //readconfig("data/config.cfg") ;
+
+        Quit(0) ;
+    }
+
+    
     // Any reason this can't be done in the previous subsystem initialization? 
     engine.fov = 100 ;
     resize_window( engine.current_w , engine.current_h, engine.fov ) ;

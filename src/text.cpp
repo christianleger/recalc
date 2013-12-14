@@ -50,7 +50,7 @@ int check_phase_done = 0;
 
 // TODO FIXME: make mainfontpix a dynamic memory block - only used once for text 
 // font read and once for submitting font pixels to GPU! 
-static GLubyte mainfontpix[128*16*16*2] ;
+static GLubyte mainfontpix[128*16*16*2] = {0} ;
 GLuint mainfontID = 0 ;
 
 void createFontDisplayList(
@@ -66,7 +66,7 @@ void createFontDisplayList(
 
     FT_Load_Glyph( face, FT_Get_Char_Index( face, ch ), FT_LOAD_DEFAULT );
 
-    if (ch>128) { ch = 129 ;return ; }
+    if (ch>128) { ch = 129 ;return ; } // TODO: 2013-12-14. It's been a while. What the heck is 129 good for? Just a bs number to signify 'not valid'? 
 
     FT_Get_Glyph( face->glyph, &glyph );
     FT_Glyph_Get_CBox( glyph, FT_GLYPH_BBOX_PIXELS, &bbox ); 
@@ -193,7 +193,9 @@ void initializeFonts(
     /*FT_Set_Char_Size( face, 4096,4096, 18, 18);*/
 
     _font->gl_list_base = glGenLists(128);
-    glGenTextures(129, _font->gl_char_IDs);
+    //glGenTextures(129, _font->gl_char_IDs);
+    glGenTextures(128, _font->gl_char_IDs);
+    CheckGlError() ;
 
     _font->_width = 0 ;
     _font->_height = 0 ;
@@ -285,11 +287,16 @@ void clearFonts()
         glDeleteLists(fonts[i]->gl_list_base, 128);
         glDeleteTextures(128, fonts[i]->gl_char_IDs);
     }
+
+    loopv(fonts)
+    {
+        delete fonts[i] ; // TODO: confirm that this calls the destructor on every font. 
+    }
     return; 
 }
 
 
-/*  FUNCTION: measureText
+/*  FUNCTION: textwidth
 
     DESCRIPTION: this function takes in a string and determines 
     its cartesian span when using the current font. 
@@ -381,14 +388,11 @@ void prquad(
     int miny, 
     int width, 
     int height
-//    ,     vec4 color
+//,vec4 color
     )
 {
     glDisable( GL_TEXTURE_3D ) ;
     glDisable( GL_DEPTH_TEST ) ;
-    //glColor4fv(color.v) ;
-    //glColor4f(1.f, 1.f, 0.f, 0.85f ) ;
-//    glColor4f(0.f, 0.f, 0.f, 0.8f ) ;
 
 
     glBegin( GL_QUADS ) ;
