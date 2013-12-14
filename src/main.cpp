@@ -569,8 +569,13 @@ int tests_and_exit()
 {
     GLint texSize;
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
-
     printf("\n MAX texture size: %d      \n", texSize) ;
+
+        printf("\n --------------------- \n" ) ;
+        printf("\n --------------------- \n" ) ;
+        printf("\n RUNNING TEST ONLY \n" ) ;
+        printf("\n --------------------- \n" ) ;
+        printf("\n --------------------- \n" ) ;
 
     // Testing code. This can run stuff just to evaluate the characteristics of some 
     // code without having to load and run everything. 
@@ -603,23 +608,25 @@ uint millis = 0 ;
 int main( int argc, char **argv )
 {
     bool done = false ;
-
     unsigned long long first_cycle = 0 ;
     unsigned long long delta_cycle = 0 ;
     get_cycle(first_cycle) ;
     printf("\nENGINE STARTING ON CLOCK CYCLE %lld\n", first_cycle) ;
 
     Engine& engine = GetEngine() ;
-    engine.window_active = true ;
     readargs(argc, argv) ; 
-    
+    engine.window_active = true ;
     initSDL( &engine ) ; // this by itself does a lot: it gives us our window and rendering context
-    
     initOpenGL( ) ; CheckGlError() ;    /* OpenGL SUBSYSTEM */
-    
-// TODO: do we need this here? it is in the next function. init_scripting() ;
-    // Parts of engine - input, geometry, sound, menus, etc. 
+    //init_scripting() ;
     initialize_subsystems() ; 
+
+//    Engine& engine = GetEngine() ;
+//    engine.window_active = true ;
+//    readargs(argc, argv) ; 
+//    initSDL( &engine ) ; // this by itself does a lot: it gives us our window and rendering context
+//    initOpenGL( ) ; CheckGlError() ;    /* OpenGL SUBSYSTEM */
+//    initialize_subsystems() ; 
 
 
     if (testonly) { tests_and_exit() ; }

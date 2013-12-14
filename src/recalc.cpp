@@ -12,30 +12,30 @@ void Quit( int returnCode )
     printf("\n QUIT -- CLEANING UP TEXT FINISHED. ") ;
 
     printf("\n QUIT -- CLEANING UP SOUND ... ") ;
+
+    if (1)
     {
-    extern void stopmusic() ;
+        extern void stopmusic() ;
         stopmusic() ;
-    extern void stopsounds() ;
+        extern void stopsounds() ;
         stopsounds() ; 
-//      extern void stopchannels() ;
-//      stopchannels() ;
-//      extern void clear_sound() ;
-//      clear_sound() ;
-//      extern void stopsounds() ;
-//      stopsounds() ;
+        extern void stopchannels() ;
+        stopchannels() ;
+        extern void clear_sound() ;
+        clear_sound() ;
+        extern void stopsounds() ;
+        stopsounds() ;
     }
-    printf(" Done. ") ;
+    printf("\n QUIT -- CLEANING UP SOUND FINISHED. ") ;
 
     printf("\n QUIT -- CLEARING UP EVENT QUEUE... ") ;
     SDL_Event event ;
-//    for (int i=0;i<1000;i++)
     while (SDL_PollEvent(&event)) { ; }
     printf(" DONE. ") ;
-    //printf(" DONE. ") ;
     printf("\n QUIT -- CALLING SDL_Quit... ") ;
-    exit( returnCode );
-    //SDL_Quit( );    
+    SDL_Quit( );    
     printf(" DONE. ") ;
+
 
     printf("\n QUIT -- Exiting. ") ;
     /* Make console a factor of 0.00001 less retarded */
@@ -377,22 +377,35 @@ void initialize_subsystems()
 
 	// class-based modules 
     engine.initialize() ;
-    printf("\n\n ENGINE INITIALIZED: address at GetEngine=%d to refer %d", (int)(&GetEngine()), (int)(&engine)) ;
+    printf("\n\n ENGINE INITIALIZED. ") ;
     console.initialize() ;
+    printf("\n\n CONSOLE INITIALIZED. ") ;
     camera.initialize(world) ;
+    printf("\n\n CAMERA INITIALIZED. ") ;
     area.initialize() ;
+    printf("\n\n AREA INITIALIZED. ") ;
     world.initialize() ;
+    printf("\n\n WORLD INITIALIZED. ") ;
 
     // non-class (more like file-based, mish-mashed) components 
     init_scripting() ;
+    printf("\n\n SCRIPTING INITIALIZED. ") ;
     init_text() ;
+    printf("\n\n TEXT INITIALIZED. ") ;
     init_input() ;
+    printf("\n\n INPUT INITIALIZED. ") ;
     init_physics() ;
+    printf("\n\n PHYSICS INITIALIZED. ") ;
     init_shaders() ;
+    printf("\n\n SHADERS INITIALIZED. ") ;
     init_rendering() ;
+    printf("\n\n RENDERING INITIALIZED. ") ;
     init_menus() ;
+    printf("\n\n MENUS INITIALIZED. ") ;
     init_tests() ;
+    printf("\n\n TESTS INITIALIZED. ") ;
     init_sound() ;
+    printf("\n\n SOUND INITIALIZED. ") ;
 
     return ; 
 }
