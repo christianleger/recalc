@@ -1,0 +1,6 @@
+#!/bin/sh
+
+ctags `find . -name '*.h' -o -name '*.c' -o -name '*.cpp' | cut -c3-` > cscope.files
+find . -name '*.h' -o -name '*.c' -o -name '*.cpp' | cut -c3- > cscope.files
+cscope -b -q
+

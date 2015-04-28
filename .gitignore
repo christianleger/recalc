@@ -1,0 +1,13 @@
+
+
+build/*.exe
+
+build/*.obj
+
+build/*.o
+
+bin/stderr.txt
+
+bin/stdout.txt
+
+.*.swp

@@ -24,7 +24,8 @@ struct Char
 struct Font
 {
     // have you had opportunity to learn about this 
-    char name[64] ;
+    #define FONT_NAME_LENGTH 64
+    char name[FONT_NAME_LENGTH] ;
 
     Font(const char * in_name)
     {
@@ -35,7 +36,7 @@ struct Font
     unsigned int id ;           // internal identifier 
 
     GLuint* gl_char_IDs ;
-    GLuint* _3did ;
+    GLuint* _3d_array_id ;
     GLuint gl_list_base ;
 
     int _height ;   // the height that a general line of this font would have

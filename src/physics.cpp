@@ -1,10 +1,14 @@
 
 
-#include "recalc.h"
+//#include <GL/glu.h>  // TODO: move to recalc.h (or not - maybe only keep in render.cpp and shader.cpp)
 
+
+#include "recalc.h"
 #include "physics.h" 
 
-static NewtonWorld* g_world;
+
+
+static NewtonWorld* g_world ;
 
 char phys_msgs[100][256] ;
 int phys_msgs_num = 0 ;
@@ -29,14 +33,34 @@ int physics_count = 0 ; // physics frame count
 void renderentity(Entity* e) ;
 
 /*
-    physics_count ++ ; 
-    if ( physics_count == 900 )
-    {
-        physics_count = 0 ; 
-        //printf( "\n time delta = = %.2f \n", distance_travelled ) ; 
-    }
+    Basics: 
+        Using the entity's position, velocity and bounding box, 
+        determine the furthest it can move in a given time span. 
+        The time span is given by the number of milliseconds since 
+        the last step.
+
+    Steps: 
+        Compute the aabbox which completely contains the entity's 
+        current position and the position it's trying to move to. 
+        If any geometry 
 */
 
+vector<Entity*> entities ;
+void move_ent(Entity * e)
+{
+}
+
+void move_entities()
+{
+    loopv(entities)
+    {
+        move_ent(entities[i]) ;
+    }
+}
+
+void pause_physics()
+{
+}
 
 
 
@@ -47,32 +71,46 @@ float basic_velocity = 2500 ;
 bool hhello = false ;
 bool jumping = false ;
 bool onfloor = false ;
+bool physicsrunning = false ;
 bool updatephysics = false ;
+
+float last_x_dir = 0.0f ;
 
 void physics_frame( unsigned int time_delta )
 {
-
     // Calculate the time slice for which this next physics frame is being run
 
-    float dist_delta ;
     float time_mul = 0 ;
     phys_msgs_num = 0 ;
 
     time_mul = (float)time_delta / (float)1000 ;
+    if (time_mul < 0) exit ; // Brutal exit if an unpermitted condition arises :)
 
 
     // Have newton compute one frame for 1/60th of a second. 
+    if (updatephysics)
+    if (physicsrunning)
+    {
+        //    NewtonUpdate (g_world, (1.0f / 60));
 
-if (updatephysics)
-{
-//    printf("\n updating Newton world. ") ;
-    NewtonUpdate (g_world, (1.0f / 60));
-//    NewtonUpdate (g_world, ( 60));
-}
+#ifdef USE_NEWTON
+        NewtonUpdate (g_world, 
+            0.166666f
+            ) ;
+#endif
+        //    NewtonUpdate (g_world, ( 60));
+    }
 
-
+    /*
+        TODO: replace these with message pods of some sort. 
+    */
     sprintf(phys_msgs[phys_msgs_num], "HELLO FROM PHYSICS ") ;  phys_msgs_num++ ;
     sprintf(phys_msgs[phys_msgs_num], "time_mul=%f", time_mul) ;  phys_msgs_num++ ;
+    sprintf(phys_msgs[phys_msgs_num], "position=%.2f %.2f %.2f", 
+        camera.pos.x,
+        camera.pos.y,
+        camera.pos.z
+        ) ;  phys_msgs_num++ ;
 
     float t = 0.f ;
     static float fallspeed = 0 ;
@@ -124,6 +162,9 @@ if (updatephysics)
 
     // FIXME: you go through walls when you update these without checking if there is an obstacle first! 
     // At least, you go through walls when you're going fast. And you don't check for obstacles. 
+    if (vel.x>0 && last_x_dir<0) {printf("\n hey wattaryadoing. "); }
+        last_x_dir = vel.x ;
+    
     newpos.x += vel.x ; 
     newpos.y += vel.y ; 
     newpos.z += vel.z ; 
@@ -164,39 +205,15 @@ if (!engine.editing)
 
 camera.pos = newpos ;
 
+//gluPerspective( (GLfloat)90, 1.7f, camera.pos.x - 10.0f, camera.pos.x - 400000.0f ) ;
+
+// Lol asshole don't forget to set matrix mode to projection if you want to use this :-) 
+    glDepthRange(0.4, 1) ;
+
 //sprintf(phys_msgs[phys_msgs_num], "position = %.2f %.2f %.2f", newpos.x, newpos.y, newpos.z ) ;  phys_msgs_num++ ;
 
 }   // end physics_frame
 
-/*
-    Basics: 
-        Using the entity's position, velocity and bounding box, 
-        determine the furthest it can move in a given time span. 
-        The time span is given by the number of milliseconds since 
-        the last step.
-
-    Steps: 
-        Compute the aabbox which completely contains the entity's 
-        current position and the position it's trying to move to. 
-        If any geometry 
-*/
-
-vector<Entity*> entities ;
-void move_ent(Entity * e)
-{
-}
-
-void move_entities()
-{
-    loopv(entities)
-    {
-        move_ent(entities[i]) ;
-    }
-}
-
-void pause_physics()
-{
-}
 
 
 struct nVector
@@ -255,6 +272,7 @@ struct nMatrix
 } ;
 
 
+#ifdef USE_NEWTON
 void NullForceCallback(
     const NewtonBody* body, 
     float timestep, 
@@ -308,14 +326,14 @@ void SetTransformCallback(
     nVector posit (matrix[12], matrix[13], matrix[14]);
    
 
-   /*
+/*
     printf("pos=%f %f %f ",
         ent->pos[0], ent->pos[1], ent->pos[2]
         ) ;
     printf("\nrot=%f %f %f ",
         matrix[0], matrix[1], matrix[2]
         ) ;
-    */
+*/
 
 if (ent==entities[1]) return ;
 
@@ -378,9 +396,6 @@ void ContactCallback(
         //NewtonMaterialGetContactNormalSpeed(materialID) 
         ) ;
 */
-
-
-
 
     NewtonBody* const body = NewtonJointGetBody0(contactJoint);
     for (void* contact = NewtonContactJointGetFirstContact (contactJoint); contact; contact = NewtonContactJointGetNextContact (contactJoint, contact)) {
@@ -489,9 +504,12 @@ materialID = NewtonMaterialGetDefaultGroupID(g_world) ;
 
 
 }
+#endif
 
 void init_physics()
 {
+    printf("\n[PHYSICS::init_physics] called...") ;
+#ifdef USE_NEWTON
     //g_world = NewtonCreate (AllocMemory, FreeMemory);
     nVector worldMin(-1000,-1000,-1000) ;
     nVector worldMax(world.size,world.size,world.size) ;
@@ -549,6 +567,9 @@ AddBody(600,800,2000,1) ;
     // Set up Newton callbacks
     // Give Newton information about bodies (will be made dynamic once 
     // prototypes a functional. )
+
+#endif
+    printf("done. ") ;
 }
 
 
@@ -657,14 +678,17 @@ void renderentity(Entity* e)
 
 void renderentities() 
 {
+#ifdef USE_NEWTON
     loopv(entities) 
     {
         renderentity(entities[i]) ;
     }
+#endif
 }
 
 void reset_physics() 
 {
+#ifdef USE_NEWTON
 resetphysics = true ;
     nMatrix m ;
     nVector v(0,0,0,1) ;
@@ -680,6 +704,6 @@ resetphysics = true ;
     NewtonBodySetMatrix (body2, &m[0][0]);
     NewtonBodySetVelocity(body2, &v[0]);
     NewtonBodySetOmega(body2, &v[0]);
+#endif
 }
-
 

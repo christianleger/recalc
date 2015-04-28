@@ -47,10 +47,10 @@ int check_phase_done = 0;
 
 //Font mainfont ;
 // luminance-alpha bitmaps of 16 by 16. 256 of them. 
-//static GLubyte image [iDepth][iHeight][iWidth][4];
-//static GLubyte mainfontpix[256][16][16][2] ;
-//static GLubyte mainfontpix[256*16*16*2] ;
-static GLubyte mainfontpix[128*16*16*2] ;
+
+// TODO FIXME: make mainfontpix a dynamic memory block - only used once for text 
+// font read and once for submitting font pixels to GPU! 
+static GLubyte mainfontpix[128*16*16*2] = {0} ;
 GLuint mainfontID = 0 ;
 
 void createFontDisplayList(
@@ -66,8 +66,7 @@ void createFontDisplayList(
 
     FT_Load_Glyph( face, FT_Get_Char_Index( face, ch ), FT_LOAD_DEFAULT );
 
-    if (ch>128) { ch = 129 ;return ; }
-
+    if (ch>128) { ch = 129 ;return ; } // TODO: 2013-12-14. It's been a while. What the heck is 129 good for? Just a bs number to signify 'not valid'? 
 
     FT_Get_Glyph( face->glyph, &glyph );
     FT_Glyph_Get_CBox( glyph, FT_GLYPH_BBOX_PIXELS, &bbox ); 
@@ -75,6 +74,9 @@ void createFontDisplayList(
     FT_Render_Glyph( face->glyph, FT_RENDER_MODE_NORMAL );
     FT_GlyphSlot slot = face->glyph; 
 
+    // Now in all honesty the usage made here of the Freetype image dimension properties 
+    // was established by trial and error and I have little understand of any but the most 
+    // obvious of these properties. 
     int width ; //=  slot->bitmap.width ;
     int height ; //= slot->bitmap.rows ;
     int top =    slot->bitmap_top ;
@@ -85,10 +87,11 @@ void createFontDisplayList(
     // This reference will make accessing the bitmap easier
     FT_Bitmap bitmap=bitmap_glyph->bitmap;
 
+    // In order to do this process properly, we need a first run through to determine 
+    // the dimensions we are dealing with. 
     if (check_phase)
     {
         _font->width[(int)ch]  = bitmap_glyph->left + (face->glyph->advance.x >> 6) ; 
-        //_font->width[(int)ch]  = bitmap.width ;
 
         if ( ( ch > SDLK_a && ch < SDLK_z ) || ch==' ')
         {
@@ -107,9 +110,6 @@ void createFontDisplayList(
 
     width = 16; // next_p2( bitmap.width );
     height = 16; // next_p2( bitmap.rows );
-    GLubyte* expanded_data = (GLubyte *)malloc ( sizeof (GLubyte) * 2 * width * height);
-   
-
 
    //////////////////////////////////////////////////////////
    // GROK AND THEN MITOSE
@@ -117,56 +117,38 @@ void createFontDisplayList(
     //for( j=0; j <height;j++) {
      //   for( i=0; i < width; i++){
     for( j=0; j <16;j++) {
-        for( i=0; i <16; i++){
-            expanded_data[2*(i+j*width)]= 
-            expanded_data[2*(i+j*width)+1] =
-                (i>=bitmap.width || j>=bitmap.rows) ?
-                0 : bitmap.buffer[i + bitmap.width*j] ;
+        for( i=0; i <16; i++) {
+            // luminance
+            char lum = (i>=bitmap.width || j>=bitmap.rows) ?  0 : bitmap.buffer[i + bitmap.width*j];
 
-            //mainfontpix[ch][j][i][0]  +2*(i+j*width)] = 
-            mainfontpix[ch*(2*(16*16))+2*(i+j*width)] = 
-            mainfontpix[ch*(2*(16*16))+2*(i+j*width)+1] = 
-            //mainfontpix[ch][j][i][0] = 
-            //mainfontpix[ch][j][i][1] = 
-//mainfontpix[ch*(16*16*2)  +2*(i+j*width)+1] = 128 ; // (i%2==0)?(128):(0) ;
-//mainfontpix[ch*(16*16*2)  +2*(i+j*width)+1] = 
-            // 128 ;
-                (i>=bitmap.width || j>=bitmap.rows) ?
-                0 : bitmap.buffer[i + bitmap.width*j];
+            mainfontpix[ch*(2*(16*16))+2*(i+j*width)+1] = lum ;
+            // alpha
+            if (lum>0)
+                mainfontpix[ch*(2*(16*16))+2*(i+j*width)] = 0 ;
+            else 
+                mainfontpix[ch*(2*(16*16))+2*(i+j*width)] = lum ;
+
         }
     }
     CheckGlError() ;
 
-
-    free (expanded_data);
-
      float   x=(float)bitmap.width / (float)width,
              y=(float)bitmap.rows / (float)height;
 
-/*
-printf("\n character: %c", ch) ;
-printf("\n \t width: %d", _font->width[(int)ch]) ;
-printf("\n \t height: %d", _font->height[(int)ch]) ;
-printf("\n \ttop left: %d  %d", 0, -_font->_height + top ) ;
-printf("\n \tbot left: %d  %d", 0, -_font->_height + bbox.yMin);
-printf("\n \tbot right: %d  %d", bitmap.width, -_font->_height + bbox.yMin);
-printf("\n \ttop right: %d  %d", bitmap.width, -_font->_height + top );
-*/
+    _font->bot[(int)ch] = bbox.yMin ;
+    _font->width[(int)ch] = bitmap.width ;
 
-_font->bot[(int)ch] = bbox.yMin ;
-_font->width[(int)ch] = bitmap.width ;
+    _font->tcoords[(int)ch][0][0] = 0 ;
+    _font->tcoords[(int)ch][0][1] = 0 ;
+                  
+    _font->tcoords[(int)ch][1][0] = 0 ;
+    _font->tcoords[(int)ch][1][1] = y ;
+                  
+    _font->tcoords[(int)ch][2][0] = x ;
+    _font->tcoords[(int)ch][2][1] = y ;
 
-_font->tcoords[(int)ch][0][0] = 0 ;
-_font->tcoords[(int)ch][0][1] = 0 ;
-              
-_font->tcoords[(int)ch][1][0] = 0 ;
-_font->tcoords[(int)ch][1][1] = y ;
-              
-_font->tcoords[(int)ch][2][0] = x ;
-_font->tcoords[(int)ch][2][1] = y ;
-
-_font->tcoords[(int)ch][3][0] = x ;
-_font->tcoords[(int)ch][3][1] = 0 ;
+    _font->tcoords[(int)ch][3][0] = x ;
+    _font->tcoords[(int)ch][3][1] = 0 ;
 
     return;
 }
@@ -208,11 +190,12 @@ void initializeFonts(
     //FT_Set_Char_Size( face, 0, height*64, 300, 300);
     FT_Set_Char_Size( face, 0, height*64, 72, 72);
 
-
     /*FT_Set_Char_Size( face, 4096,4096, 18, 18);*/
 
     _font->gl_list_base = glGenLists(128);
-    glGenTextures(129, _font->gl_char_IDs);
+    //glGenTextures(129, _font->gl_char_IDs);
+    glGenTextures(128, _font->gl_char_IDs);
+    CheckGlError() ;
 
     _font->_width = 0 ;
     _font->_height = 0 ;
@@ -263,7 +246,7 @@ void initfonts()
 
     fonts.add( new Font("default font") ) ;
     numFonts++ ;
-    initializeFonts((fonts[0]), "../data/fonts/unifont.ttf", 16);
+    initializeFonts((fonts[0]), "data/fonts/unifont.ttf", 16);
     //initializeFonts((fonts[0]), "../data/fonts/unifont.ttf", 32);
     //initializeFonts((fonts[0]), "../data/fonts/electrb.ttf", 16);
 
@@ -304,11 +287,16 @@ void clearFonts()
         glDeleteLists(fonts[i]->gl_list_base, 128);
         glDeleteTextures(128, fonts[i]->gl_char_IDs);
     }
+
+    loopv(fonts)
+    {
+        delete fonts[i] ; // TODO: confirm that this calls the destructor on every font. 
+    }
     return; 
 }
 
 
-/*  FUNCTION: measureText
+/*  FUNCTION: textwidth
 
     DESCRIPTION: this function takes in a string and determines 
     its cartesian span when using the current font. 
@@ -335,7 +323,7 @@ void textwidth(Font * in_font, char * text, int * width)
 /*  FUNCTION: prstr
 
     DESCRIPTION: to draw text on the screen, positioned at 
-    the current OpenGL context. 
+    the current OpenGL geometrical context. 
 
     parameters: 
 
@@ -344,14 +332,15 @@ void textwidth(Font * in_font, char * text, int * width)
         str - the message to display 
 
 */
-static float _1_128th = 1.f/128.f ;
-void prstr(float _x, float _y, const char * str)
+// TODO: replace this with texture_array with backup texture atlas option? Yes, but later. Much later. 
+static float _1_128th = 1.f/128.f ; // Nasty way to precompute the index factor for the 3rd coordinate in 3D textures. 
+int prstr(float _x, float _y, const char * str)
 {
     int x = _x ;
     int y = _y ;
     int len = strlen(str) ;
 
-glBegin( GL_QUADS ) ;
+    glBegin( GL_QUADS ) ;
     for (int i=0;i<len;i++)
     {
         int c = (int)str[i] ;
@@ -376,11 +365,46 @@ glBegin( GL_QUADS ) ;
         glTexCoord3d( fonts[0]->tcoords[(int)c][3][0], fonts[0]->tcoords[(int)c][3][1], (float)c*_1_128th) ;
         glVertex3f( x+w, y+h, 0);
 
-        // advance positions
+        // advance positions. Why +2 in addition to w? Experimentally determined, no other reason at this time. The root cause of this is 
+        // the fact that Freetype's definition of character properties and dimensions are still incompletely understood by myself (CL). 
         x += w+2 ;
     }
-glEnd() ;
-    return ; 
+    glEnd() ;
+
+    return x ;  // This should be the horizontal on-screen length of this string
+}
+
+/*
+    Function: prquad
+
+    Description: 
+
+        prints a colored quad, transluscent if desired, to serve as the background 
+        for some text. Makes text more legible regardless of the background behind the 
+        text. 
+*/
+void prquad(
+    int minx, 
+    int miny, 
+    int width, 
+    int height
+//,vec4 color
+    )
+{
+    glDisable( GL_TEXTURE_3D ) ;
+    glDisable( GL_DEPTH_TEST ) ;
+
+
+    glBegin( GL_QUADS ) ;
+        glVertex3f( minx,         miny,        -10) ;
+        glVertex3f( minx,         miny-height, -10) ;
+        glVertex3f( minx + width, miny-height, -10) ;
+        glVertex3f( minx + width, miny,        -10) ;
+    glEnd( ) ;
+    glEnable(GL_TEXTURE_3D) ;
+    glEnable( GL_DEPTH_TEST ) ;
+    
+    //glColor4f(0.5f, 0.5f, 1.f, 1.f) ;
 }
 
 
@@ -425,20 +449,12 @@ void prstrstart()
     
     glEnable(GL_TEXTURE_3D);
     glBindTexture(GL_TEXTURE_3D, mainfontID) ;
-
 }
+
 void prstrend()
 {
     glDisable(GL_TEXTURE_3D);
 }
-
-/*
-    prstr: print a string using currently enabled font. 
-void prstr(float x, float y, const char * str)
-{
-    printstr(x, y, str);
-}
-*/
 
 /*
     scrstrlen
@@ -458,7 +474,7 @@ int scrstrlen(const char * str)
 
     for (i=0;i<_len;i++)
     {
-        len += fonts[0]->width[str[i]] ;
+        len += fonts[0]->width[str[i]]+2 ;
     }
 
     return len ;
@@ -466,30 +482,16 @@ int scrstrlen(const char * str)
 
 void init_text()
 {
-//    glEnable( GL_TEXTURE_3D ) ;
-//    glDisable( GL_TEXTURE_3D ) ;
 
-    printf("\nMAKE ME WORK::: TEXT AND FONTS !!!\n") ; 
+    printf("\n[TEXT::init_text] called... ") ;
     
-//    glEnable( GL_TEXTURE_2D ) ;
     initfonts() ; 
-//    glDisable( GL_TEXTURE_2D ) ;
-    
-//    glEnable( GL_TEXTURE_3D ) ;
 
-
-
-    //#define iDepth 128
-    #define iDepth 128
+    // 3D font image dimensions
+    #define iDepth 128   // number of characters
     #define iWidth 16
     #define iHeight 16
 
-    static GLubyte image [iDepth][iHeight][iWidth][2];
-
-//glClearColor(0.0, 0.0, 0.0, 0.0);
-//glShadeModel(GL_FLAT);
-//glEnable(GL_DEPTH_TEST);
-//    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glGenTextures(1, &mainfontID);
     glBindTexture(GL_TEXTURE_3D, mainfontID);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -498,14 +500,18 @@ void init_text()
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, iWidth, iHeight, iDepth, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, mainfontpix);
-
-
-//extern void CheckGlError() ;
-CheckGlError() ;
-
-
-
+    glTexImage3D(
+        GL_TEXTURE_3D, 
+        0, 
+        GL_RGBA, 
+        iWidth, 
+        iHeight, 
+        iDepth, 
+        0, 
+        GL_LUMINANCE_ALPHA, 
+        GL_UNSIGNED_BYTE, 
+        mainfontpix);
+    CheckGlError() ;
 /*
     void glTexImage3D  (
     GLenum  target, 
@@ -520,6 +526,7 @@ CheckGlError() ;
         const GLvoid * pixels
     ) ;
 */
+    printf("\n[TEXT::init_text] done.") ;
 }
 
 void clean_up_text()

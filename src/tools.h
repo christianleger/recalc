@@ -104,6 +104,7 @@ static inline T clamp(T a, T b, T c)
 #ifdef WIN32
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
+#define M_PI_2 3.14159265358979323846/2
 #endif
 #ifndef M_LN2
 #define M_LN2 0.693147180559945309417

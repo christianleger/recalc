@@ -463,19 +463,22 @@ void render_test_002()
 }
 
 /*
-    Function: initialize_tests
+    Function: init_tests
 
     Purpose: to provide a number of tests which are to be run at the start of 
     the application. This is perfect for console-only, one-off tests. 
 
 
 */
-void initialize_tests()
+void init_tests()
 {
+    printf("\n[TEST::init_tests] called... ") ;
 
     // Test: floating point numbers. 
     //float32_bits() ;
 
     init_test_002() ;
+    
+    printf("done. ") ;
 }
 

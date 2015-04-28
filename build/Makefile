@@ -5,7 +5,13 @@
 #   File:     Recalc's Makefile
 #
 #
-#
+#   Todo: haha stop using make for the love of baby Stephen Hawking. Yes, 
+#   in just a few days of work python would make a superior build system 
+#   that: 
+#        - specifies dependencies 
+#        - checks which dependencies are more recent than build targets
+#        - collects all the paths, tools and commands required. 
+#        - executes all the required commands for the desired build target. 
 #
 ################################################################################
 ################################################################################
@@ -14,6 +20,12 @@
 # default is likely linux. 
 ifeq ($(PLATFORM),)
 	PLATFORM=linux
+endif
+
+ifeq ($(OS),Windows_NT)
+$(info Windows platform detected. )
+PLATFORM=windows
+EXE=.exe
 endif
 
 ################################################################################
@@ -36,7 +48,10 @@ ifeq ($(PLATFORM),linux)
     CXX=g++
     CXX_FLAGS= -msse -msse2 -msse3
     ifeq ($(DEBUG),1)
+        # SWITCH THIS ON To see preprocessor output!!!! :-D
+        #DEBUG_FLAGS=-g -DDEBUG -E  USE THIS TO 
         DEBUG_FLAGS=-g -DDEBUG
+        OPT_FLAGS=-O0
     else
         OPT_FLAGS=-O3
     endif
@@ -49,7 +64,7 @@ ifeq ($(PLATFORM),linux)
     OBJ_EXT=o
 
 #####################   LOCATIONS 
-    INCLUDES=\
+    INCLUDES= \
         -I/usr/include/SDL \
         -I/usr/include/nvidia-current/ \
         -I/usr/include/freetype2 \
@@ -57,11 +72,9 @@ ifeq ($(PLATFORM),linux)
 
 #        -I/usr/include/GL 
 
-    LIB_LOCATIONS=\
-        -L../bin
+    LIB_LOCATIONS= -L../bin
 
-    LIBS=\
-        -lrt \
+    LIBS= -lrt \
         -lm \
         -lz \
         -lGL \
@@ -70,7 +83,7 @@ ifeq ($(PLATFORM),linux)
         -lSDL_image \
         -lSDL_mixer \
         -lfreetype \
-        -lNewton
+#        -lNewton   maybe one day we'll use this; not for now. 
 
 endif
 ################################################################################
@@ -78,12 +91,13 @@ endif
 #### WINDOWS PLATFORM
 ################################################################################
 ifeq ($(PLATFORM),windows)
-    $(warning NO NO NO NO NO NO NO)
+    #$(warning NO NO NO NO NO NO NO)
 #####################           PROGRAMS             ###########################
     CXX=g++
 #    CXX_FLAGS= -mwindows
     ifeq ($(DEBUG),1)
         DEBUG_FLAGS=-g
+        OPT_FLAGS=-O0
     else
         OPT_FLAGS=-O3
     endif
@@ -94,8 +108,7 @@ ifeq ($(PLATFORM),windows)
     OBJ_EXT=obj
 
 #####################            LOCATIONS           ###########################
-    INCLUDES=\
-        -I/usr/include/SDL \
+    INCLUDES= -I/usr/include/SDL \
         -I/usr/include/GL \
         -I../include \
         -I../include/GL \
@@ -114,6 +127,8 @@ ifeq ($(PLATFORM),windows)
 #-lSDL_image -lglu32 -lopengl32
 
     LIBS=\
+		-static-libgcc \
+		-static-libstdc++ \
         -lmingw32 \
         -lSDLmain \
         -lSDL \
@@ -126,8 +141,9 @@ ifeq ($(PLATFORM),windows)
         -lSDL_mixer \
         -llibfreetype-6 \
         -lm \
-        -lzlib1 \
-        -lnewton
+        -lzlib1
+#		\
+#        -lnewton
 
 
 
@@ -141,8 +157,8 @@ endif
 ################################################################################
 ################################################################################
 
-OBJS=\
-    console.$(OBJ_EXT)  \
+OBJS =   console.$(OBJ_EXT)  \
+    script.$(OBJ_EXT) \
     geometry.$(OBJ_EXT) \
     input.$(OBJ_EXT)    \
     math.$(OBJ_EXT)     \
@@ -154,8 +170,11 @@ OBJS=\
     test.$(OBJ_EXT)     \
     text.$(OBJ_EXT)     \
     sound.$(OBJ_EXT)    \
-    zip.$(OBJ_EXT)      \
-    stream.$(OBJ_EXT) 
+    shader.$(OBJ_EXT)   \
+    stream.$(OBJ_EXT)   \
+    texture.$(OBJ_EXT)   \
+    world.$(OBJ_EXT)      \
+    zip.$(OBJ_EXT)
 
 #HEADERS=\
 #    recalc.h \
@@ -179,7 +198,7 @@ all: recalc
 ################################################################################
 clean:
 	echo removing all compiled files... 
-	@rm $(OBJS) ../bin/recalc 
+	@rm $(OBJS) ../bin/recalc$(EXE)
 	echo done. 
 
 ################################################################################
@@ -191,12 +210,15 @@ again: clean all
 #####################         THE EXECUTABLE         ###########################
 ################################################################################
 recalc: ../src/recalc.h ../src/main.cpp $(OBJS)
-	$(info )
-	$(CXX) $(CXX_FLAGS) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(OBJS) ../src/main.cpp $(OUT_FLAG) ../bin/recalc \
-    $(LIB_LOCATIONS) $(LIBS) 
+	\
+	$(CXX) $(CXX_FLAGS) $(DEBUG_FLAGS) $(OPT_FLAGS) \
+    $(INCLUDES) \
+    $(OBJS) ../src/main.cpp \
+    $(OUT_FLAG) ../bin/recalc \
+    $(LIB_LOCATIONS) \
+    $(LIBS) 
     
-	$(info )
+#	$(info )
 
 
 ################################################################################
@@ -273,7 +295,6 @@ text.$(OBJ_EXT): ../src/text.cpp ../src/text.h
     $(LIB_LOCATIONS) $(LIBS) ../src/text.cpp $(OUT_FLAG) text.$(OBJ_EXT)
 	$(info )
 
-
 ################################################################################
 console.$(OBJ_EXT): ../src/console.cpp
 	$(info )
@@ -281,6 +302,12 @@ console.$(OBJ_EXT): ../src/console.cpp
     $(LIB_LOCATIONS) $(LIBS) ../src/console.cpp $(OUT_FLAG) console.$(OBJ_EXT)
 	$(info )
 
+################################################################################
+script.$(OBJ_EXT): ../src/script.cpp
+	$(info )
+	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
+    $(LIB_LOCATIONS) $(LIBS) ../src/script.cpp $(OUT_FLAG) script.$(OBJ_EXT)
+	$(info )
 
 ################################################################################
 menu.$(OBJ_EXT): ../src/menu.cpp
@@ -290,10 +317,31 @@ menu.$(OBJ_EXT): ../src/menu.cpp
 	$(info )
 
 ################################################################################
+shader.$(OBJ_EXT): ../src/shader.cpp
+	$(info )
+	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
+    $(LIB_LOCATIONS) $(LIBS) ../src/shader.cpp $(OUT_FLAG) shader.$(OBJ_EXT)
+	$(info )
+
+################################################################################
 stream.$(OBJ_EXT): ../src/stream.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
     $(LIB_LOCATIONS) $(LIBS) ../src/stream.cpp $(OUT_FLAG) stream.$(OBJ_EXT)
+	$(info )
+
+################################################################################
+texture.$(OBJ_EXT): ../src/texture.cpp
+	$(info )
+	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
+    $(LIB_LOCATIONS) $(LIBS) ../src/texture.cpp $(OUT_FLAG) texture.$(OBJ_EXT)
+	$(info )
+
+################################################################################
+world.$(OBJ_EXT): ../src/world.cpp
+	$(info )
+	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
+    $(LIB_LOCATIONS) $(LIBS) ../src/world.cpp $(OUT_FLAG) world.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
