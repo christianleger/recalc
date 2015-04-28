@@ -5,7 +5,7 @@
 
 
 
-
+// Let's give a name to the members of the render module. 
 
 
 void render_world( ) ;
@@ -21,3 +21,6 @@ void render_info() ;
 void render_console() ; 
 
 #endif //__RENDER_H__
+
+
+

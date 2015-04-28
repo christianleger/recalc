@@ -2,4 +2,4 @@
 
 echo arguments are %*
 
-bin/recalc.exe %*
+bin\recalc.exe %*

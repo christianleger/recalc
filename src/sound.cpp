@@ -63,11 +63,6 @@ int maxchannels = 0;
 
 soundchannel &newchannel(int n, soundslot *slot, const vec *loc = NULL, /*extentity *ent = NULL,*/ int radius = 0)
 {
-//    if(ent)
-    {
-//        loc = &ent->o;
-//        ent->visible = true;
-    }
     while(!channels.inrange(n)) channels.add(channels.length());
     soundchannel &chan = channels[n];
     chan.reset();
@@ -178,9 +173,11 @@ void initsound()
     {
         printf("\nSound properly initialized. \n") ;
     }
-    return ;
+    //return ;
 	Mix_AllocateChannels(soundchans);	
     Mix_ChannelFinished(freechannel);
+    
+    printf("initsound: soundchans == %d", soundchans) ;
     maxchannels = soundchans;
     nosound = false;
 }
@@ -501,7 +498,7 @@ static Mix_Chunk *loadwav(const char *name)
 //int playsound(int n, const vec *loc = NULL, /*extentity *ent = NULL,*/ int loops = 0, int fade = 0, int chanid = -1, int radius = 0, int expire = -1)
 int playsound(int n, const vec *loc, /*extentity *ent = NULL,*/ int loops, int fade, int chanid, int radius, int expire) 
 {
-    if(nosound || !soundvol || nosfx) return -1;
+    //if(nosound || !soundvol || nosfx) return -1;
 
 //    vector<soundslot> &sounds = ent ? mapsounds : gamesounds;
     vector<soundslot> &sounds = gamesounds ;    // FIXME: reuse this gamesounds/mapsounds distinction
@@ -511,7 +508,7 @@ int playsound(int n, const vec *loc, /*extentity *ent = NULL,*/ int loops, int f
     }
     else
     {
-   //     printf("\nRECALC TRYING TO PLAY SOUND: %s\n", sounds[n].sample->name) ;
+        printf("\nRECALC TRYING TO PLAY SOUND: %s\n", sounds[n].sample->name) ;
     }
     soundslot &slot = sounds[n];
 
@@ -529,7 +526,7 @@ int playsound(int n, const vec *loc, /*extentity *ent = NULL,*/ int loops, int f
             return -1;    
         }
     }
-
+    
     if(chanid < 0)
     {
         if(slot.maxuses)
@@ -572,6 +569,7 @@ int playsound(int n, const vec *loc, /*extentity *ent = NULL,*/ int loops, int f
             printf("failed to load sample: %s", buf); return -1; 
         }
     }
+    
 
     if(channels.inrange(chanid))
     {
@@ -584,18 +582,28 @@ int playsound(int n, const vec *loc, /*extentity *ent = NULL,*/ int loops, int f
         }
     }
     if(fade < 0) return -1;
+    
            
     if(dbgsound) 
     {
         // conoutf("sound: %s", slot.sample->name);
         printf("sound: %s", slot.sample->name);
     }
- 
+ printf("playsound: maxchannels == %d", maxchannels) ;
     chanid = -1;
-    loopv(channels) if(!channels[i].inuse) { chanid = i; break; }
+    loopv(channels) if(!channels[i].inuse) { ;chanid = i; break; }
+printf("playsound:  chanid 1 == %d", chanid) ;
+    //printf("channels[i].inuse==%d", channels[i].inuse)
     if(chanid < 0 && channels.length() < maxchannels) chanid = channels.length();
-    if(chanid < 0) loopv(channels) if(!channels[i].volume) { chanid = i; break; }
+printf("playsound:  chanid 2 == %d", chanid) ;
+printf("playsound:  channels.length == %d", channels.length()) ;
+    if(chanid < 0) loopv(channels) if(!channels[i].volume) { chanid = i; break; }    
+printf("playsound:  chanid 3 == %d", chanid) ;
     if(chanid < 0) return -1;
+    
+    
+    
+    
 
     SDL_LockAudio(); // must lock here to prevent freechannel/Mix_SetPanning race conditions
     if(channels.inrange(chanid) && channels[chanid].inuse)
@@ -616,6 +624,8 @@ int playsound(int n, const vec *loc, /*extentity *ent = NULL,*/ int loops, int f
     if(playing >= 0) syncchannel(chan); 
     else freechannel(chanid);
     SDL_UnlockAudio();
+    
+    printf("PLAYING THIS SOUNSD!") ;
     return playing;
 }
 
@@ -886,10 +896,16 @@ void init_sound()
 
     initsound() ;
     int vol = 80 ;
-    registersound("computerbeep", &vol) ;
-    printf("\nSound computerbeep registered. ") ;
+    int regres = registersound("computerbeep", &vol) ;
+    printf("\nSound computerbeep register gave result of %d. ", regres) ;
     if (!nosound) startmusic("cranberry-radio_edit.mp3", NULL) ;
     printf("done. ") ;
+    
+    printf("init_sound: channels length = %d", channels.length()) ;
+    loopv(channels) {
+        printf("init_sound: channel %d in use? %d", i, channels[i].inuse) ;
+    }
+    
 }
 
 

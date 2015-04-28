@@ -74,6 +74,8 @@ bool onfloor = false ;
 bool physicsrunning = false ;
 bool updatephysics = false ;
 
+float last_x_dir = 0.0f ;
+
 void physics_frame( unsigned int time_delta )
 {
     // Calculate the time slice for which this next physics frame is being run
@@ -160,6 +162,9 @@ void physics_frame( unsigned int time_delta )
 
     // FIXME: you go through walls when you update these without checking if there is an obstacle first! 
     // At least, you go through walls when you're going fast. And you don't check for obstacles. 
+    if (vel.x>0 && last_x_dir<0) {printf("\n hey wattaryadoing. "); }
+        last_x_dir = vel.x ;
+    
     newpos.x += vel.x ; 
     newpos.y += vel.y ; 
     newpos.z += vel.z ; 
@@ -200,7 +205,7 @@ if (!engine.editing)
 
 camera.pos = newpos ;
 
-    //gluPerspective( (GLfloat)90, 1.7f, camera.pos.x - 10.0f, camera.pos.x - 400000.0f ) ;
+//gluPerspective( (GLfloat)90, 1.7f, camera.pos.x - 10.0f, camera.pos.x - 400000.0f ) ;
 
 // Lol asshole don't forget to set matrix mode to projection if you want to use this :-) 
     glDepthRange(0.4, 1) ;
@@ -321,14 +326,14 @@ void SetTransformCallback(
     nVector posit (matrix[12], matrix[13], matrix[14]);
    
 
-   /*
+/*
     printf("pos=%f %f %f ",
         ent->pos[0], ent->pos[1], ent->pos[2]
         ) ;
     printf("\nrot=%f %f %f ",
         matrix[0], matrix[1], matrix[2]
         ) ;
-    */
+*/
 
 if (ent==entities[1]) return ;
 
@@ -391,9 +396,6 @@ void ContactCallback(
         //NewtonMaterialGetContactNormalSpeed(materialID) 
         ) ;
 */
-
-
-
 
     NewtonBody* const body = NewtonJointGetBody0(contactJoint);
     for (void* contact = NewtonContactJointGetFirstContact (contactJoint); contact; contact = NewtonContactJointGetNextContact (contactJoint, contact)) {
