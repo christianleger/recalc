@@ -17,6 +17,8 @@
 ################################################################################
 ################################################################################
 
+SRC=../code
+
 # default is likely linux. 
 ifeq ($(PLATFORM),)
 	PLATFORM=linux
@@ -68,9 +70,8 @@ ifeq ($(PLATFORM),linux)
         -I/usr/include/SDL \
         -I/usr/include/nvidia-current/ \
         -I/usr/include/freetype2 \
-        -I../include
-
-#        -I/usr/include/GL 
+        -I$(SRC)/include \
+        -I$(SRC)/include/GL 
 
     LIB_LOCATIONS= -L../bin
 
@@ -110,9 +111,9 @@ ifeq ($(PLATFORM),windows)
 #####################            LOCATIONS           ###########################
     INCLUDES= -I/usr/include/SDL \
         -I/usr/include/GL \
-        -I../include \
-        -I../include/GL \
-        -I../include/SDL
+        -I$(SRC)/include \
+        -I$(SRC)/include/GL \
+        -I$(SRC)/include/SDL
 
     LIB_LOCATIONS=\
         -L../bin \
@@ -209,11 +210,11 @@ again: clean all
 ################################################################################
 #####################         THE EXECUTABLE         ###########################
 ################################################################################
-recalc: ../src/recalc.h ../src/main.cpp $(OBJS)
+recalc: $(SRC)/src/recalc.h $(SRC)/src/main.cpp $(OBJS)
 	\
 	$(CXX) $(CXX_FLAGS) $(DEBUG_FLAGS) $(OPT_FLAGS) \
     $(INCLUDES) \
-    $(OBJS) ../src/main.cpp \
+    $(OBJS) $(SRC)/src/main.cpp \
     $(OUT_FLAG) ../bin/recalc \
     $(LIB_LOCATIONS) \
     $(LIBS) 
@@ -226,129 +227,129 @@ recalc: ../src/recalc.h ../src/main.cpp $(OBJS)
 ################################################################################
 
 ################################################################################
-input.$(OBJ_EXT): ../src/input.cpp
+input.$(OBJ_EXT): $(SRC)/src/input.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/input.cpp $(OUT_FLAG) input.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/input.cpp $(OUT_FLAG) input.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-math.$(OBJ_EXT): ../src/math.cpp
+math.$(OBJ_EXT): $(SRC)/src/math.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIBS) ../src/math.cpp $(OUT_FLAG) math.$(OBJ_EXT)
+    $(LIBS) $(SRC)/src/math.cpp $(OUT_FLAG) math.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-render.$(OBJ_EXT): ../src/render.cpp
+render.$(OBJ_EXT): $(SRC)/src/render.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/render.cpp $(OUT_FLAG) render.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/render.cpp $(OUT_FLAG) render.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-sound.$(OBJ_EXT): ../src/sound.cpp
+sound.$(OBJ_EXT): $(SRC)/src/sound.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/sound.cpp $(OUT_FLAG) sound.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/sound.cpp $(OUT_FLAG) sound.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-geometry.$(OBJ_EXT): ../src/geometry.cpp ../src/geometry.h
+geometry.$(OBJ_EXT): $(SRC)/src/geometry.cpp $(SRC)/src/geometry.h
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/geometry.cpp $(OUT_FLAG) geometry.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/geometry.cpp $(OUT_FLAG) geometry.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-platform.$(OBJ_EXT): ../src/platform.cpp
+platform.$(OBJ_EXT): $(SRC)/src/platform.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/platform.cpp $(OUT_FLAG) platform.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/platform.cpp $(OUT_FLAG) platform.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-physics.$(OBJ_EXT): ../src/physics.cpp
+physics.$(OBJ_EXT): $(SRC)/src/physics.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/physics.cpp $(OUT_FLAG) physics.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/physics.cpp $(OUT_FLAG) physics.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-recalc.$(OBJ_EXT): ../src/recalc.cpp
+recalc.$(OBJ_EXT): $(SRC)/src/recalc.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-	$(LIB_LOCATIONS) $(LIBS) ../src/recalc.cpp $(OUT_FLAG) recalc.$(OBJ_EXT)
+	$(LIB_LOCATIONS) $(LIBS) $(SRC)/src/recalc.cpp $(OUT_FLAG) recalc.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-test.$(OBJ_EXT): ../src/test.cpp
+test.$(OBJ_EXT): $(SRC)/src/test.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/test.cpp $(OUT_FLAG) test.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/test.cpp $(OUT_FLAG) test.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-text.$(OBJ_EXT): ../src/text.cpp ../src/text.h
+text.$(OBJ_EXT): $(SRC)/src/text.cpp $(SRC)/src/text.h
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/text.cpp $(OUT_FLAG) text.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/text.cpp $(OUT_FLAG) text.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-console.$(OBJ_EXT): ../src/console.cpp
+console.$(OBJ_EXT): $(SRC)/src/console.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/console.cpp $(OUT_FLAG) console.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/console.cpp $(OUT_FLAG) console.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-script.$(OBJ_EXT): ../src/script.cpp
+script.$(OBJ_EXT): $(SRC)/src/script.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/script.cpp $(OUT_FLAG) script.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/script.cpp $(OUT_FLAG) script.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-menu.$(OBJ_EXT): ../src/menu.cpp
+menu.$(OBJ_EXT): $(SRC)/src/menu.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/menu.cpp $(OUT_FLAG) menu.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/menu.cpp $(OUT_FLAG) menu.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-shader.$(OBJ_EXT): ../src/shader.cpp
+shader.$(OBJ_EXT): $(SRC)/src/shader.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/shader.cpp $(OUT_FLAG) shader.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/shader.cpp $(OUT_FLAG) shader.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-stream.$(OBJ_EXT): ../src/stream.cpp
+stream.$(OBJ_EXT): $(SRC)/src/stream.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/stream.cpp $(OUT_FLAG) stream.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/stream.cpp $(OUT_FLAG) stream.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-texture.$(OBJ_EXT): ../src/texture.cpp
+texture.$(OBJ_EXT): $(SRC)/src/texture.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/texture.cpp $(OUT_FLAG) texture.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/texture.cpp $(OUT_FLAG) texture.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-world.$(OBJ_EXT): ../src/world.cpp
+world.$(OBJ_EXT): $(SRC)/src/world.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/world.cpp $(OUT_FLAG) world.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/world.cpp $(OUT_FLAG) world.$(OBJ_EXT)
 	$(info )
 
 ################################################################################
-zip.$(OBJ_EXT): ../src/zip.cpp
+zip.$(OBJ_EXT): $(SRC)/src/zip.cpp
 	$(info )
 	$(CXX) $(CXX_FLAGS) $(OBJ_FLAG) $(DEBUG_FLAGS) $(OPT_FLAGS) $(INCLUDES) \
-    $(LIB_LOCATIONS) $(LIBS) ../src/zip.cpp $(OUT_FLAG) zip.$(OBJ_EXT)
+    $(LIB_LOCATIONS) $(LIBS) $(SRC)/src/zip.cpp $(OUT_FLAG) zip.$(OBJ_EXT)
 	$(info )
 
     
