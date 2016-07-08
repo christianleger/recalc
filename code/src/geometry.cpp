@@ -69,9 +69,11 @@
     --------------
 
     prime corner: 
+
         The minimum-value point on the border of a cube. This means X, Y and Z
         are minimum. Example: (0,0,0) is the prime corner of every cube that
-        shares a vertex with the world origin. 
+        shares a vertex with the world origin (since all objects are in
+        positive world coordinates).
         
         At a given grid size, every point whose coordinates are a multiple of
         the grid size is the prime corner to a single cube. 
@@ -3045,10 +3047,7 @@ void World::initialize()
                 stars[i][which] *= 2 ;
             }
         }
-
     }
-/*
-*/
     
     glGenBuffers( 1, &starsVBO ) ;
     glBindBuffer( GL_ARRAY_BUFFER, starsVBO ) ;

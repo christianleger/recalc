@@ -1,0 +1,7 @@
+﻿  main.cpp
+LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/LTCG' specification
+  Generating code
+  All 4 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  Recalc.vcxproj -> D:\work\recalc\build\windows\Release\Recalc.exe
+  Recalc.vcxproj -> D:\work\recalc\build\windows\Release\Recalc.pdb (Full PDB)

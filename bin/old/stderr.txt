@@ -1,0 +1,4 @@
+GREAT SUCCESS FOR THE COMPUTER GENERATING A SURFACE: 
+trying to open: data\sounds\computerbeep
+Unable to initialize audio erooor: Mix_LoadWAV_RW with NULL src
+trying to open: data\sounds\computerbeep.wav

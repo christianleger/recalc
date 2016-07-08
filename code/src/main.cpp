@@ -37,8 +37,8 @@
 
 //#define SCREEN_WIDTH 2600
 //#define SCREEN_HEIGHT 900
-int default_screen_width = 1200 ; 
-int default_screen_height = 800 ; 
+int default_screen_width = 1920 ; 
+int default_screen_height = 1080 ; 
 
 
 /*---------------------------------------------------*/
