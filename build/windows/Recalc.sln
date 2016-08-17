@@ -5,6 +5,8 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Recalc", "Recalc\Recalc.vcxproj", "{1D32100F-3404-4D1E-A1E2-E8D6CEA2EB75}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Recalc_test", "Recalc_test\Recalc_test.vcxproj", "{4A1625B5-E4FE-4399-B5EF-37FB410A53F2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{1D32100F-3404-4D1E-A1E2-E8D6CEA2EB75}.Release|x64.Build.0 = Release|x64
 		{1D32100F-3404-4D1E-A1E2-E8D6CEA2EB75}.Release|x86.ActiveCfg = Release|Win32
 		{1D32100F-3404-4D1E-A1E2-E8D6CEA2EB75}.Release|x86.Build.0 = Release|Win32
+		{4A1625B5-E4FE-4399-B5EF-37FB410A53F2}.Debug|x64.ActiveCfg = Debug|x64
+		{4A1625B5-E4FE-4399-B5EF-37FB410A53F2}.Debug|x64.Build.0 = Debug|x64
+		{4A1625B5-E4FE-4399-B5EF-37FB410A53F2}.Debug|x86.ActiveCfg = Debug|Win32
+		{4A1625B5-E4FE-4399-B5EF-37FB410A53F2}.Debug|x86.Build.0 = Debug|Win32
+		{4A1625B5-E4FE-4399-B5EF-37FB410A53F2}.Release|x64.ActiveCfg = Release|x64
+		{4A1625B5-E4FE-4399-B5EF-37FB410A53F2}.Release|x64.Build.0 = Release|x64
+		{4A1625B5-E4FE-4399-B5EF-37FB410A53F2}.Release|x86.ActiveCfg = Release|Win32
+		{4A1625B5-E4FE-4399-B5EF-37FB410A53F2}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

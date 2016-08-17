@@ -145,7 +145,7 @@ void load_textures()
         GL_UNSIGNED_BYTE, 
         NULL                // data, NULL means just allocate memory
         ) ;
-#endif
+//#endif
     e.texatlassize = 4096 ;
     e.texatlastilesize = 512 ;
     e.texatlasrowcount = 8 ;

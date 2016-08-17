@@ -16,10 +16,6 @@
 
 #include "SDL2/SDL_test_common.h"
 
-#ifdef __MACOS__
-#define HAVE_OPENGL
-#endif
-
 #ifdef HAVE_OPENGL
 
 #include "SDL2/SDL_opengl.h"
@@ -50,9 +46,7 @@ static int LoadContext(GL_Context * data)
 #define __SDL_NOGETPROCADDR__
 #endif
 
-#if defined __SDL_NOGETPROCADDR__
-#define SDL_PROC(ret,func,params) data->func=func;
-#else
+
 #define SDL_PROC(ret,func,params) \
     do { \
         data->func = SDL_GL_GetProcAddress(#func); \
@@ -60,10 +54,8 @@ static int LoadContext(GL_Context * data)
             return SDL_SetError("Couldn't load GL function %s: %s\n", #func, SDL_GetError()); \
         } \
     } while ( 0 );
-#endif /* __SDL_NOGETPROCADDR__ */
+//#endif
 
-//#include "../src/render/opengl/SDL_glfuncs.h"
-//#include <SDL2/render/opengl/SDL_glfuncs.h>
 #undef SDL_PROC
     return 0;
 }
@@ -74,7 +66,6 @@ static void
 quit(int rc)
 {
     if (context) {
-        /* SDL_GL_MakeCurrent(0, NULL); *//* doesn't do anything */
         SDL_GL_DeleteContext(context);
     }
     SDLTest_CommonQuit(state);
