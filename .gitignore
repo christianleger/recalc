@@ -3,6 +3,7 @@
 build/*.exe
 
 
+build/windows/Recalc.VC.db
 build/windows/Recalc.VC.VC.opendb
 build/windows/Debug/
 build/windows/Release/
