@@ -3,13 +3,13 @@
 build/*.exe
 
 
-
 build/windows/Recalc.VC.VC.opendb
+build/windows/Debug/
 build/windows/Release/
-build/windows/Recalc/Release
 build/windows/Recalc/Debug
-build/windows/Recalc_test/Release
+build/windows/Recalc/Release
 build/windows/Recalc_test/Debug
+build/windows/Recalc_test/Release
 
 build/*.obj
 build/*/*.log

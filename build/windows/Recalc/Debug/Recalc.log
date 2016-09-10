@@ -1,4 +1,1 @@
-﻿cl : Command line warning D9007: '/Gm' requires '/Zi or /ZI'; option ignored
-  testgl2.cpp
-  Recalc.vcxproj -> D:\work\recalc\build\windows\Debug\Recalc.exe
-  Recalc.vcxproj -> D:\work\recalc\build\windows\Debug\Recalc.pdb (Partial PDB)
+﻿
