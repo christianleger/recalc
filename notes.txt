@@ -1,0 +1,14 @@
+
+[2016 09 10 11:54]
+
+Changing Visual Studio configuration. 
+
+In project Recalc properties: 
+
+- changing command from $(TargetPath) to bin/recalc.exe
+
+- changing working directory from $(ProjectDir) to $(SolutionDir)/../../../
+
+Now we can run the app where it is bundled with its runtime libs. Is this the correct 
+way to run things in Visual Studio? I don't know and I hope someone will fix this and 
+document it properly if it ever becomes necessary. 
