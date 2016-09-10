@@ -13,6 +13,9 @@ build/windows/Recalc/Release
 build/windows/Recalc_test/Debug
 build/windows/Recalc_test/Release
 
+
+build/windows/.vs
+
 build/*.obj
 build/*/*.log
 
